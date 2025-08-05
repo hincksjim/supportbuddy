@@ -28,15 +28,21 @@ export default function SupportChatPage() {
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
   const router = useRouter()
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const audioRef = useRef<HTMLAudioElement>(null);
   
   const {
     isListening,
     startListening,
     stopListening,
-    transcript,
     isSupported,
+    reset,
   } = useSpeechRecognition({
     onTranscript: (text) => setInput(text),
+    onComplete: () => {
+        if (input.trim()) {
+            handleSubmit();
+        }
+    },
     wakeWord: "hey buddy",
   });
 
@@ -55,20 +61,24 @@ export default function SupportChatPage() {
     };
     
     setMessages([initialMessage]);
-    speakMessage(initialMessage)
+    speakMessage(welcomeMessage);
 
   }, [])
 
-  const speakMessage = async (message: Message) => {
-    if (message.role === "assistant") {
-      try {
-        const result = await textToSpeech(message.content)
-        setAudioDataUri(result.audioDataUri)
-      } catch (error) {
-        console.error("Failed to generate audio for message:", error)
-      }
+  useEffect(() => {
+    if (audioRef.current && audioDataUri) {
+        audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
     }
-  }
+  }, [audioDataUri]);
+
+  const speakMessage = async (text: string) => {
+    try {
+        const result = await textToSpeech(text);
+        setAudioDataUri(result.audioDataUri);
+    } catch (error) {
+        console.error("Failed to generate audio for message:", error);
+    }
+  };
   
   const handleLogout = () => {
     if (typeof window !== "undefined") {
@@ -80,25 +90,27 @@ export default function SupportChatPage() {
 
   const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault()
-    if (!input.trim()) return
+    if (!input.trim() || isLoading) return
 
     setIsLoading(true)
     const userMessage: Message = { role: "user", content: input }
     setMessages((prev) => [...prev, userMessage])
     setInput("")
+    reset(); // Reset speech recognition state
 
     try {
       const result = await aiConversationalSupport({ question: input })
       const assistantMessage: Message = { role: "assistant", content: result.answer }
       setMessages((prev) => [...prev, assistantMessage])
-      speakMessage(assistantMessage)
+      speakMessage(result.answer)
     } catch (error) {
+      const errorMessageText = "I'm sorry, I encountered an error. Please try again."
       const errorMessage: Message = {
         role: "assistant",
-        content: "I'm sorry, I encountered an error. Please try again.",
+        content: errorMessageText,
       }
       setMessages((prev) => [...prev, errorMessage])
-      speakMessage(errorMessage)
+      speakMessage(errorMessageText)
     } finally {
       setIsLoading(false)
     }
@@ -220,7 +232,7 @@ export default function SupportChatPage() {
         </div>
       </div>
       {audioDataUri && (
-          <audio src={audioDataUri} autoPlay onEnded={() => setAudioDataUri(null)} className="hidden" />
+          <audio ref={audioRef} src={audioDataUri} onEnded={() => setAudioDataUri(null)} className="hidden" />
       )}
     </div>
   )

@@ -8,7 +8,7 @@ import { Loader2, RefreshCw } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { marked } from "marked"
 
-import { generatePersonalSummary } from "@/ai/flows/generate-personal-summary"
+import { generatePersonalSummary, SourceDocument, SourceConversation } from "@/ai/flows/generate-personal-summary"
 import type { GenerateTreatmentTimelineOutput } from "@/ai/flows/generate-treatment-timeline"
 
 interface Message {
@@ -123,13 +123,15 @@ export default function SummaryPage() {
     // Give a slight delay for the state to update, especially on manual refresh
     setTimeout(async () => {
         try {
-            const sourceDocuments = analysisData.map(a => ({
+            const sourceDocuments: SourceDocument[] = analysisData.map(a => ({
+                id: a.id,
                 title: a.title,
                 date: new Date(a.date).toLocaleDateString(),
                 analysis: a.analysis,
             }));
 
-            const sourceConversations = conversationSummaries.map(c => ({
+            const sourceConversations: SourceConversation[] = conversationSummaries.map(c => ({
+                id: c.id,
                 title: c.title,
                 date: new Date(c.date).toLocaleDateString(),
                 summary: c.summary

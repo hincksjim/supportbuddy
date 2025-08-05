@@ -30,17 +30,21 @@ const TimelineStageSchema = z.object({
 });
 
 const SourceDocumentSchema = z.object({
+    id: z.string().describe("The unique ID of the document analysis."),
     title: z.string().describe("The user-provided title for the document analysis."),
     date: z.string().describe("The date the analysis was performed."),
     analysis: z.string().describe("The AI-generated analysis of the document."),
 });
+export type SourceDocument = z.infer<typeof SourceDocumentSchema>;
+
 
 const SourceConversationSchema = z.object({
+    id: z.string().describe("The unique ID of the conversation summary."),
     title: z.string().describe("The AI-generated title for the conversation summary."),
     date: z.string().describe("The date the conversation was summarized."),
-    // Including the full message history might be too much, let's stick to the summary
     summary: z.string().describe("The AI-generated summary of the conversation."), 
 });
+export type SourceConversation = z.infer<typeof SourceConversationSchema>;
 
 
 const GeneratePersonalSummaryInputSchema = z.object({
@@ -101,19 +105,22 @@ Your primary goal is to synthesize all the information provided into a clear, or
 
 **CRITICAL INSTRUCTIONS:**
 1.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources to build the report. The source documents and conversations are a critical source of factual information.
-2.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, or a date), you **MUST** cite where you found it by referencing the source's title and date. For example: "The diagnosis of Renal Cell Carcinoma was confirmed in the 'CT Scan Results' document (from 15/07/2024)." or "The user expressed anxiety about the upcoming surgery in the conversation 'Chat about Scanxiety' (from 16/07/2024)."
+2.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, or a date), you **MUST** cite where you found it using a numbered reference marker in square brackets, like **[1]**. The number should correspond to an entry in the "Sources" section at the end of the report.
 3.  **FORMAT WITH MARKDOWN:** The entire output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes as defined in the template.
 4.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details, infer medical information you aren't given, or make predictions.
 5.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
-6.  **EXTRACT CONTACTS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, or contact details (phone numbers, etc.). Synthesize this information into a single list under the "Medical Team & Contacts" section, citing the source for each piece of contact information.
+6.  **EXTRACT CONTACTS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, or contact details (phone numbers, etc.). Synthesize this information into a single list under the "Medical Team & Contacts" section.
+7.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". In this section, you will list all the source documents and conversations you were provided. Each one should be a numbered item. You MUST use the title, date, and ID provided for each source.
 
 ---
-**AVAILABLE INFORMATION SOURCES TO USE:**
+**FIRST, REVIEW ALL AVAILABLE INFORMATION SOURCES TO USE:**
 
 **1. Source Documents (High Importance for Factual Data):**
 {{#each sourceDocuments}}
+*   **Source ID (for citation):** {{@index}}
 *   **Document Title:** "{{title}}"
 *   **Analysis Date:** {{date}}
+*   **Analysis ID:** {{id}}
 *   **Analysis Content:**
     > {{{analysis}}}
 ---
@@ -121,8 +128,10 @@ Your primary goal is to synthesize all the information provided into a clear, or
 
 **2. Source Conversations (High Importance for Context & Feelings):**
 {{#each sourceConversations}}
+*   **Source ID (for citation):** {{@index}}
 *   **Conversation Title:** "{{title}}"
 *   **Summary Date:** {{date}}
+*   **Summary ID:** {{id}}
 *   **Summary Content:**
     > {{{summary}}}
 ---
@@ -135,7 +144,7 @@ Your primary goal is to synthesize all the information provided into a clear, or
 *   User's progress on their treatment plan is available in the input.
 ---
 
-**REPORT TEMPLATE TO POPULATE:**
+**NOW, POPULATE THE REPORT TEMPLATE BELOW:**
 
 ### **Personal Summary Report**
 > **Disclaimer:** This report is a summary of the information you have provided from your chats and documents. It is for personal reference only and should not be considered a medical document. Always consult with your healthcare provider for official information and advice.
@@ -149,13 +158,13 @@ Your primary goal is to synthesize all the information provided into a clear, or
 
 ### **Medical Team & Contacts**
 *(Extract any mentioned doctors, nurses, or hospitals from ALL available data sources. If none are mentioned, state "No information provided yet.")*
-*   **Primary Consultant:** [Name, Contact Details] (Source: 'Document/Conversation Title', Date)
-*   **Specialist Nurse:** [Name, Contact Details] (Source: 'Document/Conversation Title', Date)
-*   **Hospital/Clinic for Diagnosis:** [Name] (Source: 'Document/Conversation Title', Date)
-*   **Hospital/Clinic for Treatment/Surgery:** [Name] (Source: 'Document/Conversation Title', Date)
+*   **Primary Consultant:** [Name, Contact Details] [1]
+*   **Specialist Nurse:** [Name, Contact Details] [2]
+*   **Hospital/Clinic for Diagnosis:** [Name] [1]
+*   **Hospital/Clinic for Treatment/Surgery:** [Name] [3]
 
 ### **Diagnosis & Condition Summary**
-*(Synthesize the key medical details from ALL available data sources into a concise summary. Include cancer type, stage, grade, dates, and key test results mentioned. Cite your sources for each key finding.)*
+*(Synthesize the key medical details from ALL available data sources into a concise summary. Include cancer type, stage, grade, dates, and key test results mentioned. Cite your sources for each key finding using a numbered marker like [1].)*
 
 ### **Timeline & Milestones**
 
@@ -166,6 +175,13 @@ Your primary goal is to synthesize all the information provided into a clear, or
 **Next Expected Milestone(s):**
 *(List the next 1-2 steps from the timelineData where status is 'pending'. If none, state "All timeline steps are marked complete.")*
 *   **[Step Title]:** ([Target Timeframe]) - [Description]
+
+---
+### **Sources**
+*(List all the source documents and conversations as a numbered list. Use the title, date, and ID provided for each.)*
+1.  Document: "{{sourceDocuments.[0].title}}" (Analyzed: {{sourceDocuments.[0].date}}, ID: {{sourceDocuments.[0].id}})
+2.  Conversation: "{{sourceConversations.[0].title}}" (Summarized: {{sourceConversations.[0].date}}, ID: {{sourceConversations.[0].id}})
+3.  Conversation: "{{sourceConversations.[1].title}}" (Summarized: {{sourceConversations.[1].date}}, ID: {{sourceConversations.[1].id}})
 `,
 });
 

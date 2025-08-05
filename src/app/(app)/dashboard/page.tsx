@@ -104,14 +104,19 @@ function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; chil
 function RecordVoiceNoteDialog({ onRecordingComplete }: { onRecordingComplete: (newNote: VoiceNote) => void }) {
   const [title, setTitle] = useState("");
   const [transcript, setTranscript] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const audioChunks = useRef<Blob[]>([]);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
+  const finalTranscriptRef = useRef(transcript);
+
+  // Keep a ref to the latest transcript
+  useEffect(() => {
+    finalTranscriptRef.current = transcript;
+  }, [transcript]);
+
 
   const handleStartRecording = async () => {
-    if (isRecording) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorder.current = new MediaRecorder(stream);
@@ -123,19 +128,18 @@ function RecordVoiceNoteDialog({ onRecordingComplete }: { onRecordingComplete: (
       
       mediaRecorder.current.onstop = async () => {
         setIsProcessing(true);
-        const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        
-        // The final transcript state is used here for summarization
-        if (!transcript.trim()) {
+        const currentTranscript = finalTranscriptRef.current;
+
+        if (!currentTranscript.trim()) {
            toast({ title: "No speech detected", description: "Please try recording again.", variant: "destructive" });
            setIsProcessing(false);
-           setIsRecording(false);
            return;
         }
 
         try {
-            const result = await summarizeVoiceNote({ transcript });
+            const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const result = await summarizeVoiceNote({ transcript: currentTranscript });
 
             const newNote: VoiceNote = {
               id: new Date().toISOString(),
@@ -158,7 +162,6 @@ function RecordVoiceNoteDialog({ onRecordingComplete }: { onRecordingComplete: (
       };
       
       mediaRecorder.current.start();
-      setIsRecording(true);
     } catch (err) {
       console.error("Error accessing microphone:", err);
       toast({ title: "Microphone access denied", description: "Please allow microphone access in your browser settings.", variant: "destructive" });
@@ -166,27 +169,26 @@ function RecordVoiceNoteDialog({ onRecordingComplete }: { onRecordingComplete: (
   };
 
   const handleStopRecording = () => {
-    if (mediaRecorder.current && isRecording) {
+    if (mediaRecorder.current && mediaRecorder.current.state === "recording") {
       mediaRecorder.current.stop(); // This triggers the onstop handler
-      setIsRecording(false);
     }
   };
 
   const resetState = () => {
       setTitle("");
       setTranscript("");
-      setIsRecording(false);
       setIsProcessing(false);
       audioChunks.current = [];
       if (mediaRecorder.current) {
-         mediaRecorder.current.onstop = null;
+         mediaRecorder.current.stream.getTracks().forEach(track => track.stop());
          mediaRecorder.current = null;
       }
+      finalTranscriptRef.current = "";
   }
 
   const { isListening, startListening, stopListening } = useSpeechRecognition({
       onTranscript: setTranscript,
-      onComplete: handleStopRecording,
+      onComplete: handleStopRecording, // Call media recorder stop when speech recognition completes
   });
 
   const toggleRecording = () => {
@@ -202,9 +204,16 @@ function RecordVoiceNoteDialog({ onRecordingComplete }: { onRecordingComplete: (
           startListening();     // Manages SpeechRecognition
       }
   }
+  
+  const handleSummarizeClick = () => {
+    if (isListening) {
+      stopListening(); // This should trigger the full completion chain
+    }
+  };
+
 
   return (
-    <Dialog onOpenChange={(open) => !open && resetState()}>
+    <Dialog onOpenChange={(open) => { if (!open) { if (isListening) stopListening(); resetState(); } }}>
       <DialogTrigger asChild>
          <Button>
             <Mic className="mr-2" />
@@ -221,7 +230,7 @@ function RecordVoiceNoteDialog({ onRecordingComplete }: { onRecordingComplete: (
         <div className="space-y-4">
             <div className="space-y-2">
                 <Label htmlFor="note-title">Title</Label>
-                <Input id="note-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., 'Meeting with Dr. Smith'" />
+                <Input id="note-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., 'Meeting with Dr. Smith'" disabled={isListening || isProcessing} />
             </div>
             <div className="space-y-2">
                 <Label>Recording</Label>
@@ -244,9 +253,9 @@ function RecordVoiceNoteDialog({ onRecordingComplete }: { onRecordingComplete: (
         </div>
         <DialogFooter>
             <DialogClose asChild>
-                <Button variant="ghost">Cancel</Button>
+                <Button variant="ghost" onClick={() => { if(isListening) stopListening(); }}>Cancel</Button>
             </DialogClose>
-            <Button onClick={toggleRecording} disabled={!isListening && !isRecording || isProcessing}>
+            <Button onClick={handleSummarizeClick} disabled={!isListening || isProcessing}>
                  {isProcessing ? <Loader2 className="mr-2 animate-spin" /> : <StopCircle className="mr-2" />}
                 Stop & Summarize
             </Button>
@@ -425,5 +434,3 @@ export default function DashboardPage() {
         </div>
     )
 }
-
-    

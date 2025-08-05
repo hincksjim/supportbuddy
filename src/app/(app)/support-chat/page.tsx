@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff, Save } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useState, useRef, useEffect, Suspense } from "react"
+import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff, Save, Home } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -28,7 +28,12 @@ interface ConversationSummary {
   date: string;
 }
 
-export default function SupportChatPage() {
+interface StoredConversation {
+    id: string;
+    messages: Message[];
+}
+
+function SupportChatPageContent() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -39,7 +44,9 @@ export default function SupportChatPage() {
   const [userPostcode, setUserPostcode] = useState("")
   const [buddyAvatar, setBuddyAvatar] = useState("female")
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
+  const [isHistoricChat, setIsHistoricChat] = useState(false);
   const router = useRouter()
+  const searchParams = useSearchParams();
   const { toast } = useToast()
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -58,7 +65,7 @@ export default function SupportChatPage() {
   const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault()
     const finalInput = input.trim();
-    if (!finalInput || isLoading) return
+    if (!finalInput || isLoading || isHistoricChat) return
 
     setIsLoading(true)
     const userMessage: Message = { role: "user", content: finalInput }
@@ -95,10 +102,11 @@ export default function SupportChatPage() {
   }
 
   const handleSaveSummary = async () => {
-    if (messages.length < 2) {
+    if (messages.length < 2 || isHistoricChat) {
          toast({
-            title: "Not enough conversation",
-            description: "Have a bit more of a chat before saving a summary.",
+            title: isHistoricChat ? "Cannot Save" : "Not enough conversation",
+            description: isHistoricChat ? "This is a past conversation and cannot be re-saved." : "Have a bit more of a chat before saving a summary.",
+            variant: isHistoricChat ? "destructive" : "default"
         });
         return;
     }
@@ -106,17 +114,29 @@ export default function SupportChatPage() {
     setIsSaving(true);
     try {
       const result = await generateConversationSummary({ conversationHistory: messages });
+      
+      const newSummaryId = new Date().toISOString();
+
+      // Save the summary
       const storedSummaries = localStorage.getItem("conversationSummaries");
       const summaries: ConversationSummary[] = storedSummaries ? JSON.parse(storedSummaries) : [];
-      
       const newSummary: ConversationSummary = {
-        id: new Date().toISOString(),
+        id: newSummaryId,
         date: new Date().toISOString(),
         ...result,
       };
-
       summaries.unshift(newSummary); // Add to the beginning
       localStorage.setItem("conversationSummaries", JSON.stringify(summaries));
+
+      // Save the conversation history with the same ID
+      const storedConversations = localStorage.getItem("allConversations");
+      const allConversations: StoredConversation[] = storedConversations ? JSON.parse(storedConversations) : [];
+      const newConversation: StoredConversation = {
+        id: newSummaryId,
+        messages: messages
+      };
+      allConversations.push(newConversation);
+      localStorage.setItem("allConversations", JSON.stringify(allConversations));
 
       toast({
         title: "Conversation Saved",
@@ -177,37 +197,63 @@ export default function SupportChatPage() {
     const storedGender = localStorage.getItem("userGender")
     const storedPostcode = localStorage.getItem("userPostcode")
     const storedAvatar = localStorage.getItem("buddyAvatar")
-    const storedHistory = localStorage.getItem("conversationHistory")
 
     if (storedName) setUserName(storedName)
     if (storedAge) setUserAge(storedAge)
     if (storedGender) setUserGender(storedGender)
     if (storedPostcode) setUserPostcode(storedPostcode)
     if (storedAvatar) setBuddyAvatar(storedAvatar)
+    
+    const conversationId = searchParams.get("id");
 
-    if (storedHistory) {
-      try {
-        const parsedHistory = JSON.parse(storedHistory);
-        if(Array.isArray(parsedHistory)) {
-          setMessages(parsedHistory);
+    if (conversationId) {
+        setIsHistoricChat(true);
+        const allConversationsStr = localStorage.getItem("allConversations");
+        if (allConversationsStr) {
+            try {
+                const allConversations: StoredConversation[] = JSON.parse(allConversationsStr);
+                const conversation = allConversations.find(c => c.id === conversationId);
+                if (conversation) {
+                    setMessages(conversation.messages);
+                } else {
+                     setMessages([{ role: 'assistant', content: 'Could not find the requested conversation.' }]);
+                }
+            } catch (e) {
+                console.error("Failed to parse all conversations", e);
+                setMessages([{ role: 'assistant', content: 'There was an error loading the conversation history.' }]);
+            }
+        } else {
+             setMessages([{ role: 'assistant', content: 'No past conversations found.' }]);
         }
-      } catch (e) {
-        console.error("Failed to parse conversation history", e)
-        localStorage.removeItem("conversationHistory"); // Clear corrupted history
-      }
+
     } else {
-      const welcomeMessage = `Hello ${storedName || 'there'}! I'm your Support Buddy. I'm here to listen and help you with any questions or worries you might have about your health, treatment, or well-being. Feel free to talk to me about anything at all.`
-      
-      const initialMessage: Message = {
-        role: "assistant",
-        content: welcomeMessage,
-      };
-      
-      setMessages([initialMessage]);
-      speakMessage(welcomeMessage);
+        setIsHistoricChat(false);
+        const storedHistory = localStorage.getItem("conversationHistory")
+        if (storedHistory) {
+          try {
+            const parsedHistory = JSON.parse(storedHistory);
+            if(Array.isArray(parsedHistory) && parsedHistory.length > 0) {
+              setMessages(parsedHistory);
+            } else {
+                 throw new Error("History is not valid");
+            }
+          } catch (e) {
+            console.error("Failed to parse conversation history", e)
+            localStorage.removeItem("conversationHistory"); // Clear corrupted history
+            const welcomeMessage = `Hello ${storedName || 'there'}! I'm your Support Buddy. I'm here to listen and help you with any questions or worries you might have about your health, treatment, or well-being. Feel free to talk to me about anything at all.`
+            const initialMessage: Message = { role: "assistant", content: welcomeMessage };
+            setMessages([initialMessage]);
+            speakMessage(welcomeMessage);
+          }
+        } else {
+          const welcomeMessage = `Hello ${storedName || 'there'}! I'm your Support Buddy. I'm here to listen and help you with any questions or worries you might have about your health, treatment, or well-being. Feel free to talk to me about anything at all.`
+          const initialMessage: Message = { role: "assistant", content: welcomeMessage };
+          setMessages([initialMessage]);
+          speakMessage(welcomeMessage);
+        }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [searchParams])
 
   useEffect(() => {
     if (audioRef.current && audioDataUri) {
@@ -231,18 +277,24 @@ export default function SupportChatPage() {
   
   const handleLogout = () => {
     if (typeof window !== "undefined") {
-      localStorage.clear(); // Clear all user data on logout
+      // Don't clear all data, just what's relevant to login state if needed
+      // localStorage.clear(); 
     }
     if (isListening) {
         stopListening();
     }
     router.push("/login")
   }
+  
+  const handleNewChat = () => {
+    router.push("/support-chat");
+  }
 
   const BuddyAvatarIcon = buddyAvatar === "male" ? AvatarMale : AvatarFemale;
 
   const getPlaceholderText = () => {
-    if (isListening) return "Listening... Press the mic again to stop."
+    if (isHistoricChat) return "This is a past conversation. You cannot send new messages.";
+    if (isListening) return "Listening... Press the mic again to stop.";
     return "Press the mic to speak, or type here...";
   }
 
@@ -254,7 +306,13 @@ export default function SupportChatPage() {
             <span className="font-headline">Support Buddy</span>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleSaveSummary} disabled={isSaving}>
+            {isHistoricChat && (
+                <Button variant="outline" size="sm" onClick={handleNewChat}>
+                    <Home className="mr-2 h-4 w-4" />
+                    Current Chat
+                </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={handleSaveSummary} disabled={isSaving || isHistoricChat}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save
             </Button>
@@ -336,7 +394,7 @@ export default function SupportChatPage() {
                     handleSubmit(e);
                 }
                 }}
-                disabled={isLoading}
+                disabled={isLoading || isHistoricChat}
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {isSupported && (
@@ -345,6 +403,7 @@ export default function SupportChatPage() {
                         size="icon"
                         variant={isListening ? "destructive" : "ghost"}
                         onClick={toggleListening}
+                        disabled={isHistoricChat}
                     >
                         {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                     </Button>
@@ -353,7 +412,7 @@ export default function SupportChatPage() {
                     id="chat-submit-button"
                     type="submit"
                     size="icon"
-                    disabled={isLoading || !input.trim()}
+                    disabled={isLoading || !input.trim() || isHistoricChat}
                 >
                     <CornerDownLeft className="h-4 w-4" />
                 </Button>
@@ -366,4 +425,11 @@ export default function SupportChatPage() {
   )
 }
 
-    
+
+export default function SupportChatPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <SupportChatPageContent />
+        </Suspense>
+    )
+}

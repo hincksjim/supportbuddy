@@ -99,7 +99,7 @@ function ConversationCard({ summary }: { summary: ConversationSummary }) {
             </CardHeader>
             <CardContent className="flex-1 flex flex-col justify-between">
                  <p className="text-sm text-muted-foreground line-clamp-4">{summary.summary}</p>
-                 <Link href="/support-chat" className="mt-4">
+                 <Link href={`/support-chat?id=${summary.id}`} className="mt-4">
                     <Button variant="link" className="px-0 pt-2">View conversation &rarr;</Button>
                  </Link>
             </CardContent>

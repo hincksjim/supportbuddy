@@ -32,24 +32,12 @@ export default function SupportChatPage() {
   
   const speakMessage = async (text: string) => {
     try {
-      // The speech recognition can sometimes pick up the assistant's own voice.
-      // We stop listening before we start speaking to prevent this.
-      stopListening(); 
       const result = await textToSpeech(text);
       if (result.audioDataUri) {
         setAudioDataUri(result.audioDataUri);
-      } else {
-         // if TTS fails (e.g. rate limit), restart listening immediately
-        if (isSupported && !isListening) {
-          startListening();
-        }
       }
     } catch (error) {
       console.error("Failed to generate audio for message:", error);
-      // if TTS fails, restart listening
-      if (isSupported && !isListening) {
-        startListening();
-      }
     }
   };
 
@@ -62,7 +50,6 @@ export default function SupportChatPage() {
     const userMessage: Message = { role: "user", content: finalInput }
     setMessages((prev) => [...prev, userMessage])
     setInput("")
-    reset();
 
     try {
       const result = await aiConversationalSupport({ userName, question: finalInput })
@@ -82,51 +69,37 @@ export default function SupportChatPage() {
     }
   }
 
-  const handleWakeUp = () => {
-    const greeting = { role: "assistant", content: `Hi ${userName}, I'm here!` };
-    setMessages((prev) => [...prev, greeting]);
-    speakMessage(greeting.content);
-  };
-  
-  const handleSleep = () => {
-    const goodbye = { role: "assistant", content: "Okay, I'll be here when you need me. Just say 'wakey wakey'." };
-    setMessages((prev) => [...prev, goodbye]);
-    speakMessage(goodbye.content);
-  }
-
-  // Create a ref for the form to dispatch submit event from speech hook
   const formRef = useRef<HTMLFormElement>(null);
 
   const {
     isListening,
-    isSleeping,
     startListening,
     stopListening,
     isSupported,
-    reset,
-    isListeningForWakeWord,
   } = useSpeechRecognition({
     onTranscript: (text) => setInput(text),
     onComplete: () => {
-        // Use a ref to get the latest input value in the callback
         if (formRef.current) {
-            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-            formRef.current.dispatchEvent(submitEvent);
+            // The state `input` might be stale in this callback.
+            // We get the latest value from the event and check it.
+            // If there's text, we dispatch a submit event.
+             const formData = new FormData(formRef.current);
+             const currentInput = formData.get('input-textarea') as string;
+             if (currentInput && currentInput.trim()) {
+                const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                formRef.current.dispatchEvent(submitEvent);
+             }
         }
     },
-    wakeWord: "hey buddy",
-    onWakeUp: handleWakeUp,
-    onSleep: handleSleep,
   });
 
-  // Automatically start listening when the component mounts
-  useEffect(() => {
-    if (isSupported) {
-      startListening();
+  const toggleListening = () => {
+    if (isListening) {
+        stopListening();
+    } else {
+        startListening();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSupported]);
-
+  }
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName")
@@ -149,23 +122,18 @@ export default function SupportChatPage() {
 
   useEffect(() => {
     if (audioRef.current && audioDataUri) {
+      // While assistant is speaking, stop listening to avoid feedback loops.
+      if (isListening) {
+        stopListening();
+      }
       audioRef.current.src = audioDataUri;
-      audioRef.current.play().catch(e => {
-        console.error("Audio playback failed:", e)
-        // if playback fails, restart listening
-        if (isSupported && !isListening) {
-          startListening();
-        }
-      });
+      audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioDataUri]);
   
   const handleAudioEnded = () => {
     setAudioDataUri(null);
-    if (isSupported && !isListening) {
-      startListening();
-    }
   };
   
   const handleLogout = () => {
@@ -173,7 +141,9 @@ export default function SupportChatPage() {
       localStorage.removeItem("userName")
       localStorage.removeItem("buddyAvatar")
     }
-    stopListening();
+    if (isListening) {
+        stopListening();
+    }
     router.push("/login")
   }
 
@@ -187,14 +157,8 @@ export default function SupportChatPage() {
   const BuddyAvatarIcon = buddyAvatar === "male" ? AvatarMale : AvatarFemale;
 
   const getPlaceholderText = () => {
-    if (isSleeping) return "Buddy is sleeping. Say 'wakey wakey' to start.";
-    if (isListening) {
-        if (isListeningForWakeWord) {
-             return "Say 'hey buddy' to start..."
-        }
-        return "Listening...";
-    }
-    return "Click the mic to start listening.";
+    if (isListening) return "Listening... Press the mic to stop."
+    return "Press the mic to speak, or type here...";
   }
 
   return (
@@ -270,6 +234,7 @@ export default function SupportChatPage() {
             className="relative"
             >
             <Textarea
+                name="input-textarea"
                 placeholder={getPlaceholderText()}
                 className="pr-20 resize-none"
                 value={input}
@@ -288,7 +253,7 @@ export default function SupportChatPage() {
                         type="button"
                         size="icon"
                         variant={isListening ? "destructive" : "ghost"}
-                        onClick={isListening ? stopListening : startListening}
+                        onClick={toggleListening}
                     >
                         {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                     </Button>

@@ -47,9 +47,9 @@ const prompt = ai.definePrompt({
 
 **Output Formatting Rules (MUST FOLLOW):**
 *   Use Markdown for formatting.
-*   Use headings (`##` or `###`) for each major stage (e.g., `## Diagnosis Stage`, `## Treatment Stage`).
-*   Use bullet points (`*`) or numbered lists (`1.`) for steps within each stage.
-*   Use bold (`**text**`) for key terms.
+*   Use headings (\`##\` or \`###\`) for each major stage (e.g., \`## Diagnosis Stage\`, \`## Treatment Stage\`).
+*   Use bullet points (\`*\`) or numbered lists (\`1.\`) for steps within each stage.
+*   Use bold (\`**text**\`) for key terms.
 
 **Example Structure:**
 ---

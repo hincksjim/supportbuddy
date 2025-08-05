@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -84,6 +85,7 @@ const prompt = ai.definePrompt({
 2.  **FORMAT WITH MARKDOWN:** The entire output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes to structure the information logically.
 3.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details, infer medical information you aren't given, or make predictions.
 4.  **PRIVACY DISCLAIMER:** Start the report with a clear disclaimer about privacy and accuracy.
+5.  **EXTRACT CONTACTS:** Scour the conversation history for any mention of doctor names, nurse names, hospital names, or contact details (phone numbers, etc.).
 
 **REPORT STRUCTURE (Must follow this format):**
 

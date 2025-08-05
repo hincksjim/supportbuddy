@@ -10,6 +10,8 @@ import { marked } from "marked"
 
 import { generatePersonalSummary, SourceDocument, SourceConversation } from "@/ai/flows/generate-personal-summary"
 import type { GenerateTreatmentTimelineOutput } from "@/ai/flows/generate-treatment-timeline"
+import { DiaryEntry } from "@/app/(app)/diary/page"
+import { DiaryChart } from "@/components/diary-chart"
 
 interface Message {
   role: "user" | "assistant"
@@ -50,6 +52,7 @@ export default function SummaryPage() {
   const [timelineData, setTimelineData] = useState<TimelineData | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisResult[]>([])
   const [conversationSummaries, setConversationSummaries] = useState<ConversationSummary[]>([])
+  const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([])
 
   // Load all necessary data from localStorage
   const loadPrerequisites = () => {
@@ -89,6 +92,12 @@ export default function SummaryPage() {
       const storedSummaries = localStorage.getItem("conversationSummaries");
       if (storedSummaries) {
         setConversationSummaries(JSON.parse(storedSummaries));
+      }
+
+      // Diary Entries
+      const storedDiaryEntries = localStorage.getItem("diaryEntries");
+      if (storedDiaryEntries) {
+          setDiaryEntries(JSON.parse(storedDiaryEntries));
       }
 
 
@@ -179,6 +188,18 @@ export default function SummaryPage() {
           Refresh Report
         </Button>
       </div>
+
+       {diaryEntries.length > 1 && (
+         <Card>
+            <CardHeader>
+                <CardTitle>Wellness Trends</CardTitle>
+                <CardDescription>A chart of your mood and weight over time from your diary.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <DiaryChart data={diaryEntries} />
+            </CardContent>
+         </Card>
+      )}
 
       <Card>
         <CardContent className="pt-6">

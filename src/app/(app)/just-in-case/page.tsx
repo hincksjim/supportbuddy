@@ -28,7 +28,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-interface CaseDocument {
+interface GoodbyeDocument {
   id: string
   title: string
   fileDataUri: string
@@ -37,7 +37,7 @@ interface CaseDocument {
   date: string
 }
 
-function UploadCaseDocumentDialog({ onDocumentComplete }: { onDocumentComplete: (newDoc: CaseDocument) => void }) {
+function UploadGoodbyeDocumentDialog({ onDocumentComplete }: { onDocumentComplete: (newDoc: GoodbyeDocument) => void }) {
   const [file, setFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [title, setTitle] = useState("")
@@ -70,7 +70,7 @@ function UploadCaseDocumentDialog({ onDocumentComplete }: { onDocumentComplete: 
       reader.onload = async () => {
         const documentDataUri = reader.result as string
 
-        const newDoc: CaseDocument = {
+        const newDoc: GoodbyeDocument = {
           id: new Date().toISOString(),
           title,
           fileDataUri: documentDataUri,
@@ -82,7 +82,7 @@ function UploadCaseDocumentDialog({ onDocumentComplete }: { onDocumentComplete: 
         onDocumentComplete(newDoc)
         setIsLoading(false)
         
-        document.getElementById('close-upload-casedoc-dialog')?.click()
+        document.getElementById('close-upload-goodbyedoc-dialog')?.click()
 
         setFile(null)
         setTitle("")
@@ -112,7 +112,7 @@ function UploadCaseDocumentDialog({ onDocumentComplete }: { onDocumentComplete: 
       <DialogContent className="sm:max-w-[525px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Add a "Just in Case" Document</DialogTitle>
+            <DialogTitle>Add a "Goodbye" Document</DialogTitle>
             <DialogDescription>
               Upload an important document like a will or power of attorney. This is stored securely on your device.
             </DialogDescription>
@@ -161,7 +161,7 @@ function UploadCaseDocumentDialog({ onDocumentComplete }: { onDocumentComplete: 
                   "Save Document"
                 )}
               </Button>
-              <DialogClose id="close-upload-casedoc-dialog" className="hidden" />
+              <DialogClose id="close-upload-goodbyedoc-dialog" className="hidden" />
           </CardFooter>
         </form>
       </DialogContent>
@@ -169,7 +169,7 @@ function UploadCaseDocumentDialog({ onDocumentComplete }: { onDocumentComplete: 
   )
 }
 
-function ViewCaseDocumentDialog({ doc, children }: { doc: CaseDocument; children: React.ReactNode }) {
+function ViewGoodbyeDocumentDialog({ doc, children }: { doc: GoodbyeDocument; children: React.ReactNode }) {
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -199,8 +199,8 @@ function ViewCaseDocumentDialog({ doc, children }: { doc: CaseDocument; children
   )
 }
 
-export default function JustInCasePage() {
-  const [documents, setDocuments] = useState<CaseDocument[]>([])
+export default function GoodbyePage() {
+  const [documents, setDocuments] = useState<GoodbyeDocument[]>([])
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
@@ -211,7 +211,7 @@ export default function JustInCasePage() {
   useEffect(() => {
     if (!currentUserEmail) return;
     try {
-      const storedDocs = localStorage.getItem(`justInCaseDocs_${currentUserEmail}`)
+      const storedDocs = localStorage.getItem(`goodbyeDocs_${currentUserEmail}`)
       if (storedDocs) {
         setDocuments(JSON.parse(storedDocs))
       }
@@ -220,12 +220,12 @@ export default function JustInCasePage() {
     }
   }, [currentUserEmail])
 
-  const handleNewDocument = (newDoc: CaseDocument) => {
+  const handleNewDocument = (newDoc: GoodbyeDocument) => {
     if (!currentUserEmail) return;
     const updatedDocs = [newDoc, ...documents]
     setDocuments(updatedDocs)
     try {
-      localStorage.setItem(`justInCaseDocs_${currentUserEmail}`, JSON.stringify(updatedDocs))
+      localStorage.setItem(`goodbyeDocs_${currentUserEmail}`, JSON.stringify(updatedDocs))
     } catch (error) {
       console.error("Could not save documents to localStorage", error)
     }
@@ -235,7 +235,7 @@ export default function JustInCasePage() {
     if (!currentUserEmail) return;
     const updatedDocs = documents.filter(r => r.id !== id);
     setDocuments(updatedDocs);
-    localStorage.setItem(`justInCaseDocs_${currentUserEmail}`, JSON.stringify(updatedDocs));
+    localStorage.setItem(`goodbyeDocs_${currentUserEmail}`, JSON.stringify(updatedDocs));
   }
 
 
@@ -243,7 +243,7 @@ export default function JustInCasePage() {
     <div className="p-4 md:p-6 space-y-8">
       <div className="flex items-center justify-between">
         <div>
-            <h1 className="text-3xl font-bold font-headline">Just in Case</h1>
+            <h1 className="text-3xl font-bold font-headline">Goodbye</h1>
             <p className="text-muted-foreground">
             A private space for your most important documents.
             </p>
@@ -269,7 +269,7 @@ export default function JustInCasePage() {
       {documents.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {documents.map((doc) => (
-            <ViewCaseDocumentDialog key={doc.id} doc={doc}>
+            <ViewGoodbyeDocumentDialog key={doc.id} doc={doc}>
               <Card className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col h-full relative group">
                 <CardHeader className="flex-shrink-0">
                   <div className="relative aspect-[1.4/1] w-full rounded-md overflow-hidden border">
@@ -298,7 +298,7 @@ export default function JustInCasePage() {
                     <span className="sr-only">Delete</span>
                 </Button>
               </Card>
-            </ViewCaseDocumentDialog>
+            </ViewGoodbyeDocumentDialog>
           ))}
         </div>
       ) : (
@@ -308,7 +308,9 @@ export default function JustInCasePage() {
         </div>
       )}
 
-      <UploadCaseDocumentDialog onDocumentComplete={handleNewDocument} />
+      <UploadGoodbyeDocumentDialog onDocumentComplete={handleNewDocument} />
     </div>
   )
 }
+
+    

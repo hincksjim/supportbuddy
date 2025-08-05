@@ -15,7 +15,7 @@ const navItems = [
   { href: "/summary", icon: FileText, label: "Summary" },
   { href: "/diary", icon: Notebook, label: "Diary" },
   { href: "/finance", icon: Landmark, label: "Finance" },
-  { href: "/just-in-case", icon: ShieldCheck, label: "Just in Case"},
+  { href: "/just-in-case", icon: ShieldCheck, label: "Goodbye"},
 ]
 
 export function AppShell() {
@@ -59,3 +59,5 @@ export function AppShell() {
     </nav>
   )
 }
+
+    

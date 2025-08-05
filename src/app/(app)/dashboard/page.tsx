@@ -89,17 +89,17 @@ function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; chil
 
 function ConversationCard({ summary }: { summary: ConversationSummary }) {
     return (
-        <Card>
+        <Card className="flex flex-col h-full">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl">
+                <CardTitle className="flex items-center gap-2 text-lg">
                     <MessageSquare className="w-5 h-5 text-primary" />
                     {summary.title}
                 </CardTitle>
                 <CardDescription>{new Date(summary.date).toLocaleDateString()}</CardDescription>
             </CardHeader>
-            <CardContent>
-                 <p className="text-sm text-muted-foreground line-clamp-3">{summary.summary}</p>
-                 <Link href="/support-chat">
+            <CardContent className="flex-1 flex flex-col justify-between">
+                 <p className="text-sm text-muted-foreground line-clamp-4">{summary.summary}</p>
+                 <Link href="/support-chat" className="mt-4">
                     <Button variant="link" className="px-0 pt-2">View conversation &rarr;</Button>
                  </Link>
             </CardContent>

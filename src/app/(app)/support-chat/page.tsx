@@ -100,7 +100,13 @@ export default function SupportChatPage() {
     if (audioRef.current && audioDataUri) {
       stopListening();
       audioRef.current.src = audioDataUri;
-      audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+      audioRef.current.play().catch(e => {
+        console.error("Audio playback failed:", e)
+        // if playback fails, restart listening
+        if (isSupported && !isListening) {
+          startListening();
+        }
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioDataUri]);
@@ -288,3 +294,5 @@ export default function SupportChatPage() {
     </div>
   )
 }
+
+    

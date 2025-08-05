@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { FileUp, Loader2, PlusCircle, FileText, X, ShieldCheck } from "lucide-react"
+import { FileUp, Loader2, PlusCircle, FileText, X, ShieldCheck, Info } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -249,6 +249,14 @@ export default function JustInCasePage() {
             </p>
         </div>
       </div>
+
+      <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Planning for the Future</AlertTitle>
+          <AlertDescription>
+           While cancer treatments improve daily, sometimes no matter what treatment you receive, the cancer will win. This section is to help you plan for the end if you are deemed terminal, and helps you take control on what will happen in the end.
+          </AlertDescription>
+      </Alert>
 
        <Alert variant="destructive">
           <ShieldCheck className="h-4 w-4" />

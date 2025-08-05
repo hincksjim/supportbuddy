@@ -232,32 +232,41 @@ function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; chil
 
 export default function DocumentAnalysisPage() {
   const [results, setResults] = useState<AnalysisResult[]>([])
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const email = localStorage.getItem("currentUserEmail");
+    setCurrentUserEmail(email);
+  }, []);
   
   useEffect(() => {
+    if (!currentUserEmail) return;
     try {
-      const storedResults = localStorage.getItem("analysisResults")
+      const storedResults = localStorage.getItem(`analysisResults_${currentUserEmail}`)
       if (storedResults) {
         setResults(JSON.parse(storedResults))
       }
     } catch (error) {
       console.error("Could not load analysis results from localStorage", error)
     }
-  }, [])
+  }, [currentUserEmail])
 
   const handleNewAnalysis = (newAnalysis: AnalysisResult) => {
+    if (!currentUserEmail) return;
     const updatedResults = [newAnalysis, ...results]
     setResults(updatedResults)
     try {
-      localStorage.setItem("analysisResults", JSON.stringify(updatedResults))
+      localStorage.setItem(`analysisResults_${currentUserEmail}`, JSON.stringify(updatedResults))
     } catch (error) {
       console.error("Could not save analysis results to localStorage", error)
     }
   }
 
   const handleDelete = (id: string) => {
+    if (!currentUserEmail) return;
     const updatedResults = results.filter(r => r.id !== id);
     setResults(updatedResults);
-    localStorage.setItem("analysisResults", JSON.stringify(updatedResults));
+    localStorage.setItem(`analysisResults_${currentUserEmail}`, JSON.stringify(updatedResults));
   }
 
 

@@ -24,11 +24,19 @@ export default function LoginPage() {
     // In a real app, you'd handle authentication here.
     // We'll just simulate success and navigate.
     const formData = new FormData(e.currentTarget)
-    const email = formData.get("email") as string
-    // A real app would get the name from a database. We'll derive it from the email for the demo.
-    const name = email.split('@')[0]
+    const email = formData.get("email") as string;
+    
     if (typeof window !== "undefined") {
-      localStorage.setItem("userName", name || "User")
+      localStorage.setItem("currentUserEmail", email);
+      // For simplicity, we'll check if user data exists. If not, maybe they need to sign up.
+      // In a real app, this would be a backend check.
+      const userData = localStorage.getItem(`userData_${email}`);
+      if (!userData) {
+          // If no data exists, we pre-populate some basics from the email.
+          const name = email.split('@')[0] || "User";
+          const newUser = { name };
+          localStorage.setItem(`userData_${email}`, JSON.stringify(newUser));
+      }
     }
     router.push("/support-chat")
   }

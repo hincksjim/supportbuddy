@@ -29,11 +29,18 @@ export default function TimelinePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [conversationHistory, setConversationHistory] = useState<Message[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const email = localStorage.getItem("currentUserEmail");
+    setCurrentUserEmail(email);
+  }, []);
 
   const loadData = () => {
+    if (!currentUserEmail) return;
     try {
       // Load conversation history
-      const storedHistory = localStorage.getItem("conversationHistory")
+      const storedHistory = localStorage.getItem(`conversationHistory_${currentUserEmail}`)
       if (storedHistory) {
         const parsedHistory = JSON.parse(storedHistory)
         if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
@@ -41,7 +48,7 @@ export default function TimelinePage() {
         }
       }
       // Load saved timeline
-      const storedTimeline = localStorage.getItem("treatmentTimeline")
+      const storedTimeline = localStorage.getItem(`treatmentTimeline_${currentUserEmail}`)
       if (storedTimeline) {
         setTimelineData(JSON.parse(storedTimeline))
       }
@@ -52,12 +59,15 @@ export default function TimelinePage() {
   }
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (currentUserEmail) {
+        loadData()
+    }
+  }, [currentUserEmail])
   
   const saveTimeline = (data: TimelineData) => {
+      if (!currentUserEmail) return;
       try {
-          localStorage.setItem("treatmentTimeline", JSON.stringify(data));
+          localStorage.setItem(`treatmentTimeline_${currentUserEmail}`, JSON.stringify(data));
       } catch (e) {
           console.error("Failed to save timeline to localStorage", e);
           setError("Could not save your timeline progress.");

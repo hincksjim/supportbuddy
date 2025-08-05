@@ -33,18 +33,24 @@ interface StoredConversation {
     messages: Message[];
 }
 
+interface UserData {
+  name?: string;
+  age?: string;
+  gender?: string;
+  postcode?: string;
+  avatar?: 'male' | 'female';
+}
+
 function SupportChatPageContent() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [userName, setUserName] = useState("User")
-  const [userAge, setUserAge] = useState("")
-  const [userGender, setUserGender] = useState("")
-  const [userPostcode, setUserPostcode] = useState("")
-  const [buddyAvatar, setBuddyAvatar] = useState("female")
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [userData, setUserData] = useState<UserData>({});
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
   const [isHistoricChat, setIsHistoricChat] = useState(false);
+  
   const router = useRouter()
   const searchParams = useSearchParams();
   const { toast } = useToast()
@@ -65,7 +71,7 @@ function SupportChatPageContent() {
   const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault()
     const finalInput = input.trim();
-    if (!finalInput || isLoading || isHistoricChat) return
+    if (!finalInput || isLoading || isHistoricChat || !currentUserEmail) return
 
     setIsLoading(true)
     const userMessage: Message = { role: "user", content: finalInput }
@@ -75,17 +81,17 @@ function SupportChatPageContent() {
 
     try {
       const result = await aiConversationalSupport({ 
-        userName, 
-        age: userAge,
-        gender: userGender,
-        postcode: userPostcode,
+        userName: userData.name || "User", 
+        age: userData.age || "",
+        gender: userData.gender || "",
+        postcode: userData.postcode || "",
         conversationHistory: messages,
         question: finalInput 
       })
       const assistantMessage: Message = { role: "assistant", content: result.answer }
       const finalMessages = [...newMessages, assistantMessage];
       setMessages(finalMessages)
-      localStorage.setItem("conversationHistory", JSON.stringify(finalMessages));
+      localStorage.setItem(`conversationHistory_${currentUserEmail}`, JSON.stringify(finalMessages));
       await speakMessage(result.answer)
     } catch (error) {
       console.error("Error from AI support flow: ", error)
@@ -102,7 +108,7 @@ function SupportChatPageContent() {
   }
 
   const handleSaveSummary = async () => {
-    if (messages.length < 2 || isHistoricChat) {
+    if (!currentUserEmail || messages.length < 2 || isHistoricChat) {
          toast({
             title: isHistoricChat ? "Cannot Save" : "Not enough conversation",
             description: isHistoricChat ? "This is a past conversation and cannot be re-saved." : "Have a bit more of a chat before saving a summary.",
@@ -118,25 +124,27 @@ function SupportChatPageContent() {
       const newSummaryId = new Date().toISOString();
 
       // Save the summary
-      const storedSummaries = localStorage.getItem("conversationSummaries");
+      const summariesKey = `conversationSummaries_${currentUserEmail}`;
+      const storedSummaries = localStorage.getItem(summariesKey);
       const summaries: ConversationSummary[] = storedSummaries ? JSON.parse(storedSummaries) : [];
       const newSummary: ConversationSummary = {
         id: newSummaryId,
         date: new Date().toISOString(),
         ...result,
       };
-      summaries.unshift(newSummary); // Add to the beginning
-      localStorage.setItem("conversationSummaries", JSON.stringify(summaries));
+      summaries.unshift(newSummary);
+      localStorage.setItem(summariesKey, JSON.stringify(summaries));
 
       // Save the conversation history with the same ID
-      const storedConversations = localStorage.getItem("allConversations");
+      const allConversationsKey = `allConversations_${currentUserEmail}`;
+      const storedConversations = localStorage.getItem(allConversationsKey);
       const allConversations: StoredConversation[] = storedConversations ? JSON.parse(storedConversations) : [];
       const newConversation: StoredConversation = {
         id: newSummaryId,
         messages: messages
       };
       allConversations.push(newConversation);
-      localStorage.setItem("allConversations", JSON.stringify(allConversations));
+      localStorage.setItem(allConversationsKey, JSON.stringify(allConversations));
 
       toast({
         title: "Conversation Saved",
@@ -162,8 +170,6 @@ function SupportChatPageContent() {
   
   const handleComplete = () => {
     // We submit the form directly in stopListening's onend callback
-    // This allows the user to finish speaking naturally.
-    // handleSubmit will be triggered via form.requestSubmit()
   };
 
   const {
@@ -179,36 +185,39 @@ function SupportChatPageContent() {
   const toggleListening = () => {
     if (isListening) {
         stopListening();
-        // Submit the form once recognition stops and transcript is final
-        // We use a small delay to ensure the final transcript is set
         setTimeout(() => {
           const form = document.getElementById("chat-form") as HTMLFormElement;
           form?.requestSubmit();
         }, 100);
     } else {
-        setInput(""); // Clear input before starting
+        setInput("");
         startListening();
     }
   }
 
   useEffect(() => {
-    const storedName = localStorage.getItem("userName")
-    const storedAge = localStorage.getItem("userAge")
-    const storedGender = localStorage.getItem("userGender")
-    const storedPostcode = localStorage.getItem("userPostcode")
-    const storedAvatar = localStorage.getItem("buddyAvatar")
+    const email = localStorage.getItem("currentUserEmail");
+    setCurrentUserEmail(email);
 
-    if (storedName) setUserName(storedName)
-    if (storedAge) setUserAge(storedAge)
-    if (storedGender) setUserGender(storedGender)
-    if (storedPostcode) setUserPostcode(storedPostcode)
-    if (storedAvatar) setBuddyAvatar(storedAvatar)
-    
+    if (email) {
+      const storedData = localStorage.getItem(`userData_${email}`);
+      if (storedData) {
+        setUserData(JSON.parse(storedData));
+      }
+    } else {
+      router.push("/login");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
+  
+  useEffect(() => {
+    if (!currentUserEmail) return;
+
     const conversationId = searchParams.get("id");
 
     if (conversationId) {
         setIsHistoricChat(true);
-        const allConversationsStr = localStorage.getItem("allConversations");
+        const allConversationsStr = localStorage.getItem(`allConversations_${currentUserEmail}`);
         if (allConversationsStr) {
             try {
                 const allConversations: StoredConversation[] = JSON.parse(allConversationsStr);
@@ -228,7 +237,7 @@ function SupportChatPageContent() {
 
     } else {
         setIsHistoricChat(false);
-        const storedHistory = localStorage.getItem("conversationHistory")
+        const storedHistory = localStorage.getItem(`conversationHistory_${currentUserEmail}`)
         if (storedHistory) {
           try {
             const parsedHistory = JSON.parse(storedHistory);
@@ -239,21 +248,21 @@ function SupportChatPageContent() {
             }
           } catch (e) {
             console.error("Failed to parse conversation history", e)
-            localStorage.removeItem("conversationHistory"); // Clear corrupted history
-            const welcomeMessage = `Hello ${storedName || 'there'}! I'm your Support Buddy. I'm here to listen and help you with any questions or worries you might have about your health, treatment, or well-being. Feel free to talk to me about anything at all.`
+            localStorage.removeItem(`conversationHistory_${currentUserEmail}`);
+            const welcomeMessage = `Hello ${userData.name || 'there'}! I'm your Support Buddy. I'm here to listen and help you with any questions or worries you might have about your health, treatment, or well-being. Feel free to talk to me about anything at all.`
             const initialMessage: Message = { role: "assistant", content: welcomeMessage };
             setMessages([initialMessage]);
             speakMessage(welcomeMessage);
           }
         } else {
-          const welcomeMessage = `Hello ${storedName || 'there'}! I'm your Support Buddy. I'm here to listen and help you with any questions or worries you might have about your health, treatment, or well-being. Feel free to talk to me about anything at all.`
+          const welcomeMessage = `Hello ${userData.name || 'there'}! I'm your Support Buddy. I'm here to listen and help you with any questions or worries you might have about your health, treatment, or well-being. Feel free to talk to me about anything at all.`
           const initialMessage: Message = { role: "assistant", content: welcomeMessage };
           setMessages([initialMessage]);
           speakMessage(welcomeMessage);
         }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
+  }, [currentUserEmail, searchParams, userData.name]);
 
   useEffect(() => {
     if (audioRef.current && audioDataUri) {
@@ -276,21 +285,22 @@ function SupportChatPageContent() {
   };
   
   const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      // Don't clear all data, just what's relevant to login state if needed
-      // localStorage.clear(); 
-    }
     if (isListening) {
         stopListening();
     }
+    // Only clear the current user email, not all of localStorage
+    localStorage.removeItem("currentUserEmail");
     router.push("/login")
   }
   
   const handleNewChat = () => {
+    if (currentUserEmail) {
+        localStorage.removeItem(`conversationHistory_${currentUserEmail}`);
+    }
     router.push("/support-chat");
   }
 
-  const BuddyAvatarIcon = buddyAvatar === "male" ? AvatarMale : AvatarFemale;
+  const BuddyAvatarIcon = userData.avatar === "male" ? AvatarMale : AvatarFemale;
 
   const getPlaceholderText = () => {
     if (isHistoricChat) return "This is a past conversation. You cannot send new messages.";

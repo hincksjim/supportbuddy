@@ -38,26 +38,38 @@ interface ConversationSummary {
 
 type TimelineData = GenerateTreatmentTimelineOutput;
 
+interface UserData {
+  name?: string;
+  age?: string;
+  gender?: string;
+  postcode?: string;
+}
+
 export default function SummaryPage() {
   const [report, setReport] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isChartLoading, setIsChartLoading] = useState(false);
   const [error, setError] = useState<string | null>(null)
   
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  
   // State to hold all the data needed for the report
-  const [userName, setUserName] = useState("User")
-  const [userAge, setUserAge] = useState("")
-  const [userGender, setUserGender] = useState("")
-  const [userPostcode, setUserPostcode] = useState("")
+  const [userData, setUserData] = useState<UserData>({});
   const [conversationHistory, setConversationHistory] = useState<Message[]>([])
   const [timelineData, setTimelineData] = useState<TimelineData | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisResult[]>([])
   const [conversationSummaries, setConversationSummaries] = useState<ConversationSummary[]>([])
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([])
 
+  useEffect(() => {
+    const email = localStorage.getItem("currentUserEmail");
+    setCurrentUserEmail(email);
+  }, []);
+
   const loadDiaryEntries = () => {
+      if (!currentUserEmail) return;
        try {
-            const storedDiaryEntries = localStorage.getItem("diaryEntries");
+            const storedDiaryEntries = localStorage.getItem(`diaryEntries_${currentUserEmail}`);
             if (storedDiaryEntries) {
                 setDiaryEntries(JSON.parse(storedDiaryEntries));
             }
@@ -69,19 +81,16 @@ export default function SummaryPage() {
 
   // Load all necessary data from localStorage
   const loadPrerequisites = () => {
+    if (!currentUserEmail) return;
     try {
-      // User Details
-      const storedName = localStorage.getItem("userName");
-      const storedAge = localStorage.getItem("userAge");
-      const storedGender = localStorage.getItem("userGender");
-      const storedPostcode = localStorage.getItem("userPostcode");
-      if (storedName) setUserName(storedName);
-      if (storedAge) setUserAge(storedAge);
-      if (storedGender) setUserGender(storedGender);
-      if (storedPostcode) setUserPostcode(storedPostcode);
+      // User Details from the single user data object
+      const storedUserData = localStorage.getItem(`userData_${currentUserEmail}`);
+      if (storedUserData) {
+          setUserData(JSON.parse(storedUserData));
+      }
       
       // Conversation History (primary source)
-      const storedHistory = localStorage.getItem("conversationHistory");
+      const storedHistory = localStorage.getItem(`conversationHistory_${currentUserEmail}`);
       if (storedHistory) {
         const parsedHistory = JSON.parse(storedHistory);
         if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
@@ -90,19 +99,19 @@ export default function SummaryPage() {
       }
       
       // Timeline Data
-      const storedTimeline = localStorage.getItem("treatmentTimeline");
+      const storedTimeline = localStorage.getItem(`treatmentTimeline_${currentUserEmail}`);
       if (storedTimeline) {
         setTimelineData(JSON.parse(storedTimeline));
       }
 
       // Analysis Data
-      const storedAnalyses = localStorage.getItem("analysisResults");
+      const storedAnalyses = localStorage.getItem(`analysisResults_${currentUserEmail}`);
       if (storedAnalyses) {
         setAnalysisData(JSON.parse(storedAnalyses));
       }
       
       // Conversation Summaries
-      const storedSummaries = localStorage.getItem("conversationSummaries");
+      const storedSummaries = localStorage.getItem(`conversationSummaries_${currentUserEmail}`);
       if (storedSummaries) {
         setConversationSummaries(JSON.parse(storedSummaries));
       }
@@ -117,24 +126,25 @@ export default function SummaryPage() {
   }
   
   useEffect(() => {
-    loadPrerequisites();
-    const savedReport = localStorage.getItem("personalSummaryReport");
-    if (savedReport) {
-        setReport(savedReport);
-    } else {
-        // Automatically generate the report on first load if none is cached
-        handleGenerateReport(true);
+    if (currentUserEmail) {
+        loadPrerequisites();
+        const savedReport = localStorage.getItem(`personalSummaryReport_${currentUserEmail}`);
+        if (savedReport) {
+            setReport(savedReport);
+        } else {
+            handleGenerateReport(true);
+        }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentUserEmail]);
 
   const handleGenerateReport = async (isInitialLoad = false) => {
+    if (!currentUserEmail) return;
+
     if (!isInitialLoad) {
-        // Always get the freshest data before a manual refresh
         loadPrerequisites();
     }
     
-    // We need at least some data to generate a report
     if (conversationHistory.length < 1 && analysisData.length < 1 && conversationSummaries.length < 1 && isInitialLoad) {
         setError("You need to have a conversation or analyze a document first to generate a summary report.");
         return
@@ -143,7 +153,6 @@ export default function SummaryPage() {
     setIsLoading(true);
     setError(null);
 
-    // Give a slight delay for the state to update, especially on manual refresh
     setTimeout(async () => {
         try {
             const sourceDocuments: SourceDocument[] = analysisData.map(a => ({
@@ -161,30 +170,29 @@ export default function SummaryPage() {
             }));
 
             const result = await generatePersonalSummary({
-                userName,
-                age: userAge,
-                gender: userGender,
-                postcode: userPostcode,
+                userName: userData.name || "User",
+                age: userData.age || "",
+                gender: userData.gender || "",
+                postcode: userData.postcode || "",
                 conversationHistory,
                 timelineData,
                 sourceDocuments,
                 sourceConversations
             });
             setReport(result.report);
-            localStorage.setItem("personalSummaryReport", result.report); // Save to localStorage
+            localStorage.setItem(`personalSummaryReport_${currentUserEmail}`, result.report);
         } catch (err) {
             console.error("Failed to generate report:", err);
             setError("Sorry, there was an error generating your report. Please try again.");
         } finally {
             setIsLoading(false);
         }
-    }, 100); // 100ms delay
+    }, 100); 
   }
 
   const handleRefreshCharts = () => {
     setIsChartLoading(true);
     loadDiaryEntries();
-    // Simulate a short delay for user feedback
     setTimeout(() => setIsChartLoading(false), 300);
   }
 
@@ -309,5 +317,3 @@ export default function SummaryPage() {
     </div>
   )
 }
-
-    

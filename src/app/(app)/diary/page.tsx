@@ -349,15 +349,24 @@ function DiaryEntryCard({ entry, onSave }: { entry: DiaryEntry; onSave: (entry: 
 
 export default function DiaryPage() {
     const [entries, setEntries] = useState<DiaryEntry[]>([]);
+    const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+
+     useEffect(() => {
+        const email = localStorage.getItem("currentUserEmail");
+        setCurrentUserEmail(email);
+    }, []);
 
     const loadEntries = () => {
+        if (!currentUserEmail) return;
         try {
-            const storedEntries = localStorage.getItem("diaryEntries");
+            const storedEntries = localStorage.getItem(`diaryEntries_${currentUserEmail}`);
             if (storedEntries) {
                 const parsedEntries: DiaryEntry[] = JSON.parse(storedEntries);
                 // Sort by date descending
                 parsedEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                 setEntries(parsedEntries);
+            } else {
+                setEntries([]);
             }
         } catch (error) {
             console.error("Could not load diary entries from localStorage", error);
@@ -365,11 +374,16 @@ export default function DiaryPage() {
     }
 
     useEffect(() => {
-        loadEntries();
-    }, []);
+        if (currentUserEmail) {
+            loadEntries();
+        }
+    }, [currentUserEmail]);
 
     const handleSaveEntry = (entry: DiaryEntry) => {
-        const storedEntries = localStorage.getItem("diaryEntries");
+        if (!currentUserEmail) return;
+        
+        const storageKey = `diaryEntries_${currentUserEmail}`;
+        const storedEntries = localStorage.getItem(storageKey);
         const currentEntries: DiaryEntry[] = storedEntries ? JSON.parse(storedEntries) : [];
         
         const existingIndex = currentEntries.findIndex(e => e.id === entry.id);
@@ -382,7 +396,7 @@ export default function DiaryPage() {
             currentEntries.push(entry);
         }
         
-        localStorage.setItem("diaryEntries", JSON.stringify(currentEntries));
+        localStorage.setItem(storageKey, JSON.stringify(currentEntries));
         loadEntries(); // Reload and sort entries
     };
 
@@ -412,9 +426,3 @@ export default function DiaryPage() {
         </div>
     )
 }
-
-    
-
-    
-
-

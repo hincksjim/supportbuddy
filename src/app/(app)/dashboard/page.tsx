@@ -383,24 +383,32 @@ function VoiceNoteCard({ note, onDelete }: { note: VoiceNote, onDelete: (id: str
 
 export default function DashboardPage() {
     const [activity, setActivity] = useState<ActivityItem[]>([]);
+    const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+
+    useEffect(() => {
+        const email = localStorage.getItem("currentUserEmail");
+        setCurrentUserEmail(email);
+    }, []);
 
     const loadActivity = () => {
+        if (!currentUserEmail) return;
+
         let allActivity: ActivityItem[] = [];
 
         try {
-            const storedSummaries = localStorage.getItem("conversationSummaries");
+            const storedSummaries = localStorage.getItem(`conversationSummaries_${currentUserEmail}`);
             if (storedSummaries) {
                 const summaries: ConversationSummary[] = JSON.parse(storedSummaries);
                 allActivity.push(...summaries.map(s => ({ type: 'conversation' as const, data: s })));
             }
 
-            const storedAnalyses = localStorage.getItem("analysisResults");
+            const storedAnalyses = localStorage.getItem(`analysisResults_${currentUserEmail}`);
             if (storedAnalyses) {
                 const analyses: AnalysisResult[] = JSON.parse(storedAnalyses);
                 allActivity.push(...analyses.map(a => ({ type: 'analysis' as const, data: a })));
             }
             
-            const storedVoiceNotes = localStorage.getItem("voiceNotes");
+            const storedVoiceNotes = localStorage.getItem(`voiceNotes_${currentUserEmail}`);
             if (storedVoiceNotes) {
                 const notes: VoiceNote[] = JSON.parse(storedVoiceNotes);
                 allActivity.push(...notes.map(n => ({ type: 'voiceNote' as const, data: n })));
@@ -416,33 +424,42 @@ export default function DashboardPage() {
     }
 
     useEffect(() => {
-        loadActivity();
-    }, []);
+        if(currentUserEmail) {
+            loadActivity();
+        }
+    }, [currentUserEmail]);
 
     const handleNewVoiceNote = (newNote: VoiceNote) => {
-        const storedNotes = localStorage.getItem("voiceNotes");
+        if (!currentUserEmail) return;
+        const storageKey = `voiceNotes_${currentUserEmail}`;
+        const storedNotes = localStorage.getItem(storageKey);
         const notes: VoiceNote[] = storedNotes ? JSON.parse(storedNotes) : [];
         notes.unshift(newNote);
-        localStorage.setItem("voiceNotes", JSON.stringify(notes));
+        localStorage.setItem(storageKey, JSON.stringify(notes));
         loadActivity(); // Reload all activity to display the new note
     };
 
     const handleDelete = (id: string, type: ActivityItem['type']) => {
+        if (!currentUserEmail) return;
+
         if (type === 'conversation') {
-            const stored = localStorage.getItem("conversationSummaries");
+            const key = `conversationSummaries_${currentUserEmail}`;
+            const stored = localStorage.getItem(key);
             const items: ConversationSummary[] = stored ? JSON.parse(stored) : [];
             const updatedItems = items.filter(item => item.id !== id);
-            localStorage.setItem("conversationSummaries", JSON.stringify(updatedItems));
+            localStorage.setItem(key, JSON.stringify(updatedItems));
         } else if (type === 'analysis') {
-            const stored = localStorage.getItem("analysisResults");
+            const key = `analysisResults_${currentUserEmail}`;
+            const stored = localStorage.getItem(key);
             const items: AnalysisResult[] = stored ? JSON.parse(stored) : [];
             const updatedItems = items.filter(item => item.id !== id);
-            localStorage.setItem("analysisResults", JSON.stringify(updatedItems));
+            localStorage.setItem(key, JSON.stringify(updatedItems));
         } else if (type === 'voiceNote') {
-            const stored = localStorage.getItem("voiceNotes");
+            const key = `voiceNotes_${currentUserEmail}`;
+            const stored = localStorage.getItem(key);
             const items: VoiceNote[] = stored ? JSON.parse(stored) : [];
             const updatedItems = items.filter(item => item.id !== id);
-            localStorage.setItem("voiceNotes", JSON.stringify(updatedItems));
+            localStorage.setItem(key, JSON.stringify(updatedItems));
         }
         loadActivity(); // Refresh the list
     };

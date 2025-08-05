@@ -50,31 +50,26 @@ export default function SignupPage() {
 
   const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    // In a real app, you'd handle user creation here.
     const formData = new FormData(e.currentTarget)
-    const firstName = formData.get('first-name') as string
-    const age = formData.get('age') as string
-    const gender = formData.get('gender') as string
-    const postcode = formData.get('postcode') as string
-    const dob = formData.get('dob') as string;
-    const income = formData.get('income') as string;
-    const savings = formData.get('savings') as string;
+    const email = formData.get('email') as string
     
-    // We'll simulate success and save the details for a personalized experience.
-    if (typeof window !== "undefined") {
-        localStorage.setItem("userName", firstName || "User");
-        localStorage.setItem("userAge", age)
-        localStorage.setItem("userGender", gender)
-        localStorage.setItem("userPostcode", postcode)
-        localStorage.setItem("userDob", dob)
-        localStorage.setItem("employmentStatus", employmentStatus)
-        if (income) localStorage.setItem("userIncome", income);
-        if (savings) localStorage.setItem("userSavings", savings);
-        localStorage.setItem("userBenefits", JSON.stringify(
-            Object.entries(selectedBenefits)
-                .filter(([, checked]) => checked)
-                .map(([id]) => benefits.find(b => b.id === id)?.label)
-        ))
+    const userData = {
+        name: formData.get('first-name') as string || "User",
+        age: formData.get('age') as string,
+        gender: formData.get('gender') as string,
+        postcode: formData.get('postcode') as string,
+        dob: formData.get('dob') as string,
+        employmentStatus: employmentStatus,
+        income: formData.get('income') as string,
+        savings: formData.get('savings') as string,
+        benefits: Object.entries(selectedBenefits)
+            .filter(([, checked]) => checked)
+            .map(([id]) => benefits.find(b => b.id === id)?.label)
+    };
+    
+    if (typeof window !== "undefined" && email) {
+        localStorage.setItem("currentUserEmail", email);
+        localStorage.setItem(`userData_${email}`, JSON.stringify(userData));
     }
 
     router.push("/onboarding")
@@ -102,6 +97,14 @@ export default function SignupPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
+             <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" name="email" type="email" placeholder="alex.smith@example.com" required />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" name="password" type="password" required />
+            </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="first-name">First name</Label>
@@ -138,6 +141,10 @@ export default function SignupPage() {
              <div className="space-y-2">
                 <Label htmlFor="dob">Date of Birth</Label>
                 <Input id="dob" name="dob" type="date" required />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="postcode">Postcode</Label>
+              <Input id="postcode" name="postcode" placeholder="Your postcode" required />
             </div>
             <div className="space-y-2">
                 <Label htmlFor="employment-status">Employment Status</Label>
@@ -199,20 +206,6 @@ export default function SignupPage() {
                         </div>
                     ))}
                 </div>
-            </div>
-
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" placeholder="alex.smith@example.com" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="postcode">Postcode</Label>
-              <Input id="postcode" name="postcode" placeholder="Your postcode" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" required />
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -19,14 +19,26 @@ import { AvatarFemale, AvatarMale } from "@/components/icons"
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const [gender, setGender] = useState("female")
   const [avatar, setAvatar] = useState("female")
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const email = localStorage.getItem("currentUserEmail");
+    if (email) {
+      setCurrentUserEmail(email);
+    } else {
+      // If no user is logged in, redirect to login
+      router.push("/login");
+    }
+  }, [router]);
 
   const handleContinue = () => {
-    // In a real app, save these preferences to the user's profile.
-    // We'll use localStorage to persist the choice for the demo.
-    if (typeof window !== "undefined") {
-      localStorage.setItem("buddyAvatar", avatar)
+    if (typeof window !== "undefined" && currentUserEmail) {
+      const userDataKey = `userData_${currentUserEmail}`;
+      const existingData = localStorage.getItem(userDataKey);
+      const data = existingData ? JSON.parse(existingData) : {};
+      data.avatar = avatar;
+      localStorage.setItem(userDataKey, JSON.stringify(data));
     }
     router.push("/support-chat")
   }
@@ -41,24 +53,6 @@ export default function OnboardingPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
-          <div className="space-y-4">
-            <Label className="text-lg font-medium">Gender</Label>
-            <RadioGroup
-              defaultValue="female"
-              className="flex gap-8"
-              onValueChange={setGender}
-              value={gender}
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="female" id="female" />
-                <Label htmlFor="female">Female</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="male" id="male" />
-                <Label htmlFor="male">Male</Label>
-              </div>
-            </RadioGroup>
-          </div>
           <div className="space-y-4">
             <Label className="text-lg font-medium">Avatar</Label>
             <div className="flex justify-around gap-4">

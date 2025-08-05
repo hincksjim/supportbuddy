@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BotMessageSquare, LayoutDashboard, FileQuestion, Milestone, FileText } from "lucide-react"
+import { BotMessageSquare, LayoutDashboard, FileQuestion, Milestone, FileText, Landmark, Notebook } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -12,6 +12,8 @@ const navItems = [
   { href: "/document-analysis", icon: FileQuestion, label: "Analysis" },
   { href: "/timeline", icon: Milestone, label: "Timeline" },
   { href: "/summary", icon: FileText, label: "Summary" },
+  { href: "/diary", icon: Notebook, label: "Diary" },
+  { href: "/finance", icon: Landmark, label: "Finance" },
 ]
 
 export function AppShell() {
@@ -19,7 +21,7 @@ export function AppShell() {
 
   return (
     <nav className="sticky bottom-0 z-10 border-t bg-background/95 backdrop-blur-sm">
-      <div className="container mx-auto grid h-16 max-w-md grid-cols-5 items-center justify-around">
+      <div className="container mx-auto grid h-16 max-w-md grid-cols-7 items-center justify-around">
         {navItems.map((item) => (
           <Link
             key={item.href}

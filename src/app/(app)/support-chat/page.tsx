@@ -75,13 +75,23 @@ export default function SupportChatPage() {
     setMessages([initialMessage]);
     speakMessage(welcomeMessage);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
     if (audioRef.current && audioDataUri) {
+        stopListening();
         audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioDataUri]);
+  
+  const handleAudioEnded = () => {
+    setAudioDataUri(null);
+    if (isSupported && !isListening) {
+      startListening();
+    }
+  };
 
   const speakMessage = async (text: string) => {
     try {
@@ -89,6 +99,10 @@ export default function SupportChatPage() {
         setAudioDataUri(result.audioDataUri);
     } catch (error) {
         console.error("Failed to generate audio for message:", error);
+        // if TTS fails, restart listening
+        if (isSupported && !isListening) {
+          startListening();
+        }
     }
   };
   
@@ -246,8 +260,10 @@ export default function SupportChatPage() {
         </div>
       </div>
       {audioDataUri && (
-          <audio ref={audioRef} src={audioDataUri} onEnded={() => setAudioDataUri(null)} className="hidden" />
+          <audio ref={audioRef} src={audioDataUri} onEnded={handleAudioEnded} className="hidden" />
       )}
     </div>
   )
 }
+
+    

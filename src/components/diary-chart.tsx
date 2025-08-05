@@ -22,24 +22,16 @@ const moodToValueMap = {
 
 const chartConfig = {
   overallMood: {
-    label: "Overall",
+    label: "Overall Mood",
     color: "hsl(var(--chart-1))",
   },
-  diagnosisMood: {
-    label: "Diagnosis",
-    color: "hsl(var(--chart-2))",
-  },
-  treatmentMood: {
-    label: "Treatment",
-    color: "hsl(var(--chart-3))",
-  },
-   pain: {
+  pain: {
     label: "Pain Score",
     color: "hsl(var(--chart-4))",
   },
   weight: {
     label: "Weight (kg)",
-    color: "hsl(var(--chart-4))",
+    color: "hsl(var(--chart-2))",
   },
   sleep: {
     label: "Sleep (hrs)",
@@ -56,8 +48,6 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
       .map(entry => ({
         date: new Date(entry.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }),
         overallMood: entry.mood ? moodToValueMap[entry.mood] : null,
-        diagnosisMood: entry.diagnosisMood ? moodToValueMap[entry.diagnosisMood] : null,
-        treatmentMood: entry.treatmentMood ? moodToValueMap[entry.treatmentMood] : null,
         pain: entry.painScore,
         weight: entry.weight ? parseFloat(entry.weight) : null,
         sleep: entry.sleep ? parseFloat(entry.sleep) : null,
@@ -125,35 +115,15 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
             />
             <Legend />
             {chartType === 'mood' && (
-                <>
-                    <Line
-                        dataKey="overallMood"
-                        name="Overall"
-                        type="monotone"
-                        stroke="var(--color-overallMood)"
-                        strokeWidth={2}
-                        dot={true}
-                        connectNulls
-                    />
-                    <Line
-                        dataKey="diagnosisMood"
-                        name="Diagnosis"
-                        type="monotone"
-                        stroke="var(--color-diagnosisMood)"
-                        strokeWidth={2}
-                        dot={true}
-                        connectNulls
-                    />
-                    <Line
-                        dataKey="treatmentMood"
-                        name="Treatment"
-                        type="monotone"
-                        stroke="var(--color-treatmentMood)"
-                        strokeWidth={2}
-                        dot={true}
-                        connectNulls
-                    />
-                </>
+                <Line
+                    dataKey="overallMood"
+                    name="Overall Mood"
+                    type="monotone"
+                    stroke="var(--color-overallMood)"
+                    strokeWidth={2}
+                    dot={true}
+                    connectNulls
+                />
             )}
              {chartType === 'pain' && (
                 <Line

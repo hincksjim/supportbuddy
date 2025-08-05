@@ -42,6 +42,8 @@ const prompt = ai.definePrompt({
 **Output Formatting Rules (MUST FOLLOW):**
 1.  **Key Information Block:** Start with a section titled "**Key Information**". In this section, you MUST extract the following details if they are present in the document:
     *   **Patient Name:** [Patient's Name]
+    *   **NHS Number:** [Patient's NHS Number]
+    *   **Hospital Number:** [Patient's Hospital Number]
     *   **Hospital/Clinic:** [Name of the Hospital or Clinic]
     *   **Consultant/Doctor:** [Name of the main Doctor or Consultant]
     *   **Contact Details:** [Any phone numbers or email addresses mentioned]

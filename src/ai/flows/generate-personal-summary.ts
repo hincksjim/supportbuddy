@@ -120,7 +120,7 @@ Your primary goal is to synthesize all the information provided into a clear, or
 4.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details, infer medical information you aren't given, or make predictions.
 5.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow" or "on Thursday," you MUST calculate the specific date and include it. For example, if today is "Wednesday, 7 August 2024" and the user says their appointment is "tomorrow," you should write "Appointment on Thursday, 8 August 2024." **SAFETY:** If a timeframe is ambiguous (e.g., "in two weeks," "next month"), DO NOT invent a date. State the information exactly as it was provided.
 6.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
-7.  **EXTRACT CONTACTS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, or contact details (phone numbers, etc.). Synthesize this information into a single list under the "Medical Team & Contacts" section.
+7.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, contact details (phone numbers, etc.), **NHS Numbers**, and **Hospital Numbers**. Synthesize this information into the appropriate sections ("Personal Details" or "Medical Team & Contacts").
 8.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". In this section, you will list all the source documents and conversations you were provided. Each one should be a numbered item. You MUST use the title, date, and ID provided for each source.
 
 ---
@@ -166,6 +166,8 @@ Your primary goal is to synthesize all the information provided into a clear, or
 *   **Gender:** {{{gender}}}
 *   **Location:** {{{locationInfo.city}}} (Postcode: {{{postcode}}})
 *   **Local Health Authority:** {{{locationInfo.nhs_ha}}}
+*   **NHS Number:** [Extract from sources, e.g., 123 456 7890] [1]
+*   **Hospital Number:** [Extract from sources] [1]
 
 ### **Medical Team & Contacts**
 *(Extract any mentioned doctors, nurses, or hospitals from ALL available data sources. If none are mentioned, state "No information provided yet.")*

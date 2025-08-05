@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { aiConversationalSupport } from "@/ai/flows/conversational-support"
+import { textToSpeech } from "@/ai/flows/text-to-speech"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { AvatarFemale, AvatarMale, Logo } from "@/components/icons"
 
@@ -23,6 +24,7 @@ export default function SupportChatPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [userName, setUserName] = useState("User")
   const [buddyAvatar, setBuddyAvatar] = useState("female")
+  const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
   const router = useRouter()
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
@@ -31,13 +33,26 @@ export default function SupportChatPage() {
     const storedAvatar = localStorage.getItem("buddyAvatar")
     if (storedName) setUserName(storedName)
     if (storedAvatar) setBuddyAvatar(storedAvatar)
-
+    
+    const welcomeMessage = `Hello ${storedName || 'there'}! I'm your Support Buddy. I'm here to listen and help you with any questions or worries you might have about your health, treatment, or well-being. Feel free to talk to me about anything at all.`
+    
     setMessages([
-        {
-          role: "assistant",
-          content: `Hello ${storedName || 'there'}! I'm your Support Buddy. How can I help you today?`,
-        },
-      ])
+      {
+        role: "assistant",
+        content: welcomeMessage,
+      },
+    ]);
+
+    const generateWelcomeAudio = async () => {
+        try {
+            const result = await textToSpeech(welcomeMessage)
+            setAudioDataUri(result.audioDataUri)
+        } catch (error) {
+            console.error("Failed to generate welcome audio:", error)
+        }
+    }
+    generateWelcomeAudio()
+
   }, [])
   
   const handleLogout = () => {
@@ -176,6 +191,9 @@ export default function SupportChatPage() {
             </form>
         </div>
       </div>
+      {audioDataUri && (
+          <audio src={audioDataUri} autoPlay className="hidden" />
+      )}
     </div>
   )
 }

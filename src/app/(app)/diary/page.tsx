@@ -122,12 +122,12 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>{existingEntry ? 'Edit' : 'New'} Diary Entry</DialogTitle>
                     <DialogDescription>Log how you're feeling and other key factors for today.</DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
+                <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
                     <div className="space-y-2">
                         <Label htmlFor="date">Date</Label>
                         <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -329,3 +329,5 @@ export default function DiaryPage() {
         </div>
     )
 }
+
+    

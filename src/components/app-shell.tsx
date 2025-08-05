@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BotMessageSquare, LayoutDashboard, FileQuestion } from "lucide-react"
+import { BotMessageSquare, LayoutDashboard, FileQuestion, Milestone } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -10,6 +10,7 @@ const navItems = [
   { href: "/support-chat", icon: BotMessageSquare, label: "Chat" },
   { href: "/dashboard", icon: LayoutDashboard, label: "Activity" },
   { href: "/document-analysis", icon: FileQuestion, label: "Analysis" },
+  { href: "/timeline", icon: Milestone, label: "Timeline" },
 ]
 
 export function AppShell() {
@@ -24,7 +25,7 @@ export function AppShell() {
             href={item.href}
             className={cn(
               "flex flex-col items-center justify-center gap-1 text-sm font-medium transition-colors hover:text-primary",
-              pathname === item.href
+              pathname.startsWith(item.href)
                 ? "text-primary"
                 : "text-muted-foreground"
             )}

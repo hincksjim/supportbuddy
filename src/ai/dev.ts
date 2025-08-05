@@ -1,1 +1,6 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/generate-conversation-summary.ts';
+import '@/ai/flows/analyze-medical-document.ts';
+import '@/ai/flows/conversational-support.ts';

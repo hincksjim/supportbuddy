@@ -44,7 +44,8 @@ const prompt = ai.definePrompt({
 3.  **Simple Language:** Explain everything using simple, everyday language. Avoid medical jargon.
 4.  **Define Terms:** If a medical term is unavoidable, you must bold it and provide a simple definition immediately in parentheses. For example: "**Leukocytes** (a type of white blood cell that helps fight infection) were within the normal range."
 5.  **Use Formatting:** Use bullet points, short paragraphs, and bold text to highlight the most important values, findings, and conclusions.
-6.  **Disclaimer:** Always conclude with the following disclaimer: "--- \n**Disclaimer:** This is an AI-generated summary and not a substitute for professional medical advice. Please consult with your doctor to discuss your results and any health concerns."
+6.  **Cite Page Numbers**: If the document has multiple pages, you **must cite the page number** in parentheses when you reference a specific finding. For example: "The patient's temperature was recorded as 37.2°C (see Page 3)."
+7.  **Disclaimer:** Always conclude with the following disclaimer: "--- \n**Disclaimer:** This is an AI-generated summary and not a substitute for professional medical advice. Please consult with your doctor to discuss your results and any health concerns."
 
 **Task:**
 Analyze the provided document based on the user's question and generate a response that strictly adheres to the formatting rules above.

@@ -69,7 +69,8 @@ export default function SupportChatPage() {
       localStorage.setItem("conversationHistory", JSON.stringify(finalMessages));
       await speakMessage(result.answer)
     } catch (error) {
-      const errorMessageText = "I'm sorry, I encountered an error. Please try again."
+      console.error("Error from AI support flow: ", error)
+      const errorMessageText = "I'm sorry, I encountered an error. Please try again. If the problem persists, please check the server logs."
       const errorMessage: Message = {
         role: "assistant",
         content: errorMessageText,

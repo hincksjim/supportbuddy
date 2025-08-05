@@ -83,7 +83,16 @@ export async function generatePersonalSummary(
 ): Promise<GeneratePersonalSummaryOutput> {
   // We can call the tool directly here to enrich the data available to the prompt.
   const locationInfo = await lookupPostcode({ postcode: input.postcode });
-  const extendedInput = { ...input, locationInfo };
+  
+  // Get the current date to help the AI infer dates from relative terms.
+  const currentDate = new Date().toLocaleDateString('en-GB', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  });
+
+  const extendedInput = { ...input, locationInfo, currentDate };
   return generatePersonalSummaryFlow(extendedInput);
 }
 
@@ -91,7 +100,8 @@ const EnrichedGeneratePersonalSummaryInputSchema = GeneratePersonalSummaryInputS
     locationInfo: z.object({
         city: z.string(),
         nhs_ha: z.string(),
-    })
+    }),
+    currentDate: z.string().describe("The current date in 'Weekday, Day Month Year' format. For calculating dates from relative terms like 'tomorrow'."),
 });
 
 const prompt = ai.definePrompt({
@@ -108,9 +118,10 @@ Your primary goal is to synthesize all the information provided into a clear, or
 2.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, or a date), you **MUST** cite where you found it using a numbered reference marker in square brackets, like **[1]**. The number should correspond to an entry in the "Sources" section at the end of the report.
 3.  **FORMAT WITH MARKDOWN:** The entire output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes as defined in the template.
 4.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details, infer medical information you aren't given, or make predictions.
-5.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
-6.  **EXTRACT CONTACTS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, or contact details (phone numbers, etc.). Synthesize this information into a single list under the "Medical Team & Contacts" section.
-7.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". In this section, you will list all the source documents and conversations you were provided. Each one should be a numbered item. You MUST use the title, date, and ID provided for each source.
+5.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow" or "on Thursday," you MUST calculate the specific date and include it. For example, if today is "Wednesday, 7 August 2024" and the user says their appointment is "tomorrow," you should write "Appointment on Thursday, 8 August 2024." **SAFETY:** If a timeframe is ambiguous (e.g., "in two weeks," "next month"), DO NOT invent a date. State the information exactly as it was provided.
+6.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
+7.  **EXTRACT CONTACTS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, or contact details (phone numbers, etc.). Synthesize this information into a single list under the "Medical Team & Contacts" section.
+8.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". In this section, you will list all the source documents and conversations you were provided. Each one should be a numbered item. You MUST use the title, date, and ID provided for each source.
 
 ---
 **FIRST, REVIEW ALL AVAILABLE INFORMATION SOURCES TO USE:**
@@ -169,14 +180,14 @@ Your primary goal is to synthesize all the information provided into a clear, or
 ### **Timeline & Milestones**
 
 **Completed Milestones:**
-*(Carefully review ALL data sources—documents, chats, and the user's interactive timeline—to identify completed events. For example, a discharge summary implies a hospital stay is complete. A chat message saying "My scan was yesterday" is a completed milestone. List them here with dates if available.)*
+*(Carefully review ALL data sources—documents, chats, and the user's interactive timeline—to identify completed events. A discharge summary implies a hospital stay is complete. A chat message saying "My scan was yesterday" is a completed milestone. List them here with dates if available.)*
 *   **Initial Diagnosis Confirmed:** (e.g., Renal Cell Carcinoma) [1]
 *   **MDT Meeting Held:** (e.g., Discussed treatment options) [2]
 
 **Next Expected Milestone(s):**
-*(Based on all available information, identify the next logical step in the user's journey. This might be from their interactive timeline, or it might be implied from a document (e.g., "Follow-up appointment scheduled for...") or a chat. Cite the source.)*
-*   **Surgical Procedure:** (e.g., at Wrexham Maelor Hospital) [3]
-*   **Follow-up Consultation:** (e.g., with Dr. Smith) [1]
+*(Based on all available information, identify the next logical step in the user's journey. This might be from their interactive timeline, or it might be implied from a document (e.g., "Follow-up appointment scheduled for...") or a chat. Use the current date ({{{currentDate}}}) to calculate specific dates where possible. Cite the source.)*
+*   **Surgical Procedure:** (e.g., at Wrexham Maelor Hospital on Friday, 9 August 2024) [3]
+*   **Follow-up Consultation:** (e.g., with Dr. Smith in two weeks) [1]
 
 ---
 ### **Sources**

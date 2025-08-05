@@ -16,6 +16,17 @@ interface Message {
   content: string
 }
 
+interface AnalysisResult {
+  id: string
+  title: string
+  question: string
+  fileDataUri: string
+  fileType: string
+  fileName: string
+  analysis: string
+  date: string
+}
+
 type TimelineData = GenerateTreatmentTimelineOutput;
 
 export default function SummaryPage() {
@@ -30,6 +41,7 @@ export default function SummaryPage() {
   const [userPostcode, setUserPostcode] = useState("")
   const [conversationHistory, setConversationHistory] = useState<Message[]>([])
   const [timelineData, setTimelineData] = useState<TimelineData | null>(null)
+  const [analysisData, setAnalysisData] = useState<AnalysisResult[]>([])
 
   // Load all necessary data from localStorage
   const loadPrerequisites = () => {
@@ -58,6 +70,13 @@ export default function SummaryPage() {
       if (storedTimeline) {
         setTimelineData(JSON.parse(storedTimeline));
       }
+
+      // Analysis Data
+      const storedAnalyses = localStorage.getItem("analysisResults");
+      if (storedAnalyses) {
+        setAnalysisData(JSON.parse(storedAnalyses));
+      }
+
     } catch (e) {
       console.error("Failed to load data from localStorage", e);
       setError("Could not load your saved data. Some information may be missing from the report.");
@@ -78,8 +97,8 @@ export default function SummaryPage() {
     }
     
     // We need at least a conversation to generate a report
-    if (conversationHistory.length < 1 && isInitialLoad) {
-        setError("You need to have a conversation with your support buddy first to generate a summary report.");
+    if (conversationHistory.length < 1 && analysisData.length < 1 && isInitialLoad) {
+        setError("You need to have a conversation or analyze a document first to generate a summary report.");
         return
     }
 
@@ -96,6 +115,7 @@ export default function SummaryPage() {
             postcode: userPostcode,
             conversationHistory,
             timelineData,
+            documentAnalyses: analysisData.map(a => a.analysis)
         });
         setReport(result.report);
         } catch (err) {
@@ -141,7 +161,7 @@ export default function SummaryPage() {
           {!isLoading && !error && !report && (
              <div className="text-center py-20 rounded-lg border-2 border-dashed">
               <h2 className="text-xl font-semibold">No report generated yet</h2>
-              <p className="text-muted-foreground mt-2">Have a chat with your Support Buddy, then click "Refresh Report".</p>
+              <p className="text-muted-foreground mt-2">Have a chat or analyze a document, then click "Refresh Report".</p>
             </div>
           )}
           {report && !isLoading && (

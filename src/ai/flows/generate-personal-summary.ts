@@ -46,6 +46,7 @@ const GeneratePersonalSummaryInputSchema = z.object({
         disclaimer: z.string(),
         timeline: z.array(TimelineStageSchema)
     }).nullable().describe('The user\'s current treatment timeline data, which includes completed steps and notes.'),
+    documentAnalyses: z.array(z.string()).describe('An array of AI-generated analyses from previously uploaded documents.'),
 });
 export type GeneratePersonalSummaryInput = z.infer<
   typeof GeneratePersonalSummaryInputSchema
@@ -81,18 +82,18 @@ const prompt = ai.definePrompt({
   prompt: `You are an AI assistant tasked with creating a comprehensive "Personal Summary Report" for a user navigating their cancer journey. Your role is to synthesize all available information into a clear, organized, and easy-to-read document formatted in Markdown.
 
 **CRITICAL INSTRUCTIONS:**
-1.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details, the full conversation history, the location information, and the timeline data to build the report.
+1.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details, the full conversation history, all document analyses, the location information, and the timeline data to build the report. The document analyses are a critical source of factual information.
 2.  **FORMAT WITH MARKDOWN:** The entire output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes to structure the information logically.
 3.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details, infer medical information you aren't given, or make predictions.
 4.  **PRIVACY DISCLAIMER:** Start the report with a clear disclaimer about privacy and accuracy.
-5.  **EXTRACT CONTACTS:** Scour the conversation history for any mention of doctor names, nurse names, hospital names, or contact details (phone numbers, etc.).
+5.  **EXTRACT CONTACTS:** Scour the conversation history AND the document analyses for any mention of doctor names, nurse names, hospital names, or contact details (phone numbers, etc.). Synthesize this information into a single list.
 
 **REPORT STRUCTURE (Must follow this format):**
 
 ---
 
 ### **Personal Summary Report**
-> **Disclaimer:** This report is a summary of the information you have provided. It is for personal reference only and should not be considered a medical document. Always consult with your healthcare provider for official information and advice.
+> **Disclaimer:** This report is a summary of the information you have provided from your chats and documents. It is for personal reference only and should not be considered a medical document. Always consult with your healthcare provider for official information and advice.
 
 ### **Personal Details**
 *   **Name:** {{{userName}}}
@@ -102,14 +103,14 @@ const prompt = ai.definePrompt({
 *   **Local Health Authority:** {{{locationInfo.nhs_ha}}}
 
 ### **Medical Team & Contacts**
-*(Extract any mentioned doctors, nurses, or hospitals from the conversation. If none are mentioned, state "No information provided yet.")*
+*(Extract any mentioned doctors, nurses, or hospitals from the conversation AND the document analyses. If none are mentioned, state "No information provided yet.")*
 *   **Primary Consultant:** [Name, Contact Details]
 *   **Specialist Nurse:** [Name, Contact Details]
 *   **Hospital/Clinic for Diagnosis:** [Name]
 *   **Hospital/Clinic for Treatment/Surgery:** [Name]
 
 ### **Diagnosis & Condition Summary**
-*(Synthesize the key medical details from the conversation history into a concise summary. Include cancer type, stage, grade, dates, and key test results mentioned.)*
+*(Synthesize the key medical details from the conversation history AND the document analyses into a concise summary. Include cancer type, stage, grade, dates, and key test results mentioned.)*
 
 ### **Timeline & Milestones**
 
@@ -123,9 +124,23 @@ const prompt = ai.definePrompt({
 
 ---
 
+**Source Document Analyses (for context):**
+{{#each documentAnalyses}}
+---
+Analysis Result:
+{{{this}}}
+---
+{{/each}}
+
+**Source Conversation History (for context):**
+{{#each conversationHistory}}
+  {{role}}: {{{content}}}
+{{/each}}
+
+---
+
 **Task:**
 Analyze all the provided inputs and generate the report in a single Markdown string.
-
 `,
 });
 

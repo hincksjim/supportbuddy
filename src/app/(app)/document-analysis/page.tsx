@@ -85,7 +85,7 @@ function UploadAnalysisDialog({ onAnalysisComplete }: { onAnalysisComplete: (new
           fileType: file.type,
           fileName: file.name,
           analysis: analysisResult.answer,
-          date: new Date().toLocaleDateString(),
+          date: new Date().toISOString(),
         }
 
         onAnalysisComplete(newAnalysis)
@@ -202,7 +202,7 @@ function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; chil
         <DialogHeader>
           <DialogTitle>{result.title}</DialogTitle>
           <DialogDescription>
-            Analyzed on {result.date}. Question: "{result.question}"
+            Analyzed on {new Date(result.date).toLocaleDateString()}. Question: "{result.question}"
           </DialogDescription>
         </DialogHeader>
         <div className="grid md:grid-cols-2 gap-4 overflow-hidden flex-1">
@@ -292,7 +292,7 @@ export default function DocumentAnalysisPage() {
                 <CardContent className="flex-1 flex flex-col justify-between">
                    <div>
                     <CardTitle className="text-lg mb-2">{result.title}</CardTitle>
-                    <CardDescription className="text-xs mb-2">{result.date}</CardDescription>
+                    <CardDescription className="text-xs mb-2">{new Date(result.date).toLocaleDateString()}</CardDescription>
                     <div 
                         className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground line-clamp-3"
                         dangerouslySetInnerHTML={{ __html: marked.parse(result.analysis || "") as string }}

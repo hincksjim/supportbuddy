@@ -1,3 +1,10 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import Image from "next/image"
+import { marked } from "marked"
+
 import {
   Card,
   CardContent,
@@ -5,130 +12,193 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { FileText, MessageSquare } from "lucide-react"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { MessageSquare, FileText } from "lucide-react"
 
-const conversationSummaries = [
-  {
-    id: 1,
-    title: "Discussing treatment side effects",
-    date: "2 days ago",
-    summary:
-      "We talked about managing nausea and fatigue. Suggested drinking ginger tea and taking short, frequent rests...",
-  },
-  {
-    id: 2,
-    title: "Questions about medication schedule",
-    date: "1 week ago",
-    summary:
-      "Clarified the timing for morning and evening pills. Set up a reminder system on your phone...",
-  },
-  {
-    id: 3,
-    title: "Feeling anxious about next appointment",
-    date: "2 weeks ago",
-    summary:
-      "Practiced a few breathing exercises together. We also made a list of questions to ask the doctor...",
-  },
-]
+// Interfaces matching the data stored in localStorage
+interface ConversationSummary {
+  id: string;
+  title: string;
+  summary: string;
+  date: string; // ISO String
+}
 
-const uploadedDocuments = [
-  {
-    id: 1,
-    name: "blood_test_results.pdf",
-    uploadDate: "3 days ago",
-    status: "Analyzed",
-  },
-  {
-    id: 2,
-    name: "ct_scan_report.jpg",
-    uploadDate: "1 week ago",
-    status: "Analyzed",
-  },
-  {
-    id: 3,
-    name: "prescription_details.pdf",
-    uploadDate: "2 weeks ago",
-    status: "Analyzed",
-  },
-]
+interface AnalysisResult {
+  id: string
+  title: string
+  question: string
+  fileDataUri: string
+  fileType: string
+  fileName: string
+  analysis: string
+  date: string; // Should be ISO String for sorting
+}
+
+type ActivityItem = 
+  | { type: 'conversation', data: ConversationSummary }
+  | { type: 'analysis', data: AnalysisResult };
+
+
+function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; children: React.ReactNode }) {
+  const analysisHtml = marked(result.analysis || "");
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="max-w-3xl h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>{result.title}</DialogTitle>
+          <DialogDescription>
+            Analyzed on {new Date(result.date).toLocaleDateString()}. Question: "{result.question}"
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid md:grid-cols-2 gap-4 overflow-hidden flex-1">
+          <div className="overflow-y-auto rounded-md border">
+            {result.fileType.startsWith("image/") ? (
+                <Image src={result.fileDataUri} alt={result.fileName} width={800} height={1200} className="object-contain" />
+            ) : (
+                <iframe src={result.fileDataUri} className="w-full h-full" title={result.fileName} />
+            )}
+          </div>
+          <div 
+            className="prose prose-sm dark:prose-invert max-w-none text-foreground p-2 overflow-y-auto"
+            dangerouslySetInnerHTML={{ __html: analysisHtml as string }}
+          />
+        </div>
+         <DialogFooter className="mt-4 sm:justify-end">
+          <DialogClose asChild>
+            <Button type="button" variant="secondary">
+              Close
+            </Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function ConversationCard({ summary }: { summary: ConversationSummary }) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                    <MessageSquare className="w-5 h-5 text-primary" />
+                    {summary.title}
+                </CardTitle>
+                <CardDescription>{new Date(summary.date).toLocaleDateString()}</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <p className="text-sm text-muted-foreground line-clamp-3">{summary.summary}</p>
+                 <Link href="/support-chat">
+                    <Button variant="link" className="px-0 pt-2">View conversation &rarr;</Button>
+                 </Link>
+            </CardContent>
+        </Card>
+    )
+}
+
+function AnalysisCard({ result }: { result: AnalysisResult }) {
+    return (
+        <ViewAnalysisDialog result={result}>
+            <Card className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col h-full">
+                <CardHeader>
+                  <div className="relative aspect-[1.4/1] w-full rounded-md overflow-hidden border">
+                    {result.fileType.startsWith("image/") ? (
+                      <Image src={result.fileDataUri} alt={result.fileName} fill className="object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full bg-secondary p-4">
+                          <FileText className="w-12 h-12 text-muted-foreground" />
+                          <p className="text-xs text-center mt-2 text-muted-foreground break-all">{result.fileName}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col justify-between">
+                   <div>
+                    <CardTitle className="text-lg mb-2 flex items-center gap-2">
+                         <FileText className="w-5 h-5 text-primary" />
+                        {result.title}
+                    </CardTitle>
+                    <CardDescription className="text-xs mb-2">{new Date(result.date).toLocaleDateString()}</CardDescription>
+                    <div 
+                        className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground line-clamp-3"
+                        dangerouslySetInnerHTML={{ __html: marked.parse(result.analysis || "") as string }}
+                    />
+                   </div>
+                </CardContent>
+            </Card>
+        </ViewAnalysisDialog>
+    )
+}
+
 
 export default function DashboardPage() {
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold font-headline">Activity Overview</h1>
-        <p className="text-muted-foreground">
-          Here&apos;s a summary of your recent conversations and documents.
-        </p>
-      </div>
+    const [activity, setActivity] = useState<ActivityItem[]>([]);
 
-      <section>
-        <h2 className="text-2xl font-semibold font-headline mb-4">
-          Recent Conversation Summaries
-        </h2>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {conversationSummaries.map((convo) => (
-            <Card key={convo.id}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <MessageSquare className="w-5 h-5 text-primary" />
-                  {convo.title}
-                </CardTitle>
-                <CardDescription>{convo.date}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">{convo.summary}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
+    useEffect(() => {
+        let allActivity: ActivityItem[] = [];
 
-      <section>
-        <h2 className="text-2xl font-semibold font-headline mb-4">
-          Uploaded Documents
-        </h2>
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>File Name</TableHead>
-                <TableHead className="hidden sm:table-cell">
-                  Upload Date
-                </TableHead>
-                <TableHead className="text-right">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {uploadedDocuments.map((doc) => (
-                <TableRow key={doc.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-medium">{doc.name}</span>
+        try {
+            const storedSummaries = localStorage.getItem("conversationSummaries");
+            if (storedSummaries) {
+                const summaries: ConversationSummary[] = JSON.parse(storedSummaries);
+                allActivity.push(...summaries.map(s => ({ type: 'conversation' as const, data: s })));
+            }
+
+            const storedAnalyses = localStorage.getItem("analysisResults");
+            if (storedAnalyses) {
+                const analyses: AnalysisResult[] = JSON.parse(storedAnalyses);
+                allActivity.push(...analyses.map(a => ({ type: 'analysis' as const, data: a })));
+            }
+
+            // Sort all activities by date, most recent first
+            allActivity.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+            
+            setActivity(allActivity);
+        } catch (error) {
+            console.error("Could not load activity from localStorage", error);
+        }
+    }, []);
+
+    return (
+        <div className="p-4 md:p-6 space-y-8">
+            <div>
+                <h1 className="text-3xl font-bold font-headline">Activity Overview</h1>
+                <p className="text-muted-foreground">
+                    Here&apos;s a summary of your recent conversations and document analyses.
+                </p>
+            </div>
+
+            {activity.length > 0 ? (
+                 <section>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {activity.map((item) => {
+                            if (item.type === 'conversation') {
+                                return <ConversationCard key={`convo-${item.data.id}`} summary={item.data} />;
+                            }
+                            if (item.type === 'analysis') {
+                                return <AnalysisCard key={`analysis-${item.data.id}`} result={item.data} />;
+                            }
+                            return null;
+                        })}
                     </div>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    {doc.uploadDate}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Badge variant="outline">{doc.status}</Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      </section>
-    </div>
-  )
+                </section>
+            ) : (
+                 <div className="text-center py-20 rounded-lg border-2 border-dashed">
+                    <h2 className="text-xl font-semibold">No Activity Yet</h2>
+                    <p className="text-muted-foreground mt-2">Your recent conversation summaries and document analyses will appear here.</p>
+                </div>
+            )}
+        </div>
+    )
 }

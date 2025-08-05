@@ -28,7 +28,7 @@ export default function OnboardingPage() {
     if (typeof window !== "undefined") {
       localStorage.setItem("buddyAvatar", avatar)
     }
-    router.push("/dashboard")
+    router.push("/support-chat")
   }
 
   return (

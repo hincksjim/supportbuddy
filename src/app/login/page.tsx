@@ -30,7 +30,7 @@ export default function LoginPage() {
     if (typeof window !== "undefined") {
       localStorage.setItem("userName", name || "User")
     }
-    router.push("/dashboard")
+    router.push("/support-chat")
   }
 
   return (

@@ -65,9 +65,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold font-headline">Dashboard</h1>
+        <h1 className="text-3xl font-bold font-headline">Activity Overview</h1>
         <p className="text-muted-foreground">
-          Here&apos;s a summary of your recent activity and documents.
+          Here&apos;s a summary of your recent conversations and documents.
         </p>
       </div>
 

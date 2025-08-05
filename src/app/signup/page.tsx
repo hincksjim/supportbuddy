@@ -1,3 +1,4 @@
+
 "use client"
 
 import Link from "next/link"
@@ -144,8 +145,8 @@ export default function SignupPage() {
                         <SelectItem value="employed">Employed</SelectItem>
                         <SelectItem value="self-employed">Self-employed</SelectItem>
                         <SelectItem value="retired">Retired</SelectItem>
-                        <SelectItem value="unemployed">Unemployed</SelectItem>
-                        <SelectItem value="on-benefits">On Benefits</SelectItem>
+                        <SelectItem value="unemployed">Unemployed not on benefits</SelectItem>
+                        <SelectItem value="on-benefits">Unemployed on benefits</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -211,5 +212,3 @@ export default function SignupPage() {
     </div>
   )
 }
-
-    

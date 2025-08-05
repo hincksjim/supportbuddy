@@ -212,15 +212,24 @@ function DiaryEntryCard({ entry, onSave }: { entry: DiaryEntry; onSave: (entry: 
                         <CardTitle className="font-headline text-xl">{new Date(entry.date).toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</CardTitle>
                         <CardDescription>Your log for this day</CardDescription>
                     </div>
-                     <div className="flex gap-2">
+                     <div className="flex flex-col items-end gap-1 text-xs text-muted-foreground">
                         {entry.mood && (
-                            <div className="text-2xl p-1 bg-secondary rounded-full" title={`Overall Mood: ${entry.mood}`}>{moodOptions[entry.mood]}</div>
+                            <div className="flex items-center gap-2" title={`Overall Mood: ${entry.mood}`}>
+                                <span>Overall</span>
+                                <span className="text-xl">{moodOptions[entry.mood]}</span>
+                            </div>
                         )}
                         {entry.diagnosisMood && (
-                            <div className="text-2xl p-1 bg-secondary rounded-full" title={`Diagnosis Mood: ${entry.diagnosisMood}`}>{moodOptions[entry.diagnosisMood]}</div>
+                             <div className="flex items-center gap-2" title={`Diagnosis Mood: ${entry.diagnosisMood}`}>
+                                <span>Diagnosis</span>
+                                <span className="text-xl">{moodOptions[entry.diagnosisMood]}</span>
+                            </div>
                         )}
                         {entry.treatmentMood && (
-                            <div className="text-2xl p-1 bg-secondary rounded-full" title={`Treatment Mood: ${entry.treatmentMood}`}>{moodOptions[entry.treatmentMood]}</div>
+                            <div className="flex items-center gap-2" title={`Treatment Mood: ${entry.treatmentMood}`}>
+                                <span>Treatment</span>
+                                <span className="text-xl">{moodOptions[entry.treatmentMood]}</span>
+                            </div>
                         )}
                      </div>
                 </div>

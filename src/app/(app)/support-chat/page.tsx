@@ -129,7 +129,7 @@ export default function SupportChatPage() {
     reset();
 
     try {
-      const result = await aiConversationalSupport({ question: finalInput })
+      const result = await aiConversationalSupport({ userName, question: finalInput })
       const assistantMessage: Message = { role: "assistant", content: result.answer }
       setMessages((prev) => [...prev, assistantMessage])
       speakMessage(result.answer)

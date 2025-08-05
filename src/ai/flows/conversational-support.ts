@@ -12,6 +12,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const AiConversationalSupportInputSchema = z.object({
+  userName: z.string().describe("The user's first name."),
   question: z.string().describe('The user question about their condition or treatment options.'),
 });
 export type AiConversationalSupportInput = z.infer<typeof AiConversationalSupportInputSchema>;
@@ -30,6 +31,8 @@ const prompt = ai.definePrompt({
   input: {schema: AiConversationalSupportInputSchema},
   output: {schema: AiConversationalSupportOutputSchema},
   prompt: `You are a caring, friendly, and very supportive cancer specialist, almost like a best friend. Your role is to create a safe space for users to disclose their fears and worries. You are here to support all elements of their care, including their mental, physical, and financial well-being, much like a Marie Curie nurse. Be empathetic, warm, and understanding in all your responses.
+
+  The user's name is {{{userName}}}. Address them by their name when it feels natural to do so.
 
   User Question: {{{question}}}
 

@@ -10,6 +10,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { lookupPostcode } from '@/services/postcode-lookup';
+
 
 const TimelineStepSchema = z.object({
   id: z.string(),
@@ -58,17 +60,27 @@ export type GeneratePersonalSummaryOutput = z.infer<
 export async function generatePersonalSummary(
   input: GeneratePersonalSummaryInput
 ): Promise<GeneratePersonalSummaryOutput> {
-  return generatePersonalSummaryFlow(input);
+  // We can call the tool directly here to enrich the data available to the prompt.
+  const locationInfo = await lookupPostcode({ postcode: input.postcode });
+  const extendedInput = { ...input, locationInfo };
+  return generatePersonalSummaryFlow(extendedInput);
 }
+
+const EnrichedGeneratePersonalSummaryInputSchema = GeneratePersonalSummaryInputSchema.extend({
+    locationInfo: z.object({
+        city: z.string(),
+        nhs_ha: z.string(),
+    })
+});
 
 const prompt = ai.definePrompt({
   name: 'generatePersonalSummaryPrompt',
-  input: {schema: GeneratePersonalSummaryInputSchema},
+  input: {schema: EnrichedGeneratePersonalSummaryInputSchema},
   output: {schema: GeneratePersonalSummaryOutputSchema},
   prompt: `You are an AI assistant tasked with creating a comprehensive "Personal Summary Report" for a user navigating their cancer journey. Your role is to synthesize all available information into a clear, organized, and easy-to-read document formatted in Markdown.
 
 **CRITICAL INSTRUCTIONS:**
-1.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details, the full conversation history, and the timeline data to build the report.
+1.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details, the full conversation history, the location information, and the timeline data to build the report.
 2.  **FORMAT WITH MARKDOWN:** The entire output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes to structure the information logically.
 3.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details, infer medical information you aren't given, or make predictions.
 4.  **PRIVACY DISCLAIMER:** Start the report with a clear disclaimer about privacy and accuracy.
@@ -84,13 +96,15 @@ const prompt = ai.definePrompt({
 *   **Name:** {{{userName}}}
 *   **Age:** {{{age}}}
 *   **Gender:** {{{gender}}}
-*   **Location:** {{{postcode}}}
+*   **Location:** {{{locationInfo.city}}} (Postcode: {{{postcode}}})
+*   **Local Health Authority:** {{{locationInfo.nhs_ha}}}
 
 ### **Medical Team & Contacts**
 *(Extract any mentioned doctors, nurses, or hospitals from the conversation. If none are mentioned, state "No information provided yet.")*
 *   **Primary Consultant:** [Name, Contact Details]
 *   **Specialist Nurse:** [Name, Contact Details]
-*   **Hospital/Clinic:** [Name]
+*   **Hospital/Clinic for Diagnosis:** [Name]
+*   **Hospital/Clinic for Treatment/Surgery:** [Name]
 
 ### **Diagnosis & Condition Summary**
 *(Synthesize the key medical details from the conversation history into a concise summary. Include cancer type, stage, grade, dates, and key test results mentioned.)*
@@ -116,7 +130,7 @@ Analyze all the provided inputs and generate the report in a single Markdown str
 const generatePersonalSummaryFlow = ai.defineFlow(
   {
     name: 'generatePersonalSummaryFlow',
-    inputSchema: GeneratePersonalSummaryInputSchema,
+    inputSchema: EnrichedGeneratePersonalSummaryInputSchema,
     outputSchema: GeneratePersonalSummaryOutputSchema,
   },
   async input => {

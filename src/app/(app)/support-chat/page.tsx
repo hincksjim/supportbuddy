@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff } from "lucide-react"
+import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff, Save } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -9,20 +9,30 @@ import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { aiConversationalSupport } from "@/ai/flows/conversational-support"
+import { generateConversationSummary } from "@/ai/flows/generate-conversation-summary"
 import { textToSpeech } from "@/ai/flows/text-to-speech"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { AvatarFemale, AvatarMale, Logo } from "@/components/icons"
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
+import { useToast } from "@/hooks/use-toast"
 
 interface Message {
   role: "user" | "assistant"
   content: string
 }
 
+interface ConversationSummary {
+  id: string;
+  title: string;
+  summary: string;
+  date: string;
+}
+
 export default function SupportChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [userName, setUserName] = useState("User")
   const [userAge, setUserAge] = useState("")
   const [userGender, setUserGender] = useState("")
@@ -30,6 +40,7 @@ export default function SupportChatPage() {
   const [buddyAvatar, setBuddyAvatar] = useState("female")
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
   const router = useRouter()
+  const { toast } = useToast()
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const speakMessage = async (text: string) => {
@@ -81,6 +92,48 @@ export default function SupportChatPage() {
       setIsLoading(false)
     }
   }
+
+  const handleSaveSummary = async () => {
+    if (messages.length < 2) {
+         toast({
+            title: "Not enough conversation",
+            description: "Have a bit more of a chat before saving a summary.",
+        });
+        return;
+    }
+
+    setIsSaving(true);
+    try {
+      const result = await generateConversationSummary({ conversationHistory: messages });
+      const storedSummaries = localStorage.getItem("conversationSummaries");
+      const summaries: ConversationSummary[] = storedSummaries ? JSON.parse(storedSummaries) : [];
+      
+      const newSummary: ConversationSummary = {
+        id: new Date().toISOString(),
+        date: new Date().toISOString(),
+        ...result,
+      };
+
+      summaries.unshift(newSummary); // Add to the beginning
+      localStorage.setItem("conversationSummaries", JSON.stringify(summaries));
+
+      toast({
+        title: "Conversation Saved",
+        description: "Your summary has been saved to your activity feed.",
+      });
+
+    } catch (error) {
+      console.error("Failed to generate or save summary:", error);
+       toast({
+        title: "Error Saving Summary",
+        description: "There was a problem saving your conversation. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
 
   const handleTranscript = (text: string) => {
     setInput(text);
@@ -179,9 +232,15 @@ export default function SupportChatPage() {
             <Logo className="w-6 h-6 text-primary" />
             <span className="font-headline">Support Buddy</span>
           </div>
-          <Button variant="ghost" size="icon" className="ml-auto" onClick={handleLogout}>
-              <LogOut className="w-4 h-4" />
-          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleSaveSummary} disabled={isSaving}>
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Save
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
+                <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
         </header>
 
       <div className="flex-1 overflow-hidden">

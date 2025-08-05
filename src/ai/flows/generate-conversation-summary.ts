@@ -12,15 +12,17 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateConversationSummaryInputSchema = z.object({
-  conversationHistory: z
-    .string()
-    .describe('The complete conversation history between the user and the support buddy.'),
+  conversationHistory: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string(),
+  })).describe("The history of the conversation so far."),
 });
 export type GenerateConversationSummaryInput =
   z.infer<typeof GenerateConversationSummaryInputSchema>;
 
 const GenerateConversationSummaryOutputSchema = z.object({
-  summary: z.string().describe('A concise summary of the conversation.'),
+  title: z.string().describe('A short, engaging title for the conversation summary (5-7 words).'),
+  summary: z.string().describe('A concise summary of the conversation (around 100 words).'),
 });
 export type GenerateConversationSummaryOutput =
   z.infer<typeof GenerateConversationSummaryOutputSchema>;
@@ -35,10 +37,15 @@ const prompt = ai.definePrompt({
   name: 'generateConversationSummaryPrompt',
   input: {schema: GenerateConversationSummaryInputSchema},
   output: {schema: GenerateConversationSummaryOutputSchema},
-  prompt: `You are an AI assistant summarizing a conversation between a user and a support buddy. Provide a concise and informative summary of the conversation, highlighting key topics discussed, insights shared, and any action items identified. The summary should be no more than 200 words.
+  prompt: `You are an AI assistant tasked with summarizing a conversation between a user and a cancer support buddy. Your summary should be concise, informative, and capture the essence of the discussion.
+
+Based on the conversation history provided, generate a short, engaging title (5-7 words) and a summary of around 100 words. The summary should highlight the key topics discussed, the main concerns of the user, and any significant advice or support offered by the buddy.
 
 Conversation History:
-{{conversationHistory}}`,
+{{#each conversationHistory}}
+  {{role}}: {{{content}}}
+{{/each}}
+`,
 });
 
 const generateConversationSummaryFlow = ai.defineFlow(

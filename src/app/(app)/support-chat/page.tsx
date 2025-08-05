@@ -29,12 +29,59 @@ export default function SupportChatPage() {
   const router = useRouter()
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const inputRef = useRef(input);
-
-  useEffect(() => {
-    inputRef.current = input;
-  }, [input]);
   
+  const speakMessage = async (text: string) => {
+    try {
+      // The speech recognition can sometimes pick up the assistant's own voice.
+      // We stop listening before we start speaking to prevent this.
+      stopListening(); 
+      const result = await textToSpeech(text);
+      if (result.audioDataUri) {
+        setAudioDataUri(result.audioDataUri);
+      } else {
+         // if TTS fails (e.g. rate limit), restart listening immediately
+        if (isSupported && !isListening) {
+          startListening();
+        }
+      }
+    } catch (error) {
+      console.error("Failed to generate audio for message:", error);
+      // if TTS fails, restart listening
+      if (isSupported && !isListening) {
+        startListening();
+      }
+    }
+  };
+
+  const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>, messageToSend?: string) => {
+    e?.preventDefault()
+    const finalInput = messageToSend || input;
+    if (!finalInput.trim() || isLoading) return
+
+    setIsLoading(true)
+    const userMessage: Message = { role: "user", content: finalInput }
+    setMessages((prev) => [...prev, userMessage])
+    setInput("")
+    reset();
+
+    try {
+      const result = await aiConversationalSupport({ userName, question: finalInput })
+      const assistantMessage: Message = { role: "assistant", content: result.answer }
+      setMessages((prev) => [...prev, assistantMessage])
+      await speakMessage(result.answer)
+    } catch (error) {
+      const errorMessageText = "I'm sorry, I encountered an error. Please try again."
+      const errorMessage: Message = {
+        role: "assistant",
+        content: errorMessageText,
+      }
+      setMessages((prev) => [...prev, errorMessage])
+      await speakMessage(errorMessageText)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleWakeUp = () => {
     const greeting = { role: "assistant", content: `Hi ${userName}, I'm here!` };
     setMessages((prev) => [...prev, greeting]);
@@ -47,12 +94,6 @@ export default function SupportChatPage() {
     speakMessage(goodbye.content);
   }
 
-  const handleSubmitWithCurrentInput = () => {
-    if (inputRef.current.trim()) {
-      handleSubmit(undefined, inputRef.current);
-    }
-  }
-
   const {
     isListening,
     isSleeping,
@@ -60,9 +101,13 @@ export default function SupportChatPage() {
     stopListening,
     isSupported,
     reset,
+    isListeningForWakeWord,
   } = useSpeechRecognition({
     onTranscript: (text) => setInput(text),
-    onComplete: handleSubmitWithCurrentInput,
+    onComplete: () => {
+        // Use a ref to get the latest input value in the callback
+        inputRef.current.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    },
     wakeWord: "hey buddy",
     onWakeUp: handleWakeUp,
     onSleep: handleSleep,
@@ -98,7 +143,6 @@ export default function SupportChatPage() {
 
   useEffect(() => {
     if (audioRef.current && audioDataUri) {
-      stopListening();
       audioRef.current.src = audioDataUri;
       audioRef.current.play().catch(e => {
         console.error("Audio playback failed:", e)
@@ -117,26 +161,6 @@ export default function SupportChatPage() {
       startListening();
     }
   };
-
-  const speakMessage = async (text: string) => {
-    try {
-      const result = await textToSpeech(text);
-      if (result.audioDataUri) {
-        setAudioDataUri(result.audioDataUri);
-      } else {
-         // if TTS fails (e.g. rate limit), restart listening immediately
-        if (isSupported && !isListening) {
-          startListening();
-        }
-      }
-    } catch (error) {
-      console.error("Failed to generate audio for message:", error);
-      // if TTS fails, restart listening
-      if (isSupported && !isListening) {
-        startListening();
-      }
-    }
-  };
   
   const handleLogout = () => {
     if (typeof window !== "undefined") {
@@ -145,35 +169,6 @@ export default function SupportChatPage() {
     }
     stopListening();
     router.push("/login")
-  }
-
-  const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>, messageToSend?: string) => {
-    e?.preventDefault()
-    const finalInput = messageToSend || input;
-    if (!finalInput.trim() || isLoading) return
-
-    setIsLoading(true)
-    const userMessage: Message = { role: "user", content: finalInput }
-    setMessages((prev) => [...prev, userMessage])
-    setInput("")
-    reset();
-
-    try {
-      const result = await aiConversationalSupport({ userName, question: finalInput })
-      const assistantMessage: Message = { role: "assistant", content: result.answer }
-      setMessages((prev) => [...prev, assistantMessage])
-      await speakMessage(result.answer)
-    } catch (error) {
-      const errorMessageText = "I'm sorry, I encountered an error. Please try again."
-      const errorMessage: Message = {
-        role: "assistant",
-        content: errorMessageText,
-      }
-      setMessages((prev) => [...prev, errorMessage])
-      await speakMessage(errorMessageText)
-    } finally {
-      setIsLoading(false)
-    }
   }
 
   useEffect(() => {
@@ -187,9 +182,17 @@ export default function SupportChatPage() {
 
   const getPlaceholderText = () => {
     if (isSleeping) return "Buddy is sleeping. Say 'wakey wakey' to start.";
-    if (isListening) return "Listening...";
-    return "Say 'hey buddy' or type your message...";
+    if (isListening) {
+        if (isListeningForWakeWord) {
+             return "Say 'hey buddy' to start..."
+        }
+        return "Listening...";
+    }
+    return "Click the mic to start listening.";
   }
+
+  // Create a ref for the form to dispatch submit event from speech hook
+  const inputRef = useRef<HTMLFormElement>(null);
 
   return (
     <div className="h-full flex flex-col">
@@ -259,6 +262,7 @@ export default function SupportChatPage() {
       <div className="border-t bg-background p-4 md:p-6">
         <div className="container mx-auto max-w-md">
             <form
+            ref={inputRef}
             onSubmit={(e) => handleSubmit(e)}
             className="relative"
             >
@@ -270,7 +274,7 @@ export default function SupportChatPage() {
                 onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleSubmit(undefined, input);
+                    handleSubmit(e);
                 }
                 }}
                 disabled={isLoading}

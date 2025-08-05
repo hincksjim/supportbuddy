@@ -53,9 +53,9 @@ export default function SupportChatPage() {
     }
   };
 
-  const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>, messageToSend?: string) => {
+  const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault()
-    const finalInput = messageToSend || input;
+    const finalInput = input;
     if (!finalInput.trim() || isLoading) return
 
     setIsLoading(true)
@@ -94,6 +94,9 @@ export default function SupportChatPage() {
     speakMessage(goodbye.content);
   }
 
+  // Create a ref for the form to dispatch submit event from speech hook
+  const formRef = useRef<HTMLFormElement>(null);
+
   const {
     isListening,
     isSleeping,
@@ -106,7 +109,10 @@ export default function SupportChatPage() {
     onTranscript: (text) => setInput(text),
     onComplete: () => {
         // Use a ref to get the latest input value in the callback
-        inputRef.current.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        if (formRef.current) {
+            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+            formRef.current.dispatchEvent(submitEvent);
+        }
     },
     wakeWord: "hey buddy",
     onWakeUp: handleWakeUp,
@@ -191,9 +197,6 @@ export default function SupportChatPage() {
     return "Click the mic to start listening.";
   }
 
-  // Create a ref for the form to dispatch submit event from speech hook
-  const inputRef = useRef<HTMLFormElement>(null);
-
   return (
     <div className="h-full flex flex-col">
        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur-sm">
@@ -262,8 +265,8 @@ export default function SupportChatPage() {
       <div className="border-t bg-background p-4 md:p-6">
         <div className="container mx-auto max-w-md">
             <form
-            ref={inputRef}
-            onSubmit={(e) => handleSubmit(e)}
+            ref={formRef}
+            onSubmit={handleSubmit}
             className="relative"
             >
             <Textarea

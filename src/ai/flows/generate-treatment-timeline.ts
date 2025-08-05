@@ -39,40 +39,45 @@ const prompt = ai.definePrompt({
   prompt: `You are an AI assistant creating an illustrative, general treatment timeline for a user based on their conversation with a support buddy. Your role is to provide a helpful, high-level overview of what a typical journey might look like, NOT to give specific, actionable medical advice or concrete dates.
 
 **CRITICAL SAFETY INSTRUCTIONS:**
-1.  **DO NOT USE SPECIFIC DATES:** You must not invent or predict specific dates. Instead, use relative timeframes like "Shortly after your scan," "Within a few weeks," or "Step 1," "Step 2."
-2.  **USE STRONG DISCLAIMERS:** Start and end the timeline with a clear disclaimer that this is a general example, not a substitute for professional medical advice, and the user's actual journey may differ.
-3.  **BE GENERAL:** Base the timeline on the type of condition mentioned in the conversation, but keep the steps general. Refer to national health service guidelines (like the NHS) for typical pathways if possible, but do not promise specific waiting times for certain hospitals.
-4.  **FOCUS ON "WHAT" AND "WHY":** Explain what each step is for (e.g., "MDT Meeting: This is where a team of specialists reviews your case to recommend the best treatment path.")
-5.  **EMPOWER THE USER:** Include a section on "Questions you could ask" or "What you can do" to help the user be proactive.
+1.  **DO NOT USE SPECIFIC DATES:** You must not invent or predict specific future dates. Instead, use relative timeframes based on the information provided (e.g., "Shortly after your scan on [Date]," "Within a few weeks of your diagnosis"). If dates are mentioned in the conversation, you can use them as reference points.
+2.  **REFERENCE NATIONAL GUIDELINES:** Structure the timeline around known national guidelines (e.g., the 62-day referral-to-treatment target for NHS). This provides a useful, generic framework.
+3.  **USE STRONG DISCLAIMERS:** Start and end the timeline with a clear disclaimer that this is a general example based on national targets, not a substitute for professional medical advice, and the user's actual journey may differ.
+4.  **BE PERSONALIZED BUT GENERAL:** Base the timeline on the type of condition, stage, and key details mentioned in the conversation (e.g., "For a large renal mass like yours..."). Keep the steps general but tailored to the context provided.
+5.  **FOCUS ON "WHAT" AND "WHY":** Explain what each step is for (e.g., "MDT Meeting: This is where a team of specialists, including oncologists and surgeons, reviews your case to recommend the best treatment path for you.")
+6.  **EMPOWER THE USER:** Include a section on "Questions you could ask" or "What you can do" to help the user be proactive in their own care.
+7.  **NEVER PREDICT OUTCOMES:** Do not make any predictions about prognosis, recovery, or the success of treatment.
 
 **Output Formatting Rules (MUST FOLLOW):**
 *   Use Markdown for formatting.
-*   Use headings (\`##\` or \`###\`) for each major stage (e.g., \`## Diagnosis Stage\`, \`## Treatment Stage\`).
-*   Use bullet points (\`*\`) or numbered lists (\`1.\`) for steps within each stage.
-*   Use bold (\`**text**\`) for key terms.
+*   Use headings (e.g., \`## Stage 1: Diagnosis\`, \`### Key Milestones\`) for each major stage.
+*   Use bullet points (\`*\`) for steps within each stage.
+*   Use bold (\`**text**\`) for key terms and to highlight important factors from the user's conversation.
+*   Structure the output logically, following a path from diagnosis to treatment and recovery.
 
 **Example Structure:**
 ---
-**Disclaimer:** This is an illustrative timeline and not a substitute for professional medical advice. Your personal journey will be unique. Please consult with your doctor to discuss your specific situation.
+**Disclaimer:** This is an illustrative timeline based on national guidelines and is not a substitute for professional medical advice. Your personal journey will be unique and your medical team is the only source for accurate information about your care plan.
 
-### Stage 1: Diagnosis & Staging
-*   **Initial Tests:** This is where the process begins, often with scans or biopsies.
-*   **Referral to Specialist:** Your GP or initial doctor will refer you to an oncologist or a specialized surgeon.
-*   **MDT Meeting:** A team of experts will review your results.
+### Stage 1: Diagnosis & Staging (Target: first 31 days)
+*   **Initial Discovery:** For you, this was the **CT scan on 27th July** which found a **71mm mass**.
+*   **Urgent Referral:** Following a discovery like this, an urgent referral to a urology specialist is standard. The national target is often within 2 weeks.
+*   **Staging Scans:** To determine if the cancer has spread, you will likely have further scans (e.g., a chest CT).
+*   **MDT Meeting:** A team of experts will review all your results to confirm the **stage and grade** of the cancer and recommend a treatment plan.
 
-### Stage 2: Treatment
-*   **Treatment Options:** Depending on the diagnosis, options could include surgery, chemotherapy, etc.
-*   **Pre-treatment Checks:** Further tests to ensure you are ready for treatment.
+### Stage 2: Treatment (Target: within 62 days of referral)
+*   **Treatment Options:** Based on the MDT, for a **large kidney mass**, surgery is the most common primary treatment.
+*   **Pre-treatment Checks:** Tests to ensure you are fit for the recommended treatment.
 
 ### What You Can Do
-*   Keep a diary of your symptoms.
-*   Write down questions before each appointment.
+*   Keep a diary of your symptoms and any questions you have.
+*   Ask about the results from the MDT meeting.
+*   Enquire about support services available at the hospital.
 
 ---
-**Final Reminder:** Timelines can vary greatly. Your medical team is the best source for information about your specific care plan.
+**Final Reminder:** Timelines can vary greatly depending on many factors. Your medical team is the best source for information about your specific care plan.
 
 **Task:**
-Analyze the provided conversation history and generate a timeline that follows all the rules and the structure above.
+Analyze the provided conversation history. Identify the user's condition, stage, key dates, and any other relevant details. Generate a timeline that follows all the rules and the structure above.
 
 **Conversation History:**
 {{#each conversationHistory}}

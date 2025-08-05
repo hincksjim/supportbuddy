@@ -42,6 +42,7 @@ export default function SupportChatPage() {
   const router = useRouter()
   const { toast } = useToast()
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   
   const speakMessage = async (text: string) => {
     try {
@@ -203,6 +204,12 @@ export default function SupportChatPage() {
       audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
     }
   }, [audioDataUri]);
+
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [messages]);
   
   const handleAudioEnded = () => {
     setAudioDataUri(null);
@@ -292,6 +299,7 @@ export default function SupportChatPage() {
                 </div>
               </div>
             )}
+            <div ref={scrollAreaRef} />
           </div>
         </ScrollArea>
       </div>

@@ -147,7 +147,7 @@ export default function SupportChatPage() {
       const result = await aiConversationalSupport({ userName, question: finalInput })
       const assistantMessage: Message = { role: "assistant", content: result.answer }
       setMessages((prev) => [...prev, assistantMessage])
-      speakMessage(result.answer)
+      await speakMessage(result.answer)
     } catch (error) {
       const errorMessageText = "I'm sorry, I encountered an error. Please try again."
       const errorMessage: Message = {
@@ -155,7 +155,7 @@ export default function SupportChatPage() {
         content: errorMessageText,
       }
       setMessages((prev) => [...prev, errorMessage])
-      speakMessage(errorMessageText)
+      await speakMessage(errorMessageText)
     } finally {
       setIsLoading(false)
     }
@@ -283,7 +283,7 @@ export default function SupportChatPage() {
         </div>
       </div>
       {audioDataUri && (
-          <audio ref={audioRef} src={audioDataUri} onEnded={handleAudioEnded} className="hidden" />
+          <audio ref={audioRef} src={audioDataUri} onEnded={handleAudioEnded} className="hidden" autoPlay />
       )}
     </div>
   )

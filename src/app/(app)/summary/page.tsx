@@ -240,6 +240,14 @@ export default function SummaryPage() {
                 </Card>
                  <Card>
                     <CardHeader>
+                        <CardTitle className="text-base">Diagnosis Mood Trends</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <DiaryChart data={diaryEntries} chartType="diagnosis" />
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
                         <CardTitle className="text-base">Pain Trends</CardTitle>
                     </CardHeader>
                     <CardContent>

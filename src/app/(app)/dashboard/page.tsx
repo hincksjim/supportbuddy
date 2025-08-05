@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { MessageSquare, FileText, Mic, PlusCircle, Loader2, StopCircle } from "lucide-react"
+import { MessageSquare, FileText, Mic, PlusCircle, Loader2, StopCircle, X } from "lucide-react"
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
 import { useToast } from "@/hooks/use-toast"
 import { summarizeVoiceNote } from "@/ai/flows/summarize-voice-note"
@@ -266,9 +266,9 @@ function RecordVoiceNoteDialog({ onRecordingComplete }: { onRecordingComplete: (
   );
 }
 
-function ConversationCard({ summary }: { summary: ConversationSummary }) {
+function ConversationCard({ summary, onDelete }: { summary: ConversationSummary, onDelete: (id: string, type: ActivityItem['type']) => void }) {
     return (
-        <Card className="flex flex-col h-full">
+        <Card className="flex flex-col h-full relative group">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                     <MessageSquare className="w-5 h-5 text-primary" />
@@ -282,12 +282,26 @@ function ConversationCard({ summary }: { summary: ConversationSummary }) {
                     <Button variant="link" className="px-0 pt-2">View conversation &rarr;</Button>
                  </Link>
             </CardContent>
+            <Button 
+                variant="destructive" 
+                size="icon" 
+                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onDelete(summary.id, 'conversation');
+                }}
+            >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Delete</span>
+            </Button>
         </Card>
     )
 }
 
-function AnalysisCard({ result }: { result: AnalysisResult }) {
+function AnalysisCard({ result, onDelete }: { result: AnalysisResult, onDelete: (id: string, type: ActivityItem['type']) => void }) {
     return (
+        <div className="relative group h-full">
         <ViewAnalysisDialog result={result}>
             <Card className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col h-full">
                 <CardHeader>
@@ -317,12 +331,26 @@ function AnalysisCard({ result }: { result: AnalysisResult }) {
                 </CardContent>
             </Card>
         </ViewAnalysisDialog>
+         <Button 
+                variant="destructive" 
+                size="icon" 
+                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onDelete(result.id, 'analysis');
+                }}
+            >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Delete</span>
+            </Button>
+        </div>
     )
 }
 
-function VoiceNoteCard({ note }: { note: VoiceNote }) {
+function VoiceNoteCard({ note, onDelete }: { note: VoiceNote, onDelete: (id: string, type: ActivityItem['type']) => void }) {
     return (
-        <Card className="flex flex-col h-full">
+        <Card className="flex flex-col h-full relative group">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                     <Mic className="w-5 h-5 text-primary" />
@@ -336,6 +364,19 @@ function VoiceNoteCard({ note }: { note: VoiceNote }) {
                     <audio src={note.audioUrl} controls className="w-full h-10" />
                  </div>
             </CardContent>
+            <Button 
+                variant="destructive" 
+                size="icon" 
+                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onDelete(note.id, 'voiceNote');
+                }}
+            >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Delete</span>
+            </Button>
         </Card>
     );
 }
@@ -386,6 +427,26 @@ export default function DashboardPage() {
         loadActivity(); // Reload all activity to display the new note
     };
 
+    const handleDelete = (id: string, type: ActivityItem['type']) => {
+        if (type === 'conversation') {
+            const stored = localStorage.getItem("conversationSummaries");
+            const items: ConversationSummary[] = stored ? JSON.parse(stored) : [];
+            const updatedItems = items.filter(item => item.id !== id);
+            localStorage.setItem("conversationSummaries", JSON.stringify(updatedItems));
+        } else if (type === 'analysis') {
+            const stored = localStorage.getItem("analysisResults");
+            const items: AnalysisResult[] = stored ? JSON.parse(stored) : [];
+            const updatedItems = items.filter(item => item.id !== id);
+            localStorage.setItem("analysisResults", JSON.stringify(updatedItems));
+        } else if (type === 'voiceNote') {
+            const stored = localStorage.getItem("voiceNotes");
+            const items: VoiceNote[] = stored ? JSON.parse(stored) : [];
+            const updatedItems = items.filter(item => item.id !== id);
+            localStorage.setItem("voiceNotes", JSON.stringify(updatedItems));
+        }
+        loadActivity(); // Refresh the list
+    };
+
 
     return (
         <div className="p-4 md:p-6 space-y-8">
@@ -402,15 +463,15 @@ export default function DashboardPage() {
             {activity.length > 0 ? (
                  <section>
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {activity.map((item, index) => {
+                        {activity.map((item) => {
                             if (item.type === 'conversation') {
-                                return <ConversationCard key={`convo-${item.data.id}`} summary={item.data} />;
+                                return <ConversationCard key={`convo-${item.data.id}`} summary={item.data} onDelete={handleDelete} />;
                             }
                             if (item.type === 'analysis') {
-                                return <AnalysisCard key={`analysis-${item.data.id}`} result={item.data} />;
+                                return <AnalysisCard key={`analysis-${item.data.id}`} result={item.data} onDelete={handleDelete} />;
                             }
                             if (item.type === 'voiceNote') {
-                                return <VoiceNoteCard key={`note-${item.data.id}`} note={item.data} />;
+                                return <VoiceNoteCard key={`note-${item.data.id}`} note={item.data} onDelete={handleDelete} />;
                             }
                             return null;
                         })}

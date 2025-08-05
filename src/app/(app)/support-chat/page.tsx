@@ -31,6 +31,10 @@ export default function SupportChatPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const speakMessage = async (text: string) => {
+    // While assistant is speaking, stop listening to avoid feedback loops.
+    if (isListening) {
+      stopListening();
+    }
     try {
       const result = await textToSpeech(text);
       if (result.audioDataUri) {
@@ -69,8 +73,6 @@ export default function SupportChatPage() {
     }
   }
 
-  const formRef = useRef<HTMLFormElement>(null);
-
   const {
     isListening,
     startListening,
@@ -78,17 +80,13 @@ export default function SupportChatPage() {
     isSupported,
   } = useSpeechRecognition({
     onTranscript: (text) => setInput(text),
-    onComplete: () => {
-        if (formRef.current) {
-            // The state `input` might be stale in this callback.
-            // We get the latest value from the event and check it.
-            // If there's text, we dispatch a submit event.
-             const formData = new FormData(formRef.current);
-             const currentInput = formData.get('input-textarea') as string;
-             if (currentInput && currentInput.trim()) {
-                const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-                formRef.current.dispatchEvent(submitEvent);
-             }
+    onComplete: (transcript) => {
+        setInput(transcript); // Ensure final transcript is set
+        if (transcript.trim()) {
+            // Use a brief timeout to allow state to update before submitting
+            setTimeout(() => {
+                document.getElementById('chat-submit-button')?.click();
+            }, 100);
         }
     },
   });
@@ -122,14 +120,9 @@ export default function SupportChatPage() {
 
   useEffect(() => {
     if (audioRef.current && audioDataUri) {
-      // While assistant is speaking, stop listening to avoid feedback loops.
-      if (isListening) {
-        stopListening();
-      }
       audioRef.current.src = audioDataUri;
       audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioDataUri]);
   
   const handleAudioEnded = () => {
@@ -146,13 +139,6 @@ export default function SupportChatPage() {
     }
     router.push("/login")
   }
-
-  useEffect(() => {
-    const viewport = scrollAreaRef.current?.querySelector('div[data-radix-scroll-area-viewport]');
-    if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight;
-    }
-  }, [messages])
 
   const BuddyAvatarIcon = buddyAvatar === "male" ? AvatarMale : AvatarFemale;
 
@@ -229,7 +215,6 @@ export default function SupportChatPage() {
       <div className="border-t bg-background p-4 md:p-6">
         <div className="container mx-auto max-w-md">
             <form
-            ref={formRef}
             onSubmit={handleSubmit}
             className="relative"
             >
@@ -259,6 +244,7 @@ export default function SupportChatPage() {
                     </Button>
                 )}
                 <Button
+                    id="chat-submit-button"
                     type="submit"
                     size="icon"
                     disabled={isLoading || !input.trim()}

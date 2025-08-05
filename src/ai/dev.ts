@@ -1,3 +1,4 @@
+
 'use server';
 
 import { config } from 'dotenv';
@@ -10,4 +11,5 @@ import '@/ai/flows/text-to-speech.ts';
 import '@/ai/flows/summarize-voice-note.ts';
 import '@/ai/flows/generate-treatment-timeline.ts';
 import '@/ai/flows/generate-personal-summary.ts';
+import '@/ai/flows/generate-benefits-suggestion.ts';
 import '@/services/postcode-lookup.ts';

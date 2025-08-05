@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { CornerDownLeft, Loader2, User, Bot, LogOut } from "lucide-react"
+import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import { aiConversationalSupport } from "@/ai/flows/conversational-support"
 import { textToSpeech } from "@/ai/flows/text-to-speech"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { AvatarFemale, AvatarMale, Logo } from "@/components/icons"
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
 
 interface Message {
   role: "user" | "assistant"
@@ -27,6 +28,18 @@ export default function SupportChatPage() {
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
   const router = useRouter()
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  
+  const {
+    isListening,
+    startListening,
+    stopListening,
+    transcript,
+    isSupported,
+  } = useSpeechRecognition({
+    onTranscript: (text) => setInput(text),
+    wakeWord: "hey buddy",
+  });
+
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName")
@@ -36,24 +49,26 @@ export default function SupportChatPage() {
     
     const welcomeMessage = `Hello ${storedName || 'there'}! I'm your Support Buddy. I'm here to listen and help you with any questions or worries you might have about your health, treatment, or well-being. Feel free to talk to me about anything at all.`
     
-    setMessages([
-      {
-        role: "assistant",
-        content: welcomeMessage,
-      },
-    ]);
-
-    const generateWelcomeAudio = async () => {
-        try {
-            const result = await textToSpeech(welcomeMessage)
-            setAudioDataUri(result.audioDataUri)
-        } catch (error) {
-            console.error("Failed to generate welcome audio:", error)
-        }
-    }
-    generateWelcomeAudio()
+    const initialMessage = {
+      role: "assistant",
+      content: welcomeMessage,
+    };
+    
+    setMessages([initialMessage]);
+    speakMessage(initialMessage)
 
   }, [])
+
+  const speakMessage = async (message: Message) => {
+    if (message.role === "assistant") {
+      try {
+        const result = await textToSpeech(message.content)
+        setAudioDataUri(result.audioDataUri)
+      } catch (error) {
+        console.error("Failed to generate audio for message:", error)
+      }
+    }
+  }
   
   const handleLogout = () => {
     if (typeof window !== "undefined") {
@@ -63,8 +78,8 @@ export default function SupportChatPage() {
     router.push("/login")
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
+    e?.preventDefault()
     if (!input.trim()) return
 
     setIsLoading(true)
@@ -76,12 +91,14 @@ export default function SupportChatPage() {
       const result = await aiConversationalSupport({ question: input })
       const assistantMessage: Message = { role: "assistant", content: result.answer }
       setMessages((prev) => [...prev, assistantMessage])
+      speakMessage(assistantMessage)
     } catch (error) {
       const errorMessage: Message = {
         role: "assistant",
         content: "I'm sorry, I encountered an error. Please try again.",
       }
       setMessages((prev) => [...prev, errorMessage])
+      speakMessage(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -168,31 +185,42 @@ export default function SupportChatPage() {
             className="relative"
             >
             <Textarea
-                placeholder="Ask about your condition, treatment, or anything else..."
+                placeholder={isListening ? "Listening..." : "Say 'hey buddy' or type your message..."}
                 className="pr-20 resize-none"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleSubmit(e as any);
+                    handleSubmit();
                 }
                 }}
                 disabled={isLoading}
             />
-            <Button
-                type="submit"
-                size="icon"
-                className="absolute right-3 top-1/2 -translate-y-1/2"
-                disabled={isLoading || !input.trim()}
-            >
-                <CornerDownLeft className="h-4 w-4" />
-            </Button>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {isSupported && (
+                    <Button
+                        type="button"
+                        size="icon"
+                        variant={isListening ? "destructive" : "ghost"}
+                        onClick={isListening ? stopListening : startListening}
+                    >
+                        {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </Button>
+                )}
+                <Button
+                    type="submit"
+                    size="icon"
+                    disabled={isLoading || !input.trim()}
+                >
+                    <CornerDownLeft className="h-4 w-4" />
+                </Button>
+            </div>
             </form>
         </div>
       </div>
       {audioDataUri && (
-          <audio src={audioDataUri} autoPlay className="hidden" />
+          <audio src={audioDataUri} autoPlay onEnded={() => setAudioDataUri(null)} className="hidden" />
       )}
     </div>
   )

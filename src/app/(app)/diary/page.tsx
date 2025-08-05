@@ -276,38 +276,41 @@ function DiaryEntryCard({ entry, onSave }: { entry: DiaryEntry; onSave: (entry: 
                         <CardTitle className="font-headline text-xl">{new Date(entry.date).toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</CardTitle>
                         <CardDescription>Your log for this day</CardDescription>
                     </div>
-                     <div className="flex flex-col items-end gap-1 text-xs text-muted-foreground">
+                     <div className="flex flex-col items-end gap-2 text-sm text-muted-foreground">
                         {entry.mood && (
                             <div className="flex items-center gap-2" title={`Overall Mood: ${entry.mood}`}>
-                                <span>Overall</span>
+                                <span>Overall:</span>
                                 <span className="text-xl">{moodOptions[entry.mood]}</span>
+                                <span className="font-semibold">{moodToValue(entry.mood)}/5</span>
                             </div>
                         )}
                         {entry.diagnosisMood && (
                              <div className="flex items-center gap-2" title={`Diagnosis Mood: ${entry.diagnosisMood}`}>
-                                <span>Diagnosis</span>
+                                <span>Diagnosis:</span>
                                 <span className="text-xl">{moodOptions[entry.diagnosisMood]}</span>
+                                 <span className="font-semibold">{moodToValue(entry.diagnosisMood)}/5</span>
                             </div>
                         )}
                         {entry.treatmentMood && (
                             <div className="flex items-center gap-2" title={`Treatment Mood: ${entry.treatmentMood}`}>
-                                <span>Treatment</span>
+                                <span>Treatment:</span>
                                 <span className="text-xl">{moodOptions[entry.treatmentMood]}</span>
+                                 <span className="font-semibold">{moodToValue(entry.treatmentMood)}/5</span>
                             </div>
                         )}
                         {entry.painScore !== null && typeof entry.painScore !== 'undefined' && (
                              <div className="flex items-center gap-2" title={`Pain Score: ${entry.painScore}`}>
-                                <span>Pain</span>
+                                <span>Pain:</span>
                                 <span className="text-xl">{painEmojis[entry.painScore]}</span>
+                                <span className="font-semibold">{entry.painScore}/10</span>
                             </div>
                         )}
                      </div>
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                {(entry.weight || entry.sleep || entry.painScore) && (
+                {(entry.weight || entry.sleep) && (
                     <div className="grid grid-cols-3 gap-4 text-sm">
-                        {entry.painScore !== null && typeof entry.painScore !== 'undefined' && <div><strong>Pain:</strong> {entry.painScore}/10</div>}
                         {entry.weight && <div><strong>Weight:</strong> {entry.weight} kg</div>}
                         {entry.sleep && <div><strong>Sleep:</strong> {entry.sleep} hours</div>}
                     </div>
@@ -413,4 +416,5 @@ export default function DiaryPage() {
     
 
     
+
 

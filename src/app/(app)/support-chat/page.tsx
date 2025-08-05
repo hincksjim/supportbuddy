@@ -28,7 +28,7 @@ export default function SupportChatPage() {
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
   const router = useRouter()
   const scrollAreaRef = useRef<HTMLDivElement>(null)
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const inputRef = useRef(input);
 
   useEffect(() => {
@@ -47,6 +47,12 @@ export default function SupportChatPage() {
     speakMessage(goodbye.content);
   }
 
+  const handleSubmitWithCurrentInput = () => {
+    if (inputRef.current.trim()) {
+      handleSubmit(undefined, inputRef.current);
+    }
+  }
+
   const {
     isListening,
     isSleeping,
@@ -56,12 +62,7 @@ export default function SupportChatPage() {
     reset,
   } = useSpeechRecognition({
     onTranscript: (text) => setInput(text),
-    onComplete: () => {
-        // We use a ref to get the latest value of input inside this callback
-        if (inputRef.current.trim()) {
-            handleSubmit(undefined, inputRef.current);
-        }
-    },
+    onComplete: handleSubmitWithCurrentInput,
     wakeWord: "hey buddy",
     onWakeUp: handleWakeUp,
     onSleep: handleSleep,
@@ -97,8 +98,9 @@ export default function SupportChatPage() {
 
   useEffect(() => {
     if (audioRef.current && audioDataUri) {
-        stopListening();
-        audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+      stopListening();
+      audioRef.current.src = audioDataUri;
+      audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioDataUri]);
@@ -112,14 +114,14 @@ export default function SupportChatPage() {
 
   const speakMessage = async (text: string) => {
     try {
-        const result = await textToSpeech(text);
-        setAudioDataUri(result.audioDataUri);
+      const result = await textToSpeech(text);
+      setAudioDataUri(result.audioDataUri);
     } catch (error) {
-        console.error("Failed to generate audio for message:", error);
-        // if TTS fails, restart listening
-        if (isSupported && !isListening) {
-          startListening();
-        }
+      console.error("Failed to generate audio for message:", error);
+      // if TTS fails, restart listening
+      if (isSupported && !isListening) {
+        startListening();
+      }
     }
   };
   
@@ -282,9 +284,7 @@ export default function SupportChatPage() {
             </form>
         </div>
       </div>
-      {audioDataUri && (
-          <audio ref={audioRef} src={audioDataUri} onEnded={handleAudioEnded} className="hidden" autoPlay />
-      )}
+      <audio ref={audioRef} onEnded={handleAudioEnded} className="hidden" />
     </div>
   )
 }

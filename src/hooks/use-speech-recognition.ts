@@ -175,7 +175,7 @@ export function useSpeechRecognition({
         if (recognitionRef.current) {
             recognitionRef.current.onresult = null
             recognitionRef.current.onerror = null
-            recognition.onend = null;
+            recognitionRef.current.onend = null;
             if (isListening) {
                 recognitionRef.current.stop();
             }

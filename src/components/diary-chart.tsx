@@ -6,7 +6,6 @@ import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Responsi
 
 import {
   ChartContainer,
-  ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
@@ -46,6 +45,9 @@ const chartConfig = {
 export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType: 'mood' | 'weight' | 'sleep' }) {
   const chartData = React.useMemo(() => {
     return data
+      // First, sort the raw data by date to ensure calculations are correct
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      // Then, map to the format the chart needs
       .map(entry => ({
         date: new Date(entry.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }),
         overallMood: entry.mood ? moodToValue[entry.mood] : null,
@@ -53,13 +55,7 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
         treatmentMood: entry.treatmentMood ? moodToValue[entry.treatmentMood] : null,
         weight: entry.weight ? parseFloat(entry.weight) : null,
         sleep: entry.sleep ? parseFloat(entry.sleep) : null,
-      }))
-      .sort((a, b) => {
-        // We need to convert back to a sortable date format
-        const dateA = new Date(a.date.split('/').reverse().join('-'));
-        const dateB = new Date(b.date.split('/').reverse().join('-'));
-        return dateA.getTime() - dateB.getTime();
-      });
+      }));
   }, [data]);
   
   const yAxisDomain = React.useMemo(() => {
@@ -69,11 +65,13 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
         case 'weight':
             const weights = chartData.map(d => d.weight).filter(w => w !== null) as number[];
             if (weights.length === 0) return [0, 100];
-            return [Math.min(...weights) - 5, Math.max(...weights) + 5];
+            const minWeight = Math.min(...weights);
+            const maxWeight = Math.max(...weights);
+            return [Math.floor(minWeight - 5), Math.ceil(maxWeight + 5)];
         case 'sleep':
             const sleeps = chartData.map(d => d.sleep).filter(s => s !== null) as number[];
-            if (sleeps.length === 0) return [0, 12];
-            return [0, Math.max(...sleeps) + 2];
+             if (sleeps.length === 0) return [0, 12];
+            return [0, Math.ceil(Math.max(...sleeps) + 2)];
         default:
             return [0, 'auto'];
     }

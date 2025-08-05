@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { BotMessageSquare, LayoutDashboard, FileQuestion, Milestone, FileText, Landmark, Notebook } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { BotMessageSquare, LayoutDashboard, FileQuestion, Milestone, FileText, Landmark, Notebook, LogOut } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -18,10 +18,17 @@ const navItems = [
 
 export function AppShell() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleLogout = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    // In a real app, you would also clear auth tokens.
+    router.push("/login");
+  };
 
   return (
     <nav className="sticky bottom-0 z-10 border-t bg-background/95 backdrop-blur-sm">
-      <div className="container mx-auto grid h-16 max-w-md grid-cols-7 items-center justify-around">
+      <div className="container mx-auto grid h-16 max-w-md grid-cols-8 items-center justify-around">
         {navItems.map((item) => (
           <Link
             key={item.href}
@@ -37,6 +44,15 @@ export function AppShell() {
             <span>{item.label}</span>
           </Link>
         ))}
+         <button
+            onClick={handleLogout}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors hover:text-primary text-muted-foreground"
+            )}
+          >
+            <LogOut className="h-5 w-5" />
+            <span>Logout</span>
+          </button>
       </div>
     </nav>
   )

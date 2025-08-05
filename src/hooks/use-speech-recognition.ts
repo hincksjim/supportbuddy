@@ -29,6 +29,7 @@ export function useSpeechRecognition({
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const wakeWordDetectedRef = useRef(false)
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const stopManuallyRef = useRef(false);
 
   useEffect(() => {
     if (SpeechRecognitionApi) {
@@ -44,18 +45,24 @@ export function useSpeechRecognition({
 
   const startListening = () => {
     if (recognitionRef.current && !isListening) {
+      stopManuallyRef.current = false;
       wakeWordDetectedRef.current = !wakeWord; // If no wake word, start listening immediately
       if(wakeWordDetectedRef.current) {
         onTranscript(""); // Clear previous transcript
       }
-      recognitionRef.current.start()
-      setIsListening(true)
-      onListen?.(true)
+      try {
+        recognitionRef.current.start()
+        setIsListening(true)
+        onListen?.(true)
+      } catch(e) {
+          console.error("Speech recognition could not be started: ", e);
+      }
     }
   }
 
   const stopListening = () => {
     if (recognitionRef.current && isListening) {
+      stopManuallyRef.current = true;
       recognitionRef.current.stop()
       setIsListening(false)
       onListen?.(false)
@@ -66,7 +73,7 @@ export function useSpeechRecognition({
   }
   
   const reset = () => {
-    wakeWordDetectedRef.current = false;
+    wakeWordDetectedRef.current = !wakeWord;
     onTranscript("");
   }
 
@@ -91,8 +98,8 @@ export function useSpeechRecognition({
             }
         }
         
-        const currentTranscript = finalTranscript || interimTranscript;
-        const lowerCaseTranscript = currentTranscript.toLowerCase().trim();
+        const currentTranscript = (finalTranscript || interimTranscript).trim();
+        const lowerCaseTranscript = currentTranscript.toLowerCase();
 
         if (wakeWord && !wakeWordDetectedRef.current) {
             if (lowerCaseTranscript.includes(wakeWord.toLowerCase())) {
@@ -119,12 +126,15 @@ export function useSpeechRecognition({
 
     const handleError = (event: SpeechRecognitionErrorEvent) => {
       console.error("Speech recognition error", event.error)
-      stopListening()
+      // "not-allowed" error means user denied permission. Don't restart.
+      if (event.error !== 'not-allowed') {
+        stopListening()
+      }
     }
 
     const handleEnd = () => {
-      if (isListening) {
-        // If it stops unexpectedly, restart it, unless we are manually stopping.
+      if (isListening && !stopManuallyRef.current) {
+        // If it stops unexpectedly, restart it.
         recognition.start();
       }
     }
@@ -134,11 +144,13 @@ export function useSpeechRecognition({
     recognition.onend = handleEnd
 
     return () => {
-        if (recognition) {
-            recognition.onresult = null
-            recognition.onerror = null
-            recognition.onend = null
-            recognition.stop();
+        if (recognitionRef.current) {
+            recognitionRef.current.onresult = null
+            recognitionRef.current.onerror = null
+            recognitionRef.current.onend = null
+            if(isListening) {
+                recognitionRef.current.stop();
+            }
         }
         if (speechTimeoutRef.current) {
             clearTimeout(speechTimeoutRef.current);

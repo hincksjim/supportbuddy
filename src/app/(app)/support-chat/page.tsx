@@ -39,12 +39,24 @@ export default function SupportChatPage() {
   } = useSpeechRecognition({
     onTranscript: (text) => setInput(text),
     onComplete: () => {
-        if (input.trim()) {
-            handleSubmit();
-        }
+        // We use a ref to get the latest value of input inside this callback
+        setInput(currentInput => {
+          if (currentInput.trim()) {
+              handleSubmit(undefined, currentInput);
+          }
+          return currentInput;
+        });
     },
     wakeWord: "hey buddy",
   });
+
+  // Automatically start listening when the component mounts
+  useEffect(() => {
+    if (isSupported) {
+      startListening();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSupported]);
 
 
   useEffect(() => {
@@ -85,21 +97,23 @@ export default function SupportChatPage() {
       localStorage.removeItem("userName")
       localStorage.removeItem("buddyAvatar")
     }
+    stopListening();
     router.push("/login")
   }
 
-  const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>, messageToSend?: string) => {
     e?.preventDefault()
-    if (!input.trim() || isLoading) return
+    const finalInput = messageToSend || input;
+    if (!finalInput.trim() || isLoading) return
 
     setIsLoading(true)
-    const userMessage: Message = { role: "user", content: input }
+    const userMessage: Message = { role: "user", content: finalInput }
     setMessages((prev) => [...prev, userMessage])
     setInput("")
-    reset(); // Reset speech recognition state
+    reset();
 
     try {
-      const result = await aiConversationalSupport({ question: input })
+      const result = await aiConversationalSupport({ question: finalInput })
       const assistantMessage: Message = { role: "assistant", content: result.answer }
       setMessages((prev) => [...prev, assistantMessage])
       speakMessage(result.answer)
@@ -193,7 +207,7 @@ export default function SupportChatPage() {
       <div className="border-t bg-background p-4 md:p-6">
         <div className="container mx-auto max-w-md">
             <form
-            onSubmit={handleSubmit}
+            onSubmit={(e) => handleSubmit(e)}
             className="relative"
             >
             <Textarea
@@ -204,7 +218,7 @@ export default function SupportChatPage() {
                 onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleSubmit();
+                    handleSubmit(undefined, input);
                 }
                 }}
                 disabled={isLoading}

@@ -94,19 +94,48 @@ const prompt = ai.definePrompt({
   name: 'generatePersonalSummaryPrompt',
   input: {schema: EnrichedGeneratePersonalSummaryInputSchema},
   output: {schema: GeneratePersonalSummaryOutputSchema},
-  prompt: `You are an AI assistant tasked with creating a comprehensive "Personal Summary Report" for a user navigating their cancer journey. Your role is to synthesize all available information into a clear, organized, and easy-to-read document formatted in Markdown.
+  prompt: `You are an AI assistant tasked with creating a comprehensive "Personal Summary Report" for a user navigating their cancer journey.
+
+**TASK:**
+Your primary goal is to synthesize all the information provided into a clear, organized, and factual Markdown report. You MUST populate the report template below using data from the **Source Documents**, **Source Conversations**, **Conversation History**, and **Timeline Data**.
 
 **CRITICAL INSTRUCTIONS:**
-1.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details, the full conversation history, all source documents, source conversations, location information, and the timeline data to build the report. The source documents are a critical source of factual information.
+1.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources to build the report. The source documents and conversations are a critical source of factual information.
 2.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, or a date), you **MUST** cite where you found it by referencing the source's title and date. For example: "The diagnosis of Renal Cell Carcinoma was confirmed in the 'CT Scan Results' document (from 15/07/2024)." or "The user expressed anxiety about the upcoming surgery in the conversation 'Chat about Scanxiety' (from 16/07/2024)."
-3.  **FORMAT WITH MARKDOWN:** The entire output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes to structure the information logically.
+3.  **FORMAT WITH MARKDOWN:** The entire output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes as defined in the template.
 4.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details, infer medical information you aren't given, or make predictions.
-5.  **PRIVACY DISCLAIMER:** Start the report with a clear disclaimer about privacy and accuracy.
-6.  **EXTRACT CONTACTS:** Scour the conversation history AND the source documents for any mention of doctor names, nurse names, hospital names, or contact details (phone numbers, etc.). Synthesize this information into a single list, citing the source for each piece of contact information.
-
-**REPORT STRUCTURE (Must follow this format):**
+5.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
+6.  **EXTRACT CONTACTS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, or contact details (phone numbers, etc.). Synthesize this information into a single list under the "Medical Team & Contacts" section, citing the source for each piece of contact information.
 
 ---
+**AVAILABLE INFORMATION SOURCES TO USE:**
+
+**1. Source Documents (High Importance for Factual Data):**
+{{#each sourceDocuments}}
+*   **Document Title:** "{{title}}"
+*   **Analysis Date:** {{date}}
+*   **Analysis Content:**
+    > {{{analysis}}}
+---
+{{/each}}
+
+**2. Source Conversations (High Importance for Context & Feelings):**
+{{#each sourceConversations}}
+*   **Conversation Title:** "{{title}}"
+*   **Summary Date:** {{date}}
+*   **Summary Content:**
+    > {{{summary}}}
+---
+{{/each}}
+
+**3. Full Conversation History (For detailed context):**
+*   A full transcript is available in the input. Use it to find details not present in the summaries.
+---
+**4. Timeline Data (For milestone tracking):**
+*   User's progress on their treatment plan is available in the input.
+---
+
+**REPORT TEMPLATE TO POPULATE:**
 
 ### **Personal Summary Report**
 > **Disclaimer:** This report is a summary of the information you have provided from your chats and documents. It is for personal reference only and should not be considered a medical document. Always consult with your healthcare provider for official information and advice.
@@ -119,14 +148,14 @@ const prompt = ai.definePrompt({
 *   **Local Health Authority:** {{{locationInfo.nhs_ha}}}
 
 ### **Medical Team & Contacts**
-*(Extract any mentioned doctors, nurses, or hospitals from the conversation AND the source documents. If none are mentioned, state "No information provided yet.")*
+*(Extract any mentioned doctors, nurses, or hospitals from ALL available data sources. If none are mentioned, state "No information provided yet.")*
 *   **Primary Consultant:** [Name, Contact Details] (Source: 'Document/Conversation Title', Date)
 *   **Specialist Nurse:** [Name, Contact Details] (Source: 'Document/Conversation Title', Date)
 *   **Hospital/Clinic for Diagnosis:** [Name] (Source: 'Document/Conversation Title', Date)
 *   **Hospital/Clinic for Treatment/Surgery:** [Name] (Source: 'Document/Conversation Title', Date)
 
 ### **Diagnosis & Condition Summary**
-*(Synthesize the key medical details from the conversation history AND the source documents into a concise summary. Include cancer type, stage, grade, dates, and key test results mentioned. Cite your sources for each key finding.)*
+*(Synthesize the key medical details from ALL available data sources into a concise summary. Include cancer type, stage, grade, dates, and key test results mentioned. Cite your sources for each key finding.)*
 
 ### **Timeline & Milestones**
 
@@ -137,22 +166,6 @@ const prompt = ai.definePrompt({
 **Next Expected Milestone(s):**
 *(List the next 1-2 steps from the timelineData where status is 'pending'. If none, state "All timeline steps are marked complete.")*
 *   **[Step Title]:** ([Target Timeframe]) - [Description]
-
----
-
-**Available Information Sources (for context):**
-
-{{#each sourceDocuments}}
-*   **Document:** "{{title}}" (Analyzed on {{date}})
-{{/each}}
-{{#each sourceConversations}}
-*   **Conversation:** "{{title}}" (Summarized on {{date}})
-{{/each}}
-
----
-
-**Task:**
-Analyze all the provided inputs and generate the report in a single Markdown string, citing your sources as instructed.
 `,
 });
 

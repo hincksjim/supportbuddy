@@ -82,17 +82,27 @@ export default function SupportChatPage() {
     }
   }
 
+  const handleTranscript = (text: string) => {
+    setInput(text);
+  };
+  
+  const handleComplete = () => {
+    const finalInput = input.trim();
+    if (finalInput) {
+      // Create a synthetic event or call handleSubmit directly
+      const mockEvent = { preventDefault: () => {} } as React.FormEvent<HTMLFormElement>;
+      handleSubmit(mockEvent);
+    }
+  };
+
   const {
     isListening,
     startListening,
     stopListening,
     isSupported,
   } = useSpeechRecognition({
-    onTranscript: (text) => setInput(text),
-    onComplete: (transcript) => {
-        setInput(transcript);
-        // This is now a manual process, no automatic submission
-    },
+    onTranscript: handleTranscript,
+    onComplete: handleComplete,
   });
 
   const toggleListening = () => {
@@ -163,7 +173,7 @@ export default function SupportChatPage() {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="relative flex h-full max-h-screen flex-col">
        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur-sm">
           <div className="flex items-center gap-2 font-semibold">
             <Logo className="w-6 h-6 text-primary" />

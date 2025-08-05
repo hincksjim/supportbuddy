@@ -46,13 +46,17 @@ export default function DocumentAnalysisPage() {
     setResult(null)
 
     try {
-      const arrayBuffer = await file.arrayBuffer()
-      const buffer = Buffer.from(arrayBuffer)
-      const documentDataUri = `data:${file.type};base64,${buffer.toString("base64")}`
-      
-      const analysisResult = await analyzeMedicalDocument({ documentDataUri, question })
-      setResult(analysisResult.answer)
-
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
+        const documentDataUri = reader.result as string;
+        const analysisResult = await analyzeMedicalDocument({ documentDataUri, question })
+        setResult(analysisResult.answer)
+        setIsLoading(false)
+      };
+      reader.onerror = (error) => {
+        throw error
+      }
     } catch (error) {
       console.error("Analysis failed:", error)
       toast({
@@ -60,13 +64,12 @@ export default function DocumentAnalysisPage() {
         description: "There was an error analyzing your document. Please try again.",
         variant: "destructive",
       })
-    } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="space-y-8">
+    <div className="p-4 md:p-6 space-y-8">
       <div>
         <h1 className="text-3xl font-bold font-headline">Document Analysis</h1>
         <p className="text-muted-foreground">
@@ -108,7 +111,7 @@ export default function DocumentAnalysisPage() {
                 <Label htmlFor="question">Your Question</Label>
                 <Textarea
                   id="question"
-                  placeholder="e.g., 'What are the key findings in this report?'"
+                  placeholder="e.g., 'What are the key findings in this report?' or 'Please summarize this document.'"
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
                   className="min-h-[100px]"

@@ -113,13 +113,13 @@ export function useSpeechRecognition({
         if (wakeWordDetectedRef.current) {
            onTranscript(currentTranscript);
            
-           if(finalTranscript) {
+           if(finalTranscript || interimTranscript) {
              speechTimeoutRef.current = setTimeout(() => {
                 if (onComplete) {
                     onComplete();
                 }
                 reset();
-             }, 1000); // 1 second of silence
+             }, 2500); // 2.5 seconds of silence
            }
         }
     }
@@ -135,7 +135,14 @@ export function useSpeechRecognition({
     const handleEnd = () => {
       if (isListening && !stopManuallyRef.current) {
         // If it stops unexpectedly, restart it.
-        recognition.start();
+        try {
+            recognition.start();
+        } catch(e) {
+            // it might fail if the component is unmounting
+            console.error("Could not restart speech recognition", e);
+            setIsListening(false);
+            onListen?.(false);
+        }
       }
     }
 
@@ -156,7 +163,7 @@ export function useSpeechRecognition({
             clearTimeout(speechTimeoutRef.current);
         }
     }
-  }, [isListening, onTranscript, onComplete, wakeWord])
+  }, [isListening, onTranscript, onComplete, wakeWord, onListen])
 
   return {
     isListening,

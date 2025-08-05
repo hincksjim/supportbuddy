@@ -29,6 +29,11 @@ export default function SupportChatPage() {
   const router = useRouter()
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null);
+  const inputRef = useRef(input);
+
+  useEffect(() => {
+    inputRef.current = input;
+  }, [input]);
   
   const {
     isListening,
@@ -40,12 +45,9 @@ export default function SupportChatPage() {
     onTranscript: (text) => setInput(text),
     onComplete: () => {
         // We use a ref to get the latest value of input inside this callback
-        setInput(currentInput => {
-          if (currentInput.trim()) {
-              handleSubmit(undefined, currentInput);
-          }
-          return currentInput;
-        });
+        if (inputRef.current.trim()) {
+            handleSubmit(undefined, inputRef.current);
+        }
     },
     wakeWord: "hey buddy",
   });

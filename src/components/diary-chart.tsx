@@ -17,6 +17,7 @@ const moodToValue = {
   meh: 3,
   bad: 2,
   awful: 1,
+  null: null
 } as const;
 
 const chartConfig = {
@@ -110,7 +111,7 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
                 tickMargin={8}
                 domain={yAxisDomain}
                 allowDecimals={chartType !== 'mood'}
-                ticks={chartType === 'mood' ? [1, 2, 3, 4, 5] : undefined}
+                ticks={chartType === 'mood' ? [1, 2, 3, 4, 5] : (chartType === 'pain' ? [0, 2, 4, 6, 8, 10] : undefined) }
                 tickFormatter={(value) => {
                     if (chartType === 'mood') {
                         const moodMap = { 1: 'Awful', 2: 'Bad', 3: 'Meh', 4: 'Good', 5: 'Great' };
@@ -192,5 +193,3 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
     </ChartContainer>
   )
 }
-
-    

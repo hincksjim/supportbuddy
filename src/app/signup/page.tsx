@@ -2,6 +2,8 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import * as React from "react"
+
 
 import { Button } from "@/components/ui/button"
 import {
@@ -16,9 +18,34 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Logo } from "@/components/icons"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { IndeterminateCheckbox } from "@/components/ui/indeterminate-checkbox"
+
+
+const benefits = [
+    { id: 'uc', label: 'Universal Credit (UC)' },
+    { id: 'jsa', label: 'Jobseeker\'s Allowance (JSA)' },
+    { id: 'esa', label: 'Employment and Support Allowance (ESA)' },
+    { id: 'pension_credit', label: 'Pension Credit' },
+    { id: 'housing_benefit', label: 'Housing Benefit' },
+    { id: 'council_tax_support', label: 'Council Tax Support' },
+    { id: 'pip', label: 'Personal Independence Payment (PIP)' },
+    { id: 'attendance_allowance', label: 'Attendance Allowance' },
+    { id: 'carer_allowance', label: 'Carer\'s Allowance' },
+    { id: 'child_benefit', label: 'Child Benefit' },
+    { id: 'maternity_allowance', label: 'Maternity Allowance' },
+    { id: 'state_pension', label: 'State Pension' },
+    { id: 'dla', label: 'Disability Living Allowance (DLA)' },
+    { id: 'income_support', label: 'Income Support' },
+] as const
+
 
 export default function SignupPage() {
   const router = useRouter()
+  const [employmentStatus, setEmploymentStatus] = React.useState<string>("")
+  const [selectedBenefits, setSelectedBenefits] = React.useState<Record<string, boolean>>({})
+
 
   const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -28,6 +55,7 @@ export default function SignupPage() {
     const age = formData.get('age') as string
     const gender = formData.get('gender') as string
     const postcode = formData.get('postcode') as string
+    const dob = formData.get('dob') as string;
     
     // We'll simulate success and save the details for a personalized experience.
     if (typeof window !== "undefined") {
@@ -35,10 +63,25 @@ export default function SignupPage() {
         localStorage.setItem("userAge", age)
         localStorage.setItem("userGender", gender)
         localStorage.setItem("userPostcode", postcode)
+        localStorage.setItem("userDob", dob)
+        localStorage.setItem("employmentStatus", employmentStatus)
+        localStorage.setItem("userBenefits", JSON.stringify(
+            Object.entries(selectedBenefits)
+                .filter(([, checked]) => checked)
+                .map(([id]) => benefits.find(b => b.id === id)?.label)
+        ))
     }
 
     router.push("/onboarding")
   }
+
+  const handleBenefitChange = (benefitId: string, checked: boolean) => {
+    setSelectedBenefits(prev => ({ ...prev, [benefitId]: checked }))
+  }
+
+  const allBenefitsSelected = Object.values(selectedBenefits).every(Boolean) && Object.values(selectedBenefits).length === benefits.length;
+  const someBenefitsSelected = Object.values(selectedBenefits).some(Boolean) && !allBenefitsSelected;
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -53,7 +96,7 @@ export default function SignupPage() {
               Join Support Buddy to get personalized health support.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="first-name">First name</Label>
@@ -87,6 +130,60 @@ export default function SignupPage() {
                     </RadioGroup>
                 </div>
             </div>
+             <div className="space-y-2">
+                <Label htmlFor="dob">Date of Birth</Label>
+                <Input id="dob" name="dob" type="date" required />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="employment-status">Employment Status</Label>
+                 <Select name="employment-status" onValueChange={setEmploymentStatus} value={employmentStatus}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select your status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="employed">Employed</SelectItem>
+                        <SelectItem value="self-employed">Self-employed</SelectItem>
+                        <SelectItem value="retired">Retired</SelectItem>
+                        <SelectItem value="unemployed">Unemployed</SelectItem>
+                        <SelectItem value="on-benefits">On Benefits</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {employmentStatus === 'on-benefits' && (
+                <div className="space-y-4 pt-2">
+                     <Label className="font-semibold">Select Applicable Benefits</Label>
+                     <div className="space-y-2 p-4 border rounded-md max-h-60 overflow-y-auto">
+                        <div className="flex items-center space-x-2 pb-2 border-b">
+                            <IndeterminateCheckbox
+                                id="select-all-benefits"
+                                checked={allBenefitsSelected}
+                                indeterminate={someBenefitsSelected}
+                                onCheckedChange={(checked) => {
+                                    const newSelected: Record<string, boolean> = {};
+                                    if (checked) {
+                                        benefits.forEach(b => newSelected[b.id] = true);
+                                    }
+                                    setSelectedBenefits(newSelected);
+                                }}
+                            />
+                            <Label htmlFor="select-all-benefits" className="font-bold">Select All</Label>
+                        </div>
+                        {benefits.map(benefit => (
+                            <div key={benefit.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                    id={benefit.id}
+                                    checked={selectedBenefits[benefit.id] || false}
+                                    onCheckedChange={(checked) => handleBenefitChange(benefit.id, !!checked)}
+                                />
+                                <Label htmlFor={benefit.id}>{benefit.label}</Label>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" name="email" type="email" placeholder="alex.smith@example.com" required />
@@ -114,3 +211,5 @@ export default function SignupPage() {
     </div>
   )
 }
+
+    

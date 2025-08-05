@@ -44,13 +44,31 @@ export interface DiaryEntry {
   notes: string;
 }
 
-const moodOptions = {
+const moodOptions: { [key in NonNullable<DiaryEntry['mood']>]: string } = {
     great: '😊',
     good: '🙂',
     meh: '😐',
     bad: '😟',
     awful: '😢'
 }
+
+const moodValueMap: { [key: number]: DiaryEntry['mood'] } = {
+    1: 'awful',
+    2: 'bad',
+    3: 'meh',
+    4: 'good',
+    5: 'great'
+}
+
+const moodToValue = (mood: DiaryEntry['mood']): number => {
+    if (mood === 'awful') return 1;
+    if (mood === 'bad') return 2;
+    if (mood === 'meh') return 3;
+    if (mood === 'good') return 4;
+    if (mood === 'great') return 5;
+    return 3; // Default to 'meh'
+}
+
 
 const painEmojis = [
     '🙂', // 0
@@ -69,10 +87,10 @@ const painEmojis = [
 
 function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntry) => void; existingEntry?: DiaryEntry | null; }) {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [mood, setMood] = useState<DiaryEntry['mood']>(null);
-    const [diagnosisMood, setDiagnosisMood] = useState<DiaryEntry['diagnosisMood']>(null);
-    const [treatmentMood, setTreatmentMood] = useState<DiaryEntry['treatmentMood']>(null);
-    const [painScore, setPainScore] = useState<DiaryEntry['painScore']>(null);
+    const [mood, setMood] = useState<DiaryEntry['mood']>('meh');
+    const [diagnosisMood, setDiagnosisMood] = useState<DiaryEntry['diagnosisMood']>('meh');
+    const [treatmentMood, setTreatmentMood] = useState<DiaryEntry['treatmentMood']>('meh');
+    const [painScore, setPainScore] = useState<DiaryEntry['painScore']>(0);
     const [weight, setWeight] = useState('');
     const [sleep, setSleep] = useState('');
     const [food, setFood] = useState('');
@@ -85,10 +103,10 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
         const entryToEdit = existingEntry || {
             id: new Date().toISOString().split('T')[0],
             date: new Date().toISOString(),
-            mood: null,
-            diagnosisMood: null,
-            treatmentMood: null,
-            painScore: null,
+            mood: 'meh',
+            diagnosisMood: 'meh',
+            treatmentMood: 'meh',
+            painScore: 0,
             weight: '',
             sleep: '',
             food: '',
@@ -153,34 +171,43 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
                         <Label htmlFor="date">Date</Label>
                         <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
+                   <div className="space-y-2">
                         <Label>How are you feeling overall?</Label>
-                        <div className="flex justify-around p-2 bg-secondary/50 rounded-lg">
-                            {Object.entries(moodOptions).map(([key, emoji]) => (
-                                <button key={key} onClick={() => setMood(key as DiaryEntry['mood'])} className={cn("text-4xl p-2 rounded-full transition-all", mood === key ? 'bg-primary ring-2 ring-primary-foreground' : 'hover:scale-110')}>
-                                    {emoji}
-                                </button>
-                            ))}
+                        <div className="flex items-center gap-4">
+                           <span className="text-4xl">{moodOptions[mood ?? 'meh']}</span>
+                           <Slider 
+                            value={[moodToValue(mood)]} 
+                            onValueChange={(value) => setMood(moodValueMap[value[0]])}
+                            max={5}
+                            min={1}
+                            step={1}
+                           />
                         </div>
                     </div>
                     <div className="space-y-2">
                         <Label>How are you feeling about your diagnosis?</Label>
-                        <div className="flex justify-around p-2 bg-secondary/50 rounded-lg">
-                            {Object.entries(moodOptions).map(([key, emoji]) => (
-                                <button key={key} onClick={() => setDiagnosisMood(key as DiaryEntry['diagnosisMood'])} className={cn("text-4xl p-2 rounded-full transition-all", diagnosisMood === key ? 'bg-primary ring-2 ring-primary-foreground' : 'hover:scale-110')}>
-                                    {emoji}
-                                </button>
-                            ))}
+                        <div className="flex items-center gap-4">
+                           <span className="text-4xl">{moodOptions[diagnosisMood ?? 'meh']}</span>
+                           <Slider 
+                            value={[moodToValue(diagnosisMood)]} 
+                            onValueChange={(value) => setDiagnosisMood(moodValueMap[value[0]])}
+                            max={5}
+                            min={1}
+                            step={1}
+                           />
                         </div>
                     </div>
                      <div className="space-y-2">
                         <Label>How are you feeling about your treatment?</Label>
-                        <div className="flex justify-around p-2 bg-secondary/50 rounded-lg">
-                            {Object.entries(moodOptions).map(([key, emoji]) => (
-                                <button key={key} onClick={() => setTreatmentMood(key as DiaryEntry['treatmentMood'])} className={cn("text-4xl p-2 rounded-full transition-all", treatmentMood === key ? 'bg-primary ring-2 ring-primary-foreground' : 'hover:scale-110')}>
-                                    {emoji}
-                                </button>
-                            ))}
+                        <div className="flex items-center gap-4">
+                           <span className="text-4xl">{moodOptions[treatmentMood ?? 'meh']}</span>
+                           <Slider 
+                            value={[moodToValue(treatmentMood)]} 
+                            onValueChange={(value) => setTreatmentMood(moodValueMap[value[0]])}
+                            max={5}
+                            min={1}
+                            step={1}
+                           />
                         </div>
                     </div>
                     <div className="space-y-2">

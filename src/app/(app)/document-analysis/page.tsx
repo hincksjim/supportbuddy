@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { FileUp, Loader2, PlusCircle, FileText, X } from "lucide-react"
+import { marked } from "marked"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -192,6 +193,8 @@ function UploadAnalysisDialog({ onAnalysisComplete }: { onAnalysisComplete: (new
 }
 
 function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; children: React.ReactNode }) {
+  const analysisHtml = marked(result.analysis || "");
+
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -210,9 +213,10 @@ function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; chil
                 <iframe src={result.fileDataUri} className="w-full h-full" title={result.fileName} />
             )}
           </div>
-          <div className="overflow-y-auto prose prose-sm dark:prose-invert max-w-none text-foreground p-2">
-            <p>{result.analysis}</p>
-          </div>
+          <div 
+            className="prose prose-sm dark:prose-invert max-w-none text-foreground p-2 overflow-y-auto"
+            dangerouslySetInnerHTML={{ __html: analysisHtml as string }}
+          />
         </div>
          <DialogFooter className="mt-4 sm:justify-end">
           <DialogClose asChild>
@@ -289,9 +293,10 @@ export default function DocumentAnalysisPage() {
                    <div>
                     <CardTitle className="text-lg mb-2">{result.title}</CardTitle>
                     <CardDescription className="text-xs mb-2">{result.date}</CardDescription>
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {result.analysis}
-                    </p>
+                    <div 
+                        className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground line-clamp-3"
+                        dangerouslySetInnerHTML={{ __html: marked.parse(result.analysis || "") as string }}
+                    />
                    </div>
                 </CardContent>
                 <Button 

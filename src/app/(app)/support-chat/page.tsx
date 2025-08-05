@@ -35,8 +35,21 @@ export default function SupportChatPage() {
     inputRef.current = input;
   }, [input]);
   
+  const handleWakeUp = () => {
+    const greeting = { role: "assistant", content: `Hi ${userName}, I'm here!` };
+    setMessages((prev) => [...prev, greeting]);
+    speakMessage(greeting.content);
+  };
+  
+  const handleSleep = () => {
+    const goodbye = { role: "assistant", content: "Okay, I'll be here when you need me. Just say 'wakey wakey'." };
+    setMessages((prev) => [...prev, goodbye]);
+    speakMessage(goodbye.content);
+  }
+
   const {
     isListening,
+    isSleeping,
     startListening,
     stopListening,
     isSupported,
@@ -50,6 +63,8 @@ export default function SupportChatPage() {
         }
     },
     wakeWord: "hey buddy",
+    onWakeUp: handleWakeUp,
+    onSleep: handleSleep,
   });
 
   // Automatically start listening when the component mounts
@@ -155,6 +170,12 @@ export default function SupportChatPage() {
 
   const BuddyAvatarIcon = buddyAvatar === "male" ? AvatarMale : AvatarFemale;
 
+  const getPlaceholderText = () => {
+    if (isSleeping) return "Buddy is sleeping. Say 'wakey wakey' to start.";
+    if (isListening) return "Listening...";
+    return "Say 'hey buddy' or type your message...";
+  }
+
   return (
     <div className="h-full flex flex-col">
        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur-sm">
@@ -227,7 +248,7 @@ export default function SupportChatPage() {
             className="relative"
             >
             <Textarea
-                placeholder={isListening ? "Listening..." : "Say 'hey buddy' or type your message..."}
+                placeholder={getPlaceholderText()}
                 className="pr-20 resize-none"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

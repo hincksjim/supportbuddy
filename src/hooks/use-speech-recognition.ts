@@ -6,7 +6,9 @@ interface SpeechRecognitionOptions {
   onTranscript: (transcript: string) => void
   onListen?: (listening: boolean) => void
   onComplete?: () => void;
-  wakeWord?: string
+  wakeWord?: string;
+  onWakeUp?: () => void;
+  onSleep?: () => void;
 }
 
 const getSpeechRecognition = () => {
@@ -23,9 +25,12 @@ export function useSpeechRecognition({
   onListen,
   onComplete,
   wakeWord,
+  onWakeUp,
+  onSleep,
 }: SpeechRecognitionOptions) {
   const [isListening, setIsListening] = useState(false)
   const [isSupported, setIsSupported] = useState(false)
+  const [isSleeping, setIsSleeping] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const wakeWordDetectedRef = useRef(false)
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -101,6 +106,22 @@ export function useSpeechRecognition({
         const currentTranscript = (finalTranscript || interimTranscript).trim();
         const lowerCaseTranscript = currentTranscript.toLowerCase();
 
+        // Handle sleep/wake commands
+        if (lowerCaseTranscript.includes("night night")) {
+            setIsSleeping(true);
+            onSleep?.();
+            reset();
+            return;
+        }
+        if (lowerCaseTranscript.includes("wakey wakey")) {
+            setIsSleeping(false);
+            onWakeUp?.();
+            reset();
+            return;
+        }
+
+        if (isSleeping) return;
+
         if (wakeWord && !wakeWordDetectedRef.current) {
             if (lowerCaseTranscript.includes(wakeWord.toLowerCase())) {
                 console.log("Wake word detected!");
@@ -119,7 +140,7 @@ export function useSpeechRecognition({
                     onComplete();
                 }
                 reset();
-             }, 2500); // 2.5 seconds of silence
+             }, 1000); // 1 second of silence
            }
         }
     }
@@ -163,11 +184,12 @@ export function useSpeechRecognition({
             clearTimeout(speechTimeoutRef.current);
         }
     }
-  }, [isListening, onTranscript, onComplete, wakeWord, onListen])
+  }, [isListening, isSleeping, onTranscript, onComplete, wakeWord, onListen, onWakeUp, onSleep])
 
   return {
     isListening,
     isSupported,
+    isSleeping,
     startListening,
     stopListening,
     reset,

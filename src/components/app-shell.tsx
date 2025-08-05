@@ -1,8 +1,9 @@
+
 "use client"
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { BotMessageSquare, LayoutDashboard, FileQuestion, Milestone, FileText, Landmark, Notebook, LogOut } from "lucide-react"
+import { BotMessageSquare, LayoutDashboard, FileQuestion, Milestone, FileText, Landmark, Notebook, LogOut, ShieldCheck } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -14,6 +15,7 @@ const navItems = [
   { href: "/summary", icon: FileText, label: "Summary" },
   { href: "/diary", icon: Notebook, label: "Diary" },
   { href: "/finance", icon: Landmark, label: "Finance" },
+  { href: "/just-in-case", icon: ShieldCheck, label: "Just in Case"},
 ]
 
 export function AppShell() {
@@ -28,7 +30,7 @@ export function AppShell() {
 
   return (
     <nav className="sticky bottom-0 z-10 border-t bg-background/95 backdrop-blur-sm">
-      <div className="container mx-auto grid h-16 max-w-md grid-cols-8 items-center justify-around">
+      <div className="container mx-auto grid h-16 max-w-md grid-cols-9 items-center justify-around">
         {navItems.map((item) => (
           <Link
             key={item.href}

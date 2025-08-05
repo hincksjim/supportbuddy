@@ -182,6 +182,7 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
                             min={1}
                             step={1}
                            />
+                           <span className="font-bold w-6 text-center">{moodToValue(mood)}</span>
                         </div>
                     </div>
                     <div className="space-y-2">
@@ -195,6 +196,7 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
                             min={1}
                             step={1}
                            />
+                            <span className="font-bold w-6 text-center">{moodToValue(diagnosisMood)}</span>
                         </div>
                     </div>
                      <div className="space-y-2">
@@ -208,6 +210,7 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
                             min={1}
                             step={1}
                            />
+                           <span className="font-bold w-6 text-center">{moodToValue(treatmentMood)}</span>
                         </div>
                     </div>
                     <div className="space-y-2">
@@ -410,3 +413,4 @@ export default function DiaryPage() {
     
 
     
+

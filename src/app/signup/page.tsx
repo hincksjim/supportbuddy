@@ -57,6 +57,8 @@ export default function SignupPage() {
     const gender = formData.get('gender') as string
     const postcode = formData.get('postcode') as string
     const dob = formData.get('dob') as string;
+    const income = formData.get('income') as string;
+    const savings = formData.get('savings') as string;
     
     // We'll simulate success and save the details for a personalized experience.
     if (typeof window !== "undefined") {
@@ -66,6 +68,8 @@ export default function SignupPage() {
         localStorage.setItem("userPostcode", postcode)
         localStorage.setItem("userDob", dob)
         localStorage.setItem("employmentStatus", employmentStatus)
+        if (income) localStorage.setItem("userIncome", income);
+        if (savings) localStorage.setItem("userSavings", savings);
         localStorage.setItem("userBenefits", JSON.stringify(
             Object.entries(selectedBenefits)
                 .filter(([, checked]) => checked)
@@ -145,44 +149,57 @@ export default function SignupPage() {
                         <SelectItem value="employed">Employed</SelectItem>
                         <SelectItem value="self-employed">Self-employed</SelectItem>
                         <SelectItem value="retired">Retired</SelectItem>
-                        <SelectItem value="unemployed">Unemployed not on benefits</SelectItem>
-                        <SelectItem value="on-benefits">Unemployed on benefits</SelectItem>
+                        <SelectItem value="unemployed-not-on-benefits">Unemployed not on benefits</SelectItem>
+                        <SelectItem value="unemployed-on-benefits">Unemployed on benefits</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
 
-            {employmentStatus === 'on-benefits' && (
-                <div className="space-y-4 pt-2">
-                     <Label className="font-semibold">Select Applicable Benefits</Label>
-                     <div className="space-y-2 p-4 border rounded-md max-h-60 overflow-y-auto">
-                        <div className="flex items-center space-x-2 pb-2 border-b">
-                            <IndeterminateCheckbox
-                                id="select-all-benefits"
-                                checked={allBenefitsSelected}
-                                indeterminate={someBenefitsSelected}
-                                onCheckedChange={(checked) => {
-                                    const newSelected: Record<string, boolean> = {};
-                                    if (checked) {
-                                        benefits.forEach(b => newSelected[b.id] = true);
-                                    }
-                                    setSelectedBenefits(newSelected);
-                                }}
-                            />
-                            <Label htmlFor="select-all-benefits" className="font-bold">Select All</Label>
-                        </div>
-                        {benefits.map(benefit => (
-                            <div key={benefit.id} className="flex items-center space-x-2">
-                                <Checkbox
-                                    id={benefit.id}
-                                    checked={selectedBenefits[benefit.id] || false}
-                                    onCheckedChange={(checked) => handleBenefitChange(benefit.id, !!checked)}
-                                />
-                                <Label htmlFor={benefit.id}>{benefit.label}</Label>
-                            </div>
-                        ))}
-                    </div>
+            {(employmentStatus === 'employed' || employmentStatus === 'self-employed') && (
+                <div className="space-y-2">
+                    <Label htmlFor="income">Annual Income (£)</Label>
+                    <Input id="income" name="income" type="number" placeholder="e.g., 30000" />
                 </div>
             )}
+
+             {employmentStatus === 'retired' && (
+                <div className="space-y-2">
+                    <Label htmlFor="savings">Savings (£)</Label>
+                    <Input id="savings" name="savings" type="number" placeholder="e.g., 5000" />
+                </div>
+            )}
+
+            <div className="space-y-4 pt-2">
+                    <Label className="font-semibold">Benefits</Label>
+                    <p className="text-xs text-muted-foreground">Select any benefits you are currently receiving or believe you may be entitled to.</p>
+                    <div className="space-y-2 p-4 border rounded-md max-h-60 overflow-y-auto">
+                    <div className="flex items-center space-x-2 pb-2 border-b">
+                        <IndeterminateCheckbox
+                            id="select-all-benefits"
+                            checked={allBenefitsSelected}
+                            indeterminate={someBenefitsSelected}
+                            onCheckedChange={(checked) => {
+                                const newSelected: Record<string, boolean> = {};
+                                if (checked) {
+                                    benefits.forEach(b => newSelected[b.id] = true);
+                                }
+                                setSelectedBenefits(newSelected);
+                            }}
+                        />
+                        <Label htmlFor="select-all-benefits" className="font-bold">Select All</Label>
+                    </div>
+                    {benefits.map(benefit => (
+                        <div key={benefit.id} className="flex items-center space-x-2">
+                            <Checkbox
+                                id={benefit.id}
+                                checked={selectedBenefits[benefit.id] || false}
+                                onCheckedChange={(checked) => handleBenefitChange(benefit.id, !!checked)}
+                            />
+                            <Label htmlFor={benefit.id}>{benefit.label}</Label>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
 
             <div className="space-y-2">

@@ -100,8 +100,13 @@ export default function SummaryPage() {
   
   useEffect(() => {
     loadPrerequisites();
-    // Automatically generate the report on first load
-    handleGenerateReport(true);
+    const savedReport = localStorage.getItem("personalSummaryReport");
+    if (savedReport) {
+        setReport(savedReport);
+    } else {
+        // Automatically generate the report on first load if none is cached
+        handleGenerateReport(true);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -148,6 +153,7 @@ export default function SummaryPage() {
                 sourceConversations
             });
             setReport(result.report);
+            localStorage.setItem("personalSummaryReport", result.report); // Save to localStorage
         } catch (err) {
             console.error("Failed to generate report:", err);
             setError("Sorry, there was an error generating your report. Please try again.");

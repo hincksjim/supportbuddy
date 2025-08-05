@@ -190,15 +190,35 @@ export default function SummaryPage() {
       </div>
 
        {diaryEntries.length > 1 && (
-         <Card>
-            <CardHeader>
-                <CardTitle>Wellness Trends</CardTitle>
-                <CardDescription>A chart of your mood and weight over time from your diary.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <DiaryChart data={diaryEntries} />
-            </CardContent>
-         </Card>
+         <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Mood Trends</CardTitle>
+                    <CardDescription>A chart of your mood over time from your diary.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <DiaryChart data={diaryEntries} chartType="mood" />
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle>Weight Trends</CardTitle>
+                    <CardDescription>A chart of your weight (kg) over time from your diary.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <DiaryChart data={diaryEntries} chartType="weight" />
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle>Sleep Trends</CardTitle>
+                    <CardDescription>A chart of your sleep (hours) over time from your diary.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <DiaryChart data={diaryEntries} chartType="sleep" />
+                </CardContent>
+            </Card>
+         </div>
       )}
 
       <Card>

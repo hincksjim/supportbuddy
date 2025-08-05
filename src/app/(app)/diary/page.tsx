@@ -24,6 +24,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Slider } from "@/components/ui/slider"
 import { PlusCircle, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -34,6 +35,7 @@ export interface DiaryEntry {
   mood: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
   diagnosisMood: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
   treatmentMood: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
+  painScore: number | null;
   weight: string;
   sleep: string;
   food: string;
@@ -50,11 +52,27 @@ const moodOptions = {
     awful: '😢'
 }
 
+const painEmojis = [
+    '🙂', // 0
+    '😊', // 1
+    '😕', // 2
+    '😐', // 3
+    '😟', // 4
+    '🙁', // 5
+    '😣', // 6
+    '😖', // 7
+    '😫', // 8
+    '😩', // 9
+    '😭'  // 10
+];
+
+
 function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntry) => void; existingEntry?: DiaryEntry | null; }) {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [mood, setMood] = useState<DiaryEntry['mood']>(null);
     const [diagnosisMood, setDiagnosisMood] = useState<DiaryEntry['diagnosisMood']>(null);
     const [treatmentMood, setTreatmentMood] = useState<DiaryEntry['treatmentMood']>(null);
+    const [painScore, setPainScore] = useState<DiaryEntry['painScore']>(null);
     const [weight, setWeight] = useState('');
     const [sleep, setSleep] = useState('');
     const [food, setFood] = useState('');
@@ -70,6 +88,7 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
             mood: null,
             diagnosisMood: null,
             treatmentMood: null,
+            painScore: null,
             weight: '',
             sleep: '',
             food: '',
@@ -82,6 +101,7 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
         setMood(entryToEdit.mood);
         setDiagnosisMood(entryToEdit.diagnosisMood);
         setTreatmentMood(entryToEdit.treatmentMood);
+        setPainScore(entryToEdit.painScore);
         setWeight(entryToEdit.weight);
         setSleep(entryToEdit.sleep);
         setFood(entryToEdit.food);
@@ -98,6 +118,7 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
             mood,
             diagnosisMood,
             treatmentMood,
+            painScore,
             weight,
             sleep,
             food,
@@ -160,6 +181,19 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
                                     {emoji}
                                 </button>
                             ))}
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Pain Score (0=No Pain, 10=Severe)</Label>
+                        <div className="flex items-center gap-4">
+                           <span className="text-4xl">{painEmojis[painScore ?? 0]}</span>
+                           <Slider 
+                            value={[painScore ?? 0]} 
+                            onValueChange={(value) => setPainScore(value[0])}
+                            max={10}
+                            step={1}
+                           />
+                           <span className="font-bold w-6 text-center">{painScore ?? 0}</span>
                         </div>
                     </div>
                      <div className="grid grid-cols-2 gap-4">
@@ -231,12 +265,19 @@ function DiaryEntryCard({ entry, onSave }: { entry: DiaryEntry; onSave: (entry: 
                                 <span className="text-xl">{moodOptions[entry.treatmentMood]}</span>
                             </div>
                         )}
+                        {entry.painScore !== null && typeof entry.painScore !== 'undefined' && (
+                             <div className="flex items-center gap-2" title={`Pain Score: ${entry.painScore}`}>
+                                <span>Pain</span>
+                                <span className="text-xl">{painEmojis[entry.painScore]}</span>
+                            </div>
+                        )}
                      </div>
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                {(entry.weight || entry.sleep) && (
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                {(entry.weight || entry.sleep || entry.painScore) && (
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                        {entry.painScore !== null && typeof entry.painScore !== 'undefined' && <div><strong>Pain:</strong> {entry.painScore}/10</div>}
                         {entry.weight && <div><strong>Weight:</strong> {entry.weight} kg</div>}
                         {entry.sleep && <div><strong>Sleep:</strong> {entry.sleep} hours</div>}
                     </div>
@@ -338,5 +379,7 @@ export default function DiaryPage() {
         </div>
     )
 }
+
+    
 
     

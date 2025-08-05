@@ -32,6 +32,10 @@ const chartConfig = {
     label: "Treatment",
     color: "hsl(var(--chart-3))",
   },
+   pain: {
+    label: "Pain Score",
+    color: "hsl(var(--chart-4))",
+  },
   weight: {
     label: "Weight (kg)",
     color: "hsl(var(--chart-4))",
@@ -42,7 +46,7 @@ const chartConfig = {
   }
 } satisfies ChartConfig
 
-export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType: 'mood' | 'weight' | 'sleep' }) {
+export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType: 'mood' | 'weight' | 'sleep' | 'pain' }) {
   const chartData = React.useMemo(() => {
     return data
       // First, sort the raw data by date to ensure calculations are correct
@@ -53,15 +57,19 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
         overallMood: entry.mood ? moodToValue[entry.mood] : null,
         diagnosisMood: entry.diagnosisMood ? moodToValue[entry.diagnosisMood] : null,
         treatmentMood: entry.treatmentMood ? moodToValue[entry.treatmentMood] : null,
+        pain: entry.painScore,
         weight: entry.weight ? parseFloat(entry.weight) : null,
         sleep: entry.sleep ? parseFloat(entry.sleep) : null,
       }));
   }, [data]);
+
   
   const yAxisDomain = React.useMemo(() => {
     switch (chartType) {
         case 'mood':
             return [1, 5];
+        case 'pain':
+            return [0, 10];
         case 'weight':
             const weights = chartData.map(d => d.weight).filter(w => w !== null) as number[];
             if (weights.length === 0) return [0, 100];
@@ -146,6 +154,17 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
                     />
                 </>
             )}
+             {chartType === 'pain' && (
+                <Line
+                    dataKey="pain"
+                    name="Pain"
+                    type="monotone"
+                    stroke="var(--color-pain)"
+                    strokeWidth={2}
+                    dot={true}
+                    connectNulls
+                />
+            )}
             {chartType === 'weight' && (
                 <Line
                     dataKey="weight"
@@ -173,3 +192,5 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
     </ChartContainer>
   )
 }
+
+    

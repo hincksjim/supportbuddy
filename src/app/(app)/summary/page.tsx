@@ -41,6 +41,7 @@ type TimelineData = GenerateTreatmentTimelineOutput;
 export default function SummaryPage() {
   const [report, setReport] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isChartLoading, setIsChartLoading] = useState(false);
   const [error, setError] = useState<string | null>(null)
   
   // State to hold all the data needed for the report
@@ -53,6 +54,18 @@ export default function SummaryPage() {
   const [analysisData, setAnalysisData] = useState<AnalysisResult[]>([])
   const [conversationSummaries, setConversationSummaries] = useState<ConversationSummary[]>([])
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([])
+
+  const loadDiaryEntries = () => {
+       try {
+            const storedDiaryEntries = localStorage.getItem("diaryEntries");
+            if (storedDiaryEntries) {
+                setDiaryEntries(JSON.parse(storedDiaryEntries));
+            }
+       } catch (e) {
+           console.error("Failed to load diary entries from localStorage", e);
+           setError("Could not load your diary data for the charts.");
+       }
+  }
 
   // Load all necessary data from localStorage
   const loadPrerequisites = () => {
@@ -95,11 +108,7 @@ export default function SummaryPage() {
       }
 
       // Diary Entries
-      const storedDiaryEntries = localStorage.getItem("diaryEntries");
-      if (storedDiaryEntries) {
-          setDiaryEntries(JSON.parse(storedDiaryEntries));
-      }
-
+      loadDiaryEntries();
 
     } catch (e) {
       console.error("Failed to load data from localStorage", e);
@@ -172,6 +181,13 @@ export default function SummaryPage() {
     }, 100); // 100ms delay
   }
 
+  const handleRefreshCharts = () => {
+    setIsChartLoading(true);
+    loadDiaryEntries();
+    // Simulate a short delay for user feedback
+    setTimeout(() => setIsChartLoading(false), 300);
+  }
+
   const reportHtml = report ? marked(report) : "";
 
   return (
@@ -183,47 +199,72 @@ export default function SummaryPage() {
             A consolidated report of your journey so far.
           </p>
         </div>
-        <Button onClick={() => handleGenerateReport(false)} disabled={isLoading}>
-          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-          Refresh Report
-        </Button>
+        <div className="flex gap-2">
+            <Button onClick={() => handleGenerateReport(false)} disabled={isLoading}>
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            Refresh Report
+            </Button>
+        </div>
       </div>
 
        {diaryEntries.length > 1 && (
-         <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Mood Trends</CardTitle>
-                    <CardDescription>A chart of your mood over time from your diary.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <DiaryChart data={diaryEntries} chartType="mood" />
-                </CardContent>
-            </Card>
-             <Card>
-                <CardHeader>
-                    <CardTitle>Weight Trends</CardTitle>
-                    <CardDescription>A chart of your weight (kg) over time from your diary.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <DiaryChart data={diaryEntries} chartType="weight" />
-                </CardContent>
-            </Card>
-             <Card>
-                <CardHeader>
-                    <CardTitle>Sleep Trends</CardTitle>
-                    <CardDescription>A chart of your sleep (hours) over time from your diary.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <DiaryChart data={diaryEntries} chartType="sleep" />
-                </CardContent>
-            </Card>
-         </div>
+         <Card>
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                     <div>
+                        <CardTitle>Wellness Trends</CardTitle>
+                        <CardDescription>A visual overview of your diary entries.</CardDescription>
+                    </div>
+                     <Button onClick={handleRefreshCharts} disabled={isChartLoading} variant="outline" size="sm">
+                        {isChartLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                        Refresh Charts
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Mood Trends</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <DiaryChart data={diaryEntries} chartType="mood" />
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Pain Trends</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <DiaryChart data={diaryEntries} chartType="pain" />
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                         <CardTitle className="text-base">Weight Trends</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <DiaryChart data={diaryEntries} chartType="weight" />
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Sleep Trends</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <DiaryChart data={diaryEntries} chartType="sleep" />
+                    </CardContent>
+                </Card>
+            </CardContent>
+         </Card>
       )}
 
       <Card>
-        <CardContent className="pt-6">
-          {isLoading && (
+        <CardHeader>
+            <CardTitle>AI Generated Report</CardTitle>
+            <CardDescription>This report is generated from your conversations, documents, and timeline.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading && !report && (
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
               <p className="mt-4 text-muted-foreground">Generating your personal report...</p>
@@ -252,3 +293,5 @@ export default function SummaryPage() {
     </div>
   )
 }
+
+    

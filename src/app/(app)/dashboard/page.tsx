@@ -126,14 +126,11 @@ function RecordVoiceNoteDialog({ onRecordingComplete }: { onRecordingComplete: (
         const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
         const audioUrl = URL.createObjectURL(audioBlob);
         
-        // At this point, we'd normally use a speech-to-text service.
-        // For this demo, we'll use the browser's SpeechRecognition API via our hook.
-        // However, the hook is designed for real-time transcription.
-        // We will simulate the transcription summary from the 'transcript' state.
-        
+        // The final transcript state is used here for summarization
         if (!transcript.trim()) {
            toast({ title: "No speech detected", description: "Please try recording again.", variant: "destructive" });
            setIsProcessing(false);
+           setIsRecording(false);
            return;
         }
 
@@ -170,9 +167,8 @@ function RecordVoiceNoteDialog({ onRecordingComplete }: { onRecordingComplete: (
 
   const handleStopRecording = () => {
     if (mediaRecorder.current && isRecording) {
-      mediaRecorder.current.stop();
+      mediaRecorder.current.stop(); // This triggers the onstop handler
       setIsRecording(false);
-       // Processing will start in the onstop handler
     }
   };
 
@@ -182,27 +178,28 @@ function RecordVoiceNoteDialog({ onRecordingComplete }: { onRecordingComplete: (
       setIsRecording(false);
       setIsProcessing(false);
       audioChunks.current = [];
-      mediaRecorder.current = null;
+      if (mediaRecorder.current) {
+         mediaRecorder.current.onstop = null;
+         mediaRecorder.current = null;
+      }
   }
 
-  // This is a simplified stand-in for real-time transcription for the summarization
-  // A more robust solution would use a dedicated Speech-to-Text API on the audio blob
   const { isListening, startListening, stopListening } = useSpeechRecognition({
       onTranscript: setTranscript,
-      onComplete: handleStopRecording, // Stop recording when user stops speaking
+      onComplete: handleStopRecording,
   });
 
   const toggleRecording = () => {
-      if (isListening || isRecording) {
-          stopListening(); // This will trigger handleStopRecording via onComplete
+      if (isListening) {
+          stopListening(); // This will trigger onComplete -> handleStopRecording
       } else {
           if (!title.trim()) {
               toast({ title: "Title Required", description: "Please enter a title for your voice note first.", variant: "destructive"});
               return;
           }
           setTranscript("");
-          startListening();
-          handleStartRecording();
+          handleStartRecording(); // Manages MediaRecorder
+          startListening();     // Manages SpeechRecognition
       }
   }
 
@@ -249,7 +246,7 @@ function RecordVoiceNoteDialog({ onRecordingComplete }: { onRecordingComplete: (
             <DialogClose asChild>
                 <Button variant="ghost">Cancel</Button>
             </DialogClose>
-            <Button onClick={handleStopRecording} disabled={!isRecording || isProcessing}>
+            <Button onClick={toggleRecording} disabled={!isListening && !isRecording || isProcessing}>
                  {isProcessing ? <Loader2 className="mr-2 animate-spin" /> : <StopCircle className="mr-2" />}
                 Stop & Summarize
             </Button>
@@ -428,3 +425,5 @@ export default function DashboardPage() {
         </div>
     )
 }
+
+    

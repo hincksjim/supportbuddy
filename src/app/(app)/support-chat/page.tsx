@@ -121,7 +121,14 @@ export default function SupportChatPage() {
   const speakMessage = async (text: string) => {
     try {
       const result = await textToSpeech(text);
-      setAudioDataUri(result.audioDataUri);
+      if (result.audioDataUri) {
+        setAudioDataUri(result.audioDataUri);
+      } else {
+         // if TTS fails (e.g. rate limit), restart listening immediately
+        if (isSupported && !isListening) {
+          startListening();
+        }
+      }
     } catch (error) {
       console.error("Failed to generate audio for message:", error);
       // if TTS fails, restart listening
@@ -294,5 +301,3 @@ export default function SupportChatPage() {
     </div>
   )
 }
-
-    

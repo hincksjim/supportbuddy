@@ -141,12 +141,9 @@ export default function SupportChatPage() {
   };
   
   const handleComplete = () => {
-    const finalInput = input.trim();
-    if (finalInput) {
-      // Create a synthetic event or call handleSubmit directly
-      const mockEvent = { preventDefault: () => {} } as React.FormEvent<HTMLFormElement>;
-      handleSubmit(mockEvent);
-    }
+    // We submit the form directly in stopListening's onend callback
+    // This allows the user to finish speaking naturally.
+    // handleSubmit will be triggered via form.requestSubmit()
   };
 
   const {
@@ -162,6 +159,12 @@ export default function SupportChatPage() {
   const toggleListening = () => {
     if (isListening) {
         stopListening();
+        // Submit the form once recognition stops and transcript is final
+        // We use a small delay to ensure the final transcript is set
+        setTimeout(() => {
+          const form = document.getElementById("chat-form") as HTMLFormElement;
+          form?.requestSubmit();
+        }, 100);
     } else {
         setInput(""); // Clear input before starting
         startListening();
@@ -183,7 +186,15 @@ export default function SupportChatPage() {
     if (storedAvatar) setBuddyAvatar(storedAvatar)
 
     if (storedHistory) {
-      setMessages(JSON.parse(storedHistory));
+      try {
+        const parsedHistory = JSON.parse(storedHistory);
+        if(Array.isArray(parsedHistory)) {
+          setMessages(parsedHistory);
+        }
+      } catch (e) {
+        console.error("Failed to parse conversation history", e)
+        localStorage.removeItem("conversationHistory"); // Clear corrupted history
+      }
     } else {
       const welcomeMessage = `Hello ${storedName || 'there'}! I'm your Support Buddy. I'm here to listen and help you with any questions or worries you might have about your health, treatment, or well-being. Feel free to talk to me about anything at all.`
       
@@ -207,7 +218,10 @@ export default function SupportChatPage() {
 
   useEffect(() => {
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      const scrollElement = scrollAreaRef.current.children[0] as HTMLDivElement;
+      if(scrollElement) {
+        scrollElement.scrollTop = scrollElement.scrollHeight;
+      }
     }
   }, [messages]);
   
@@ -251,7 +265,7 @@ export default function SupportChatPage() {
         </header>
 
       <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
+        <ScrollArea className="h-full" ref={scrollAreaRef}>
           <div className="p-4 md:p-6 space-y-6">
             {messages.map((message, index) => (
               <div
@@ -299,7 +313,6 @@ export default function SupportChatPage() {
                 </div>
               </div>
             )}
-            <div ref={scrollAreaRef} />
           </div>
         </ScrollArea>
       </div>
@@ -307,6 +320,7 @@ export default function SupportChatPage() {
       <div className="border-t bg-background p-4 md:p-6">
         <div className="container mx-auto max-w-md">
             <form
+            id="chat-form"
             onSubmit={handleSubmit}
             className="relative"
             >
@@ -351,3 +365,5 @@ export default function SupportChatPage() {
     </div>
   )
 }
+
+    

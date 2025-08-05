@@ -27,6 +27,13 @@ interface AnalysisResult {
   date: string
 }
 
+interface ConversationSummary {
+  id: string;
+  title: string;
+  summary: string;
+  date: string;
+}
+
 type TimelineData = GenerateTreatmentTimelineOutput;
 
 export default function SummaryPage() {
@@ -42,6 +49,7 @@ export default function SummaryPage() {
   const [conversationHistory, setConversationHistory] = useState<Message[]>([])
   const [timelineData, setTimelineData] = useState<TimelineData | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisResult[]>([])
+  const [conversationSummaries, setConversationSummaries] = useState<ConversationSummary[]>([])
 
   // Load all necessary data from localStorage
   const loadPrerequisites = () => {
@@ -56,7 +64,7 @@ export default function SummaryPage() {
       if (storedGender) setUserGender(storedGender);
       if (storedPostcode) setUserPostcode(storedPostcode);
       
-      // Conversation History
+      // Conversation History (primary source)
       const storedHistory = localStorage.getItem("conversationHistory");
       if (storedHistory) {
         const parsedHistory = JSON.parse(storedHistory);
@@ -76,6 +84,13 @@ export default function SummaryPage() {
       if (storedAnalyses) {
         setAnalysisData(JSON.parse(storedAnalyses));
       }
+      
+      // Conversation Summaries
+      const storedSummaries = localStorage.getItem("conversationSummaries");
+      if (storedSummaries) {
+        setConversationSummaries(JSON.parse(storedSummaries));
+      }
+
 
     } catch (e) {
       console.error("Failed to load data from localStorage", e);
@@ -96,8 +111,8 @@ export default function SummaryPage() {
         loadPrerequisites();
     }
     
-    // We need at least a conversation to generate a report
-    if (conversationHistory.length < 1 && analysisData.length < 1 && isInitialLoad) {
+    // We need at least some data to generate a report
+    if (conversationHistory.length < 1 && analysisData.length < 1 && conversationSummaries.length < 1 && isInitialLoad) {
         setError("You need to have a conversation or analyze a document first to generate a summary report.");
         return
     }
@@ -108,21 +123,34 @@ export default function SummaryPage() {
     // Give a slight delay for the state to update, especially on manual refresh
     setTimeout(async () => {
         try {
-        const result = await generatePersonalSummary({
-            userName,
-            age: userAge,
-            gender: userGender,
-            postcode: userPostcode,
-            conversationHistory,
-            timelineData,
-            documentAnalyses: analysisData.map(a => a.analysis)
-        });
-        setReport(result.report);
+            const sourceDocuments = analysisData.map(a => ({
+                title: a.title,
+                date: new Date(a.date).toLocaleDateString(),
+                analysis: a.analysis,
+            }));
+
+            const sourceConversations = conversationSummaries.map(c => ({
+                title: c.title,
+                date: new Date(c.date).toLocaleDateString(),
+                summary: c.summary
+            }));
+
+            const result = await generatePersonalSummary({
+                userName,
+                age: userAge,
+                gender: userGender,
+                postcode: userPostcode,
+                conversationHistory,
+                timelineData,
+                sourceDocuments,
+                sourceConversations
+            });
+            setReport(result.report);
         } catch (err) {
-        console.error("Failed to generate report:", err);
-        setError("Sorry, there was an error generating your report. Please try again.");
+            console.error("Failed to generate report:", err);
+            setError("Sorry, there was an error generating your report. Please try again.");
         } finally {
-        setIsLoading(false);
+            setIsLoading(false);
         }
     }, 100); // 100ms delay
   }

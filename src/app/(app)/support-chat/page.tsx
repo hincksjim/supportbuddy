@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useEffect, Suspense } from "react"
@@ -39,6 +40,11 @@ interface UserData {
   gender?: string;
   postcode?: string;
   avatar?: 'male' | 'female';
+  dob?: string;
+  employmentStatus?: string;
+  income?: string;
+  savings?: string;
+  benefits?: string[];
 }
 
 function SupportChatPageContent() {
@@ -85,6 +91,11 @@ function SupportChatPageContent() {
         age: userData.age || "",
         gender: userData.gender || "",
         postcode: userData.postcode || "",
+        dob: userData.dob || "",
+        employmentStatus: userData.employmentStatus || "",
+        income: userData.income,
+        savings: userData.savings,
+        existingBenefits: userData.benefits || [],
         conversationHistory: messages,
         question: finalInput 
       })
@@ -443,3 +454,5 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
+
+    

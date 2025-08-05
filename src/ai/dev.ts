@@ -9,4 +9,5 @@ import '@/ai/flows/conversational-support.ts';
 import '@/ai/flows/text-to-speech.ts';
 import '@/ai/flows/summarize-voice-note.ts';
 import '@/ai/flows/generate-treatment-timeline.ts';
+import '@/ai/flows/generate-personal-summary.ts';
 import '@/services/postcode-lookup.ts';

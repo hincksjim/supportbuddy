@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { aiConversationalSupport } from "@/ai/flows/conversational-support"
+import { aiConversationalSupport, AiConversationalSupportInput } from "@/ai/flows/conversational-support"
 import { generateConversationSummary } from "@/ai/flows/generate-conversation-summary"
 import { textToSpeech } from "@/ai/flows/text-to-speech"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -86,19 +86,26 @@ function SupportChatPageContent() {
     setInput("")
 
     try {
-      const result = await aiConversationalSupport({ 
+      const flowInput: AiConversationalSupportInput = { 
         userName: userData.name || "User", 
         age: userData.age || "",
         gender: userData.gender || "",
         postcode: userData.postcode || "",
         dob: userData.dob || "",
         employmentStatus: userData.employmentStatus || "",
-        income: userData.income,
-        savings: userData.savings,
         existingBenefits: userData.benefits || [],
         conversationHistory: messages,
         question: finalInput 
-      })
+      };
+
+      if (userData.income) {
+          flowInput.income = userData.income;
+      }
+      if (userData.savings) {
+          flowInput.savings = userData.savings;
+      }
+
+      const result = await aiConversationalSupport(flowInput)
       const assistantMessage: Message = { role: "assistant", content: result.answer }
       const finalMessages = [...newMessages, assistantMessage];
       setMessages(finalMessages)
@@ -412,7 +419,7 @@ function SupportChatPageContent() {
                 onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleSubmit(e);
+                    handleSubmit(e as any);
                 }
                 }}
                 disabled={isLoading || isHistoricChat}
@@ -454,5 +461,3 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
-
-    

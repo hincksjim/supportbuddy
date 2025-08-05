@@ -224,10 +224,18 @@ export default function SummaryPage() {
             <CardContent className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Mood Trends</CardTitle>
+                        <CardTitle className="text-base">Overall Mood Trends</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <DiaryChart data={diaryEntries} chartType="mood" />
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Treatment Mood Trends</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <DiaryChart data={diaryEntries} chartType="treatment" />
                     </CardContent>
                 </Card>
                  <Card>

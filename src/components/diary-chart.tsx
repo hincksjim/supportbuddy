@@ -25,6 +25,10 @@ const chartConfig = {
     label: "Overall Mood",
     color: "hsl(var(--chart-1))",
   },
+  treatmentMood: {
+    label: "Treatment Mood",
+    color: "hsl(var(--chart-3))",
+  },
   pain: {
     label: "Pain Score",
     color: "hsl(var(--chart-4))",
@@ -39,15 +43,14 @@ const chartConfig = {
   }
 } satisfies ChartConfig
 
-export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType: 'mood' | 'weight' | 'sleep' | 'pain' }) {
+export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType: 'mood' | 'weight' | 'sleep' | 'pain' | 'treatment' }) {
   const chartData = React.useMemo(() => {
     return data
-      // First, sort the raw data by date to ensure calculations are correct
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      // Then, map to the format the chart needs
       .map(entry => ({
         date: new Date(entry.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }),
         overallMood: entry.mood ? moodToValueMap[entry.mood] : null,
+        treatmentMood: entry.treatmentMood ? moodToValueMap[entry.treatmentMood] : null,
         pain: entry.painScore,
         weight: entry.weight ? parseFloat(entry.weight) : null,
         sleep: entry.sleep ? parseFloat(entry.sleep) : null,
@@ -58,6 +61,7 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
   const yAxisDomain = React.useMemo(() => {
     switch (chartType) {
         case 'mood':
+        case 'treatment':
             return [1, 5];
         case 'pain':
             return [0, 10];
@@ -100,10 +104,10 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
                 axisLine={false}
                 tickMargin={8}
                 domain={yAxisDomain}
-                allowDecimals={chartType !== 'mood'}
-                ticks={chartType === 'mood' ? [1, 2, 3, 4, 5] : (chartType === 'pain' ? [0, 2, 4, 6, 8, 10] : undefined) }
+                allowDecimals={chartType !== 'mood' && chartType !== 'treatment'}
+                ticks={chartType === 'mood' || chartType === 'treatment' ? [1, 2, 3, 4, 5] : (chartType === 'pain' ? [0, 2, 4, 6, 8, 10] : undefined) }
                 tickFormatter={(value) => {
-                    if (chartType === 'mood') {
+                    if (chartType === 'mood' || chartType === 'treatment') {
                         const moodMap = { 1: 'Awful', 2: 'Bad', 3: 'Meh', 4: 'Good', 5: 'Great' };
                         return moodMap[value as keyof typeof moodMap] || value;
                     }
@@ -120,6 +124,17 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
                     name="Overall Mood"
                     type="monotone"
                     stroke="var(--color-overallMood)"
+                    strokeWidth={2}
+                    dot={true}
+                    connectNulls
+                />
+            )}
+             {chartType === 'treatment' && (
+                <Line
+                    dataKey="treatmentMood"
+                    name="Treatment Mood"
+                    type="monotone"
+                    stroke="var(--color-treatmentMood)"
                     strokeWidth={2}
                     dot={true}
                     connectNulls

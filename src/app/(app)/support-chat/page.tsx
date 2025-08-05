@@ -24,17 +24,15 @@ export default function SupportChatPage() {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [userName, setUserName] = useState("User")
+  const [userAge, setUserAge] = useState("")
+  const [userGender, setUserGender] = useState("")
+  const [userPostcode, setUserPostcode] = useState("")
   const [buddyAvatar, setBuddyAvatar] = useState("female")
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
   const router = useRouter()
-  const scrollAreaRef = useRef<HTMLDivElement>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const speakMessage = async (text: string) => {
-    // While assistant is speaking, stop listening to avoid feedback loops.
-    if (isListening) {
-      stopListening();
-    }
     try {
       const result = await textToSpeech(text);
       if (result.audioDataUri) {
@@ -47,18 +45,28 @@ export default function SupportChatPage() {
 
   const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault()
-    const finalInput = input;
-    if (!finalInput.trim() || isLoading) return
+    const finalInput = input.trim();
+    if (!finalInput || isLoading) return
 
     setIsLoading(true)
     const userMessage: Message = { role: "user", content: finalInput }
-    setMessages((prev) => [...prev, userMessage])
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages)
     setInput("")
 
     try {
-      const result = await aiConversationalSupport({ userName, question: finalInput })
+      const result = await aiConversationalSupport({ 
+        userName, 
+        age: userAge,
+        gender: userGender,
+        postcode: userPostcode,
+        conversationHistory: messages,
+        question: finalInput 
+      })
       const assistantMessage: Message = { role: "assistant", content: result.answer }
-      setMessages((prev) => [...prev, assistantMessage])
+      const finalMessages = [...newMessages, assistantMessage];
+      setMessages(finalMessages)
+      localStorage.setItem("conversationHistory", JSON.stringify(finalMessages));
       await speakMessage(result.answer)
     } catch (error) {
       const errorMessageText = "I'm sorry, I encountered an error. Please try again."
@@ -81,13 +89,8 @@ export default function SupportChatPage() {
   } = useSpeechRecognition({
     onTranscript: (text) => setInput(text),
     onComplete: (transcript) => {
-        setInput(transcript); // Ensure final transcript is set
-        if (transcript.trim()) {
-            // Use a brief timeout to allow state to update before submitting
-            setTimeout(() => {
-                document.getElementById('chat-submit-button')?.click();
-            }, 100);
-        }
+        setInput(transcript);
+        // This is now a manual process, no automatic submission
     },
   });
 
@@ -95,26 +98,38 @@ export default function SupportChatPage() {
     if (isListening) {
         stopListening();
     } else {
+        setInput(""); // Clear input before starting
         startListening();
     }
   }
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName")
+    const storedAge = localStorage.getItem("userAge")
+    const storedGender = localStorage.getItem("userGender")
+    const storedPostcode = localStorage.getItem("userPostcode")
     const storedAvatar = localStorage.getItem("buddyAvatar")
-    if (storedName) setUserName(storedName)
-    if (storedAvatar) setBuddyAvatar(storedAvatar)
-    
-    const welcomeMessage = `Hello ${storedName || 'there'}! I'm your Support Buddy. I'm here to listen and help you with any questions or worries you might have about your health, treatment, or well-being. Feel free to talk to me about anything at all.`
-    
-    const initialMessage = {
-      role: "assistant",
-      content: welcomeMessage,
-    };
-    
-    setMessages([initialMessage]);
-    speakMessage(welcomeMessage);
+    const storedHistory = localStorage.getItem("conversationHistory")
 
+    if (storedName) setUserName(storedName)
+    if (storedAge) setUserAge(storedAge)
+    if (storedGender) setUserGender(storedGender)
+    if (storedPostcode) setUserPostcode(storedPostcode)
+    if (storedAvatar) setBuddyAvatar(storedAvatar)
+
+    if (storedHistory) {
+      setMessages(JSON.parse(storedHistory));
+    } else {
+      const welcomeMessage = `Hello ${storedName || 'there'}! I'm your Support Buddy. I'm here to listen and help you with any questions or worries you might have about your health, treatment, or well-being. Feel free to talk to me about anything at all.`
+      
+      const initialMessage: Message = {
+        role: "assistant",
+        content: welcomeMessage,
+      };
+      
+      setMessages([initialMessage]);
+      speakMessage(welcomeMessage);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -131,8 +146,7 @@ export default function SupportChatPage() {
   
   const handleLogout = () => {
     if (typeof window !== "undefined") {
-      localStorage.removeItem("userName")
-      localStorage.removeItem("buddyAvatar")
+      localStorage.clear(); // Clear all user data on logout
     }
     if (isListening) {
         stopListening();
@@ -143,7 +157,7 @@ export default function SupportChatPage() {
   const BuddyAvatarIcon = buddyAvatar === "male" ? AvatarMale : AvatarFemale;
 
   const getPlaceholderText = () => {
-    if (isListening) return "Listening... Press the mic to stop."
+    if (isListening) return "Listening... Press the mic again to stop."
     return "Press the mic to speak, or type here...";
   }
 
@@ -160,7 +174,7 @@ export default function SupportChatPage() {
         </header>
 
       <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full" ref={scrollAreaRef}>
+        <ScrollArea className="h-full">
           <div className="p-4 md:p-6 space-y-6">
             {messages.map((message, index) => (
               <div

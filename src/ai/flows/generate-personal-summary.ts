@@ -140,8 +140,8 @@ Your primary goal is to synthesize all the information provided into a clear, or
 **3. Full Conversation History (For detailed context):**
 *   A full transcript is available in the input. Use it to find details not present in the summaries.
 ---
-**4. Timeline Data (For milestone tracking):**
-*   User's progress on their treatment plan is available in the input.
+**4. Timeline Data (For user-curated milestone tracking):**
+*   The user's interactive timeline is available in the input. Use it as one of the sources for the "Timeline & Milestones" section, but also look for implied milestones in other sources.
 ---
 
 **NOW, POPULATE THE REPORT TEMPLATE BELOW:**
@@ -169,12 +169,14 @@ Your primary goal is to synthesize all the information provided into a clear, or
 ### **Timeline & Milestones**
 
 **Completed Milestones:**
-*(List all steps from the timelineData where status is 'completed'. For each, include the title, and any user notes. If none, state "No milestones marked as complete yet.")*
-*   **[Step Title]:** Notes: *[User Notes]*
+*(Carefully review ALL data sources—documents, chats, and the user's interactive timeline—to identify completed events. For example, a discharge summary implies a hospital stay is complete. A chat message saying "My scan was yesterday" is a completed milestone. List them here with dates if available.)*
+*   **Initial Diagnosis Confirmed:** (e.g., Renal Cell Carcinoma) [1]
+*   **MDT Meeting Held:** (e.g., Discussed treatment options) [2]
 
 **Next Expected Milestone(s):**
-*(List the next 1-2 steps from the timelineData where status is 'pending'. If none, state "All timeline steps are marked complete.")*
-*   **[Step Title]:** ([Target Timeframe]) - [Description]
+*(Based on all available information, identify the next logical step in the user's journey. This might be from their interactive timeline, or it might be implied from a document (e.g., "Follow-up appointment scheduled for...") or a chat. Cite the source.)*
+*   **Surgical Procedure:** (e.g., at Wrexham Maelor Hospital) [3]
+*   **Follow-up Consultation:** (e.g., with Dr. Smith) [1]
 
 ---
 ### **Sources**

@@ -32,9 +32,13 @@ export interface DiaryEntry {
   id: string; // ISO date string 'YYYY-MM-DD'
   date: string; // ISO date string
   mood: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
+  diagnosisMood: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
+  treatmentMood: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
   weight: string;
   sleep: string;
   food: string;
+  worriedAbout: string;
+  positiveAbout: string;
   notes: string;
 }
 
@@ -49,9 +53,13 @@ const moodOptions = {
 function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntry) => void; existingEntry?: DiaryEntry | null; }) {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [mood, setMood] = useState<DiaryEntry['mood']>(null);
+    const [diagnosisMood, setDiagnosisMood] = useState<DiaryEntry['diagnosisMood']>(null);
+    const [treatmentMood, setTreatmentMood] = useState<DiaryEntry['treatmentMood']>(null);
     const [weight, setWeight] = useState('');
     const [sleep, setSleep] = useState('');
     const [food, setFood] = useState('');
+    const [worriedAbout, setWorriedAbout] = useState('');
+    const [positiveAbout, setPositiveAbout] = useState('');
     const [notes, setNotes] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
@@ -60,17 +68,25 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
             id: new Date().toISOString().split('T')[0],
             date: new Date().toISOString(),
             mood: null,
+            diagnosisMood: null,
+            treatmentMood: null,
             weight: '',
             sleep: '',
             food: '',
+            worriedAbout: '',
+            positiveAbout: '',
             notes: ''
         };
 
         setDate(new Date(entryToEdit.date).toISOString().split('T')[0]);
         setMood(entryToEdit.mood);
+        setDiagnosisMood(entryToEdit.diagnosisMood);
+        setTreatmentMood(entryToEdit.treatmentMood);
         setWeight(entryToEdit.weight);
         setSleep(entryToEdit.sleep);
         setFood(entryToEdit.food);
+        setWorriedAbout(entryToEdit.worriedAbout);
+        setPositiveAbout(entryToEdit.positiveAbout);
         setNotes(entryToEdit.notes);
     }, [existingEntry]);
 
@@ -80,9 +96,13 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
             id: date,
             date: new Date(date).toISOString(),
             mood,
+            diagnosisMood,
+            treatmentMood,
             weight,
             sleep,
             food,
+            worriedAbout,
+            positiveAbout,
             notes
         };
         onSave(entry);
@@ -113,10 +133,30 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
                         <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
                     </div>
                     <div className="space-y-2">
-                        <Label>How are you feeling?</Label>
+                        <Label>How are you feeling overall?</Label>
                         <div className="flex justify-around p-2 bg-secondary/50 rounded-lg">
                             {Object.entries(moodOptions).map(([key, emoji]) => (
                                 <button key={key} onClick={() => setMood(key as DiaryEntry['mood'])} className={cn("text-4xl p-2 rounded-full transition-all", mood === key ? 'bg-primary ring-2 ring-primary-foreground' : 'hover:scale-110')}>
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>How are you feeling about your diagnosis?</Label>
+                        <div className="flex justify-around p-2 bg-secondary/50 rounded-lg">
+                            {Object.entries(moodOptions).map(([key, emoji]) => (
+                                <button key={key} onClick={() => setDiagnosisMood(key as DiaryEntry['diagnosisMood'])} className={cn("text-4xl p-2 rounded-full transition-all", diagnosisMood === key ? 'bg-primary ring-2 ring-primary-foreground' : 'hover:scale-110')}>
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                     <div className="space-y-2">
+                        <Label>How are you feeling about your treatment?</Label>
+                        <div className="flex justify-around p-2 bg-secondary/50 rounded-lg">
+                            {Object.entries(moodOptions).map(([key, emoji]) => (
+                                <button key={key} onClick={() => setTreatmentMood(key as DiaryEntry['treatmentMood'])} className={cn("text-4xl p-2 rounded-full transition-all", treatmentMood === key ? 'bg-primary ring-2 ring-primary-foreground' : 'hover:scale-110')}>
                                     {emoji}
                                 </button>
                             ))}
@@ -136,9 +176,17 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
                         <Label htmlFor="food">Food Intake</Label>
                         <Textarea id="food" placeholder="e.g., Breakfast: Porridge, Lunch: Soup..." value={food} onChange={(e) => setFood(e.target.value)} />
                     </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="worried-about">Worried About</Label>
+                        <Textarea id="worried-about" placeholder="What's on your mind? Any specific fears or concerns?" value={worriedAbout} onChange={(e) => setWorriedAbout(e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="positive-about">Feeling Positive About</Label>
+                        <Textarea id="positive-about" placeholder="What went well today? Any small wins or things you're grateful for?" value={positiveAbout} onChange={(e) => setPositiveAbout(e.target.value)} />
+                    </div>
                     <div className="space-y-2">
-                        <Label htmlFor="notes">Notes</Label>
-                        <Textarea id="notes" placeholder="How are you feeling physically and mentally? Any symptoms to note?" value={notes} onChange={(e) => setNotes(e.target.value)} />
+                        <Label htmlFor="notes">Other Notes</Label>
+                        <Textarea id="notes" placeholder="Any other symptoms, thoughts, or medical facts to note?" value={notes} onChange={(e) => setNotes(e.target.value)} />
                     </div>
                 </div>
                  <DialogFooter>
@@ -164,9 +212,17 @@ function DiaryEntryCard({ entry, onSave }: { entry: DiaryEntry; onSave: (entry: 
                         <CardTitle className="font-headline text-xl">{new Date(entry.date).toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</CardTitle>
                         <CardDescription>Your log for this day</CardDescription>
                     </div>
-                     {entry.mood && (
-                         <div className="text-4xl p-1 bg-secondary rounded-full">{moodOptions[entry.mood]}</div>
-                    )}
+                     <div className="flex gap-2">
+                        {entry.mood && (
+                            <div className="text-2xl p-1 bg-secondary rounded-full" title={`Overall Mood: ${entry.mood}`}>{moodOptions[entry.mood]}</div>
+                        )}
+                        {entry.diagnosisMood && (
+                            <div className="text-2xl p-1 bg-secondary rounded-full" title={`Diagnosis Mood: ${entry.diagnosisMood}`}>{moodOptions[entry.diagnosisMood]}</div>
+                        )}
+                        {entry.treatmentMood && (
+                            <div className="text-2xl p-1 bg-secondary rounded-full" title={`Treatment Mood: ${entry.treatmentMood}`}>{moodOptions[entry.treatmentMood]}</div>
+                        )}
+                     </div>
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -182,9 +238,21 @@ function DiaryEntryCard({ entry, onSave }: { entry: DiaryEntry; onSave: (entry: 
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{entry.food}</p>
                     </div>
                 )}
+                 {entry.worriedAbout && (
+                    <div className="space-y-1">
+                        <h4 className="font-semibold text-sm">Worried About</h4>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{entry.worriedAbout}</p>
+                    </div>
+                )}
+                 {entry.positiveAbout && (
+                    <div className="space-y-1">
+                        <h4 className="font-semibold text-sm">Feeling Positive About</h4>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{entry.positiveAbout}</p>
+                    </div>
+                )}
                  {entry.notes && (
                     <div className="space-y-1">
-                        <h4 className="font-semibold text-sm">Notes</h4>
+                        <h4 className="font-semibold text-sm">Other Notes</h4>
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{entry.notes}</p>
                     </div>
                 )}

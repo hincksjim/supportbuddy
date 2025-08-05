@@ -11,14 +11,14 @@ import {
 } from "@/components/ui/chart"
 import { DiaryEntry } from "@/app/(app)/diary/page"
 
-const moodToValue = {
+const moodToValueMap = {
   great: 5,
   good: 4,
   meh: 3,
   bad: 2,
   awful: 1,
-  null: null
 } as const;
+
 
 const chartConfig = {
   overallMood: {
@@ -55,9 +55,9 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
       // Then, map to the format the chart needs
       .map(entry => ({
         date: new Date(entry.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }),
-        overallMood: entry.mood ? moodToValue[entry.mood] : null,
-        diagnosisMood: entry.diagnosisMood ? moodToValue[entry.diagnosisMood] : null,
-        treatmentMood: entry.treatmentMood ? moodToValue[entry.treatmentMood] : null,
+        overallMood: entry.mood ? moodToValueMap[entry.mood] : null,
+        diagnosisMood: entry.diagnosisMood ? moodToValueMap[entry.diagnosisMood] : null,
+        treatmentMood: entry.treatmentMood ? moodToValueMap[entry.treatmentMood] : null,
         pain: entry.painScore,
         weight: entry.weight ? parseFloat(entry.weight) : null,
         sleep: entry.sleep ? parseFloat(entry.sleep) : null,

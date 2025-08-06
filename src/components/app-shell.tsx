@@ -1,4 +1,3 @@
-
 "use client"
 
 import Link from "next/link"
@@ -31,7 +30,7 @@ export function AppShell() {
 
   return (
     <nav className="sticky bottom-0 z-10 border-t bg-background/95 backdrop-blur-sm">
-      <div className="mx-auto grid h-16 max-w-md grid-cols-10 items-center justify-around">
+      <div className="mx-auto grid h-16 max-w-lg grid-cols-10 items-center justify-around">
         {navItems.map((item) => (
           <Link
             key={item.href}
@@ -44,7 +43,7 @@ export function AppShell() {
             )}
           >
             <item.icon className="h-5 w-5" />
-            <span>{item.label}</span>
+            <span className="truncate">{item.label}</span>
           </Link>
         ))}
          <button

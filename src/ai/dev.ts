@@ -13,3 +13,5 @@ import '@/ai/flows/generate-treatment-timeline.ts';
 import '@/ai/flows/generate-personal-summary.ts';
 import '@/ai/flows/generate-benefits-suggestion.ts';
 import '@/services/postcode-lookup.ts';
+import '@/ai/flows/check-medication-dose.ts';
+

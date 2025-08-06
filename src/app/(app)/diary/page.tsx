@@ -25,8 +25,23 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
-import { PlusCircle, Loader2 } from "lucide-react"
+import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Medication } from "@/app/(app)/medication/page"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { checkMedicationDose, MedDose } from "@/ai/flows/check-medication-dose"
+import { useToast } from "@/hooks/use-toast"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+
+
+// Data structure for meds taken
+export interface MedsTaken {
+    id: string; // unique id for this instance
+    name: string; // name of med
+    time: string; // e.g., '09:00'
+    quantity: number;
+    isPrescribed: boolean;
+}
 
 // Data structure for a diary entry
 export interface DiaryEntry {
@@ -42,6 +57,7 @@ export interface DiaryEntry {
   worriedAbout: string;
   positiveAbout: string;
   notes: string;
+  medsTaken: MedsTaken[];
 }
 
 const moodOptions: { [key in NonNullable<DiaryEntry['mood']>]: string } = {
@@ -85,7 +101,125 @@ const painEmojis = [
 ];
 
 
-function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntry) => void; existingEntry?: DiaryEntry | null; }) {
+function LogMedicationDialog({ onLog, prescribedMeds, existingMedsTaken, onDoseWarning }: { onLog: (med: MedsTaken) => void; prescribedMeds: Medication[]; existingMedsTaken: MedsTaken[], onDoseWarning: (warning: string) => void; }) {
+    const [medName, setMedName] = useState("");
+    const [isPrescribed, setIsPrescribed] = useState<boolean | null>(null);
+    const [time, setTime] = useState(new Date().toTimeString().substring(0,5));
+    const [quantity, setQuantity] = useState(1);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleLog = async () => {
+        if (!medName || quantity <= 0) return;
+        setIsSaving(true);
+        const newMedLog: MedsTaken = {
+            id: new Date().toISOString(),
+            name: medName,
+            time,
+            quantity,
+            isPrescribed: !!isPrescribed
+        };
+
+        // --- Dose Checking Logic ---
+        if (newMedLog.isPrescribed) {
+            const prescription = prescribedMeds.find(p => p.name === newMedLog.name);
+            if (prescription) {
+                const todaysTakes: MedDose[] = [
+                    ...existingMedsTaken.filter(m => m.name === newMedLog.name),
+                    newMedLog
+                ].map(m => ({ time: m.time, quantity: m.quantity }));
+
+                try {
+                    const result = await checkMedicationDose({
+                        prescriptionDose: prescription.dose,
+                        dosesTaken: todaysTakes
+                    });
+                    if (result.warning) {
+                        onDoseWarning(result.warning);
+                    }
+                } catch (error) {
+                    console.error("Dose check failed:", error);
+                }
+            }
+        }
+        // --- End Dose Checking ---
+        
+        onLog(newMedLog);
+        setIsSaving(false);
+        document.getElementById('close-log-med-dialog')?.click();
+    };
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm"><Plus className="mr-2" /> Log Med Taken</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Log a Medication</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                     <div className="space-y-2">
+                        <Label>Medication Type</Label>
+                        <RadioGroup onValueChange={(val) => setIsPrescribed(val === 'true')} className="flex gap-4 pt-2">
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="true" id="prescribed" />
+                                <Label htmlFor="prescribed">Prescribed</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="false" id="otc" />
+                                <Label htmlFor="otc">Over-the-Counter</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+
+                    {isPrescribed !== null && (
+                        <>
+                           <div className="space-y-2">
+                                <Label htmlFor="med-name">Medication Name</Label>
+                                {isPrescribed ? (
+                                    <Select onValueChange={setMedName}>
+                                        <SelectTrigger id="med-name">
+                                            <SelectValue placeholder="Select from your list" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {prescribedMeds.map(med => (
+                                                <SelectItem key={med.id} value={med.name}>{med.name} ({med.strength})</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                ) : (
+                                    <Input id="med-name" placeholder="e.g., Ibuprofen" value={medName} onChange={(e) => setMedName(e.target.value)} />
+                                )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="time">Time Taken</Label>
+                                    <Input id="time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="quantity">Quantity</Label>
+                                    <Input id="quantity" type="number" min="1" value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value) || 1)} />
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+                <DialogFooter>
+                    <DialogClose id="close-log-med-dialog" asChild>
+                        <Button variant="ghost">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleLog} disabled={isSaving || isPrescribed === null || !medName}>
+                        {isSaving && <Loader2 className="animate-spin mr-2" />}
+                        Log Medication
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+
+function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave: (entry: DiaryEntry) => void; existingEntry?: DiaryEntry | null; currentUserEmail: string | null; }) {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [mood, setMood] = useState<DiaryEntry['mood']>('meh');
     const [diagnosisMood, setDiagnosisMood] = useState<DiaryEntry['diagnosisMood']>('meh');
@@ -97,7 +231,24 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
     const [worriedAbout, setWorriedAbout] = useState('');
     const [positiveAbout, setPositiveAbout] = useState('');
     const [notes, setNotes] = useState('');
+    const [medsTaken, setMedsTaken] = useState<MedsTaken[]>([]);
+    const [prescribedMeds, setPrescribedMeds] = useState<Medication[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+    const { toast } = useToast();
+
+    // Load prescribed meds for the dropdown
+    useEffect(() => {
+        if (!currentUserEmail) return;
+        try {
+            const storedMeds = localStorage.getItem(`medications_${currentUserEmail}`);
+            if (storedMeds) {
+                setPrescribedMeds(JSON.parse(storedMeds));
+            }
+        } catch(e) {
+            console.error("Could not load prescribed meds", e);
+        }
+    }, [currentUserEmail]);
+
 
     useEffect(() => {
         const entryToEdit = existingEntry || {
@@ -112,7 +263,8 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
             food: '',
             worriedAbout: '',
             positiveAbout: '',
-            notes: ''
+            notes: '',
+            medsTaken: [],
         };
 
         setDate(new Date(entryToEdit.date).toISOString().split('T')[0]);
@@ -126,6 +278,7 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
         setWorriedAbout(entryToEdit.worriedAbout);
         setPositiveAbout(entryToEdit.positiveAbout);
         setNotes(entryToEdit.notes);
+        setMedsTaken(entryToEdit.medsTaken || []);
     }, [existingEntry]);
 
     const handleSave = () => {
@@ -142,13 +295,31 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
             food,
             worriedAbout,
             positiveAbout,
-            notes
+            notes,
+            medsTaken,
         };
         onSave(entry);
         setIsSaving(false);
         document.getElementById(`close-diary-dialog-${existingEntry?.id || 'new'}`)?.click();
     };
     
+    const handleLogMedication = (medLog: MedsTaken) => {
+        setMedsTaken(prev => [...prev, medLog].sort((a,b) => a.time.localeCompare(b.time)));
+    }
+
+    const handleRemoveMedication = (medId: string) => {
+        setMedsTaken(prev => prev.filter(m => m.id !== medId));
+    }
+
+    const handleDoseWarning = (warning: string) => {
+        toast({
+            variant: "destructive",
+            title: "Dose Warning",
+            description: warning,
+            duration: 10000,
+        })
+    }
+
     return (
         <Dialog>
              <DialogTrigger asChild>
@@ -161,7 +332,7 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="max-w-lg">
                 <DialogHeader>
                     <DialogTitle>{existingEntry ? 'Edit' : 'New'} Diary Entry</DialogTitle>
                     <DialogDescription>Log how you're feeling and other key factors for today.</DialogDescription>
@@ -240,6 +411,37 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
                         <Label htmlFor="food">Food Intake</Label>
                         <Textarea id="food" placeholder="e.g., Breakfast: Porridge, Lunch: Soup..." value={food} onChange={(e) => setFood(e.target.value)} />
                     </div>
+
+                    <div className="space-y-2">
+                        <Label>Medications Taken Today</Label>
+                        <div className="space-y-2 rounded-md border p-4">
+                           {medsTaken.length > 0 ? (
+                            <ul className="space-y-2">
+                               {medsTaken.map(med => (
+                                   <li key={med.id} className="flex items-center justify-between text-sm">
+                                       <div>
+                                            <span className="font-semibold">{med.name}</span>
+                                            <span className="text-muted-foreground"> (x{med.quantity})</span>
+                                       </div>
+                                       <div className="flex items-center gap-2">
+                                            <span className="text-muted-foreground text-xs flex items-center gap-1"><Clock className="w-3 h-3"/>{med.time}</span>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveMedication(med.id)}>
+                                                <Trash2 className="w-3 h-3" />
+                                            </Button>
+                                       </div>
+                                   </li>
+                               ))}
+                            </ul>
+                           ) : (
+                               <p className="text-sm text-muted-foreground">No medications logged for today.</p>
+                           )}
+                           <div className="pt-2">
+                             <LogMedicationDialog onLog={handleLogMedication} prescribedMeds={prescribedMeds} existingMedsTaken={medsTaken} onDoseWarning={handleDoseWarning} />
+                           </div>
+                        </div>
+                    </div>
+
+
                      <div className="space-y-2">
                         <Label htmlFor="worried-about">Worried About</Label>
                         <Textarea id="worried-about" placeholder="What's on your mind? Any specific fears or concerns?" value={worriedAbout} onChange={(e) => setWorriedAbout(e.target.value)} />
@@ -267,7 +469,7 @@ function DiaryEntryDialog({ onSave, existingEntry }: { onSave: (entry: DiaryEntr
     )
 }
 
-function DiaryEntryCard({ entry, onSave }: { entry: DiaryEntry; onSave: (entry: DiaryEntry) => void; }) {
+function DiaryEntryCard({ entry, onSave, currentUserEmail }: { entry: DiaryEntry; onSave: (entry: DiaryEntry) => void; currentUserEmail: string | null; }) {
     return (
         <Card>
             <CardHeader>
@@ -309,10 +511,22 @@ function DiaryEntryCard({ entry, onSave }: { entry: DiaryEntry; onSave: (entry: 
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                {(entry.weight || entry.sleep) && (
+                 {(entry.weight || entry.sleep) && (
                     <div className="grid grid-cols-3 gap-4 text-sm">
                         {entry.weight && <div><strong>Weight:</strong> {entry.weight} kg</div>}
                         {entry.sleep && <div><strong>Sleep:</strong> {entry.sleep} hours</div>}
+                    </div>
+                )}
+                 {entry.medsTaken && entry.medsTaken.length > 0 && (
+                     <div className="space-y-1">
+                        <h4 className="font-semibold text-sm">Medications Taken</h4>
+                        <ul className="list-disc list-inside text-sm text-muted-foreground">
+                            {entry.medsTaken.map(med => (
+                                <li key={med.id}>
+                                    {med.name} (x{med.quantity}) at {med.time}
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 )}
                  {entry.food && (
@@ -341,7 +555,7 @@ function DiaryEntryCard({ entry, onSave }: { entry: DiaryEntry; onSave: (entry: 
                 )}
             </CardContent>
              <CardFooter>
-                 <DiaryEntryDialog onSave={onSave} existingEntry={entry} />
+                 <DiaryEntryDialog onSave={onSave} existingEntry={entry} currentUserEmail={currentUserEmail} />
              </CardFooter>
         </Card>
     );
@@ -412,7 +626,7 @@ export default function DiaryPage() {
             {entries.length > 0 ? (
                 <div className="space-y-6">
                     {entries.map(entry => (
-                        <DiaryEntryCard key={entry.id} entry={entry} onSave={handleSaveEntry} />
+                        <DiaryEntryCard key={entry.id} entry={entry} onSave={handleSaveEntry} currentUserEmail={currentUserEmail} />
                     ))}
                 </div>
             ) : (
@@ -422,7 +636,7 @@ export default function DiaryPage() {
                 </div>
             )}
             
-            <DiaryEntryDialog onSave={handleSaveEntry} />
+            <DiaryEntryDialog onSave={handleSaveEntry} currentUserEmail={currentUserEmail}/>
         </div>
     )
 }

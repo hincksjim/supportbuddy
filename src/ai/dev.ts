@@ -14,4 +14,5 @@ import '@/ai/flows/generate-personal-summary.ts';
 import '@/ai/flows/generate-benefits-suggestion.ts';
 import '@/services/postcode-lookup.ts';
 import '@/ai/flows/check-medication-dose.ts';
+import '@/ai/flows/generate-benefits-matrix.ts';
 

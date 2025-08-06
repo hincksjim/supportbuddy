@@ -20,7 +20,8 @@ const navItems = [
   { href: "/diary", icon: Notebook, label: "Diary" },
   { href: "/finance", icon: Landmark, label: "Finance" },
   { href: "/medication", icon: Pill, label: "Meds" },
-  { href: "/just-in-case", icon: ShieldCheck, label: "Goodbye"},
+  { href: "/benefits-checker", icon: Gavel, label: "Benefits" },
+  { href: "/just-in-case", icon: ShieldCheck, label: "Just In Case"},
 ]
 
 export function AppShell() {

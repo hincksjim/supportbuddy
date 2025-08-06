@@ -58,27 +58,27 @@ const benefitsDecisionLogic = `
   },
   {
     "Benefit": "Statutory Sick Pay (SSP)", "Who its for": "Paid by your employer for up to 28 weeks if you're too ill to work.",
-    "Rule": "Age Range 16-64, Employment Status Employed, Health Impact (Cancer) Cannot work (cancer)"
+    "Rule": "Age Range 16-Pension Age, Employment Status Employed, Health Impact (Cancer) Cannot work (cancer)"
   },
   {
     "Benefit": "Personal Independence Payment (PIP)", "Who its for": "Helps with extra living costs if you have both a long-term physical or mental health condition and difficulty doing certain everyday tasks or getting around.",
-    "Rule": "Age Range 16-64, Health Impact (Cancer) any"
+    "Rule": "Age Range 16-Pension Age, Health Impact (Cancer) any"
   },
   {
     "Benefit": "New Style Employment and Support Allowance (ESA)", "Who its for": "For people who have a disability or health condition that affects how much they can work. It is based on your National Insurance contributions.",
-    "Rule": "Age Range 16-64, Employment Status Employed or Self-employed or Unemployed"
+    "Rule": "Age Range 16-Pension Age, Employment Status Employed or Self-employed or Unemployed"
   },
   {
     "Benefit": "Universal Credit (UC)", "Who its for": "A payment to help with your living costs. You may be able to get it if you’re on a low income, out of work or you cannot work.",
-    "Rule": "Age Range 16-64, Income/Savings Low income/savings < £16K"
+    "Rule": "Age Range 16-Pension Age, Income/Savings Low income/savings < £16K"
   },
   {
     "Benefit": "Attendance Allowance", "Who its for": "For people over State Pension age who have a disability and need someone to help look after them.",
-    "Rule": "Age Range 65+, Health Impact (Cancer) any"
+    "Rule": "Age Range Pension Age+, Health Impact (Cancer) any"
   },
   {
     "Benefit": "Pension Credit", "Who its for": "An income-related benefit to give you some extra money in retirement if you're on a low income.",
-    "Rule": "Age Range 65+, Employment Status Retired"
+    "Rule": "Age Range Pension Age+, Employment Status Retired or any"
   },
   {
     "Benefit": "Blue Badge", "Who its for": "Helps people with disabilities or health conditions park closer to their destination.",
@@ -107,8 +107,11 @@ const prompt = ai.definePrompt({
 ${benefitsDecisionLogic}
 \`\`\`
 
+**CRITICAL Pension Age Rule:**
+The UK State Pension age is not a fixed number (like 65). It varies based on date of birth and is gradually increasing. You MUST use the user's Age ({{{age}}}) to make a reasonable determination of whether they are of working age or pension age. For example, a 64-year-old is of working age. Someone who is 68 is of pension age. Use your knowledge of current UK pension ages to determine which category the user falls into. Do not classify someone as "Pension Age+" if their age is below the current state pension threshold.
+
 **Task:**
-Create a response for the following three scenarios. For each scenario, determine the potential benefits based on the JSON ruleset provided.
+Create a response for the following three scenarios. For each scenario, determine the potential benefits based on the JSON ruleset and the Pension Age Rule provided.
 
 1.  **Scenario: "If you stop working due to illness"**
     *   Description: This scenario applies if your health condition prevents you from continuing your current employment.

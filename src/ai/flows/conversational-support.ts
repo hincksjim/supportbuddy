@@ -51,7 +51,7 @@ const benefitsDecisionLogic = `
     "Additional or Replacement Benefits":"Disability Living Allowance (DLA), Carer's Allowance (for parent), NHS travel/prescription support"
   },
   {
-    "Age Range":"16-64",
+    "Age Range":"16-Pension Age",
     "Employment Status":"Employed",
     "Existing Benefits":"None or any",
     "Income/Savings":"Any",
@@ -59,7 +59,7 @@ const benefitsDecisionLogic = `
     "Additional or Replacement Benefits":"Statutory Sick Pay (SSP), Personal Independence Payment (PIP), Employment and Support Allowance (ESA), Universal Credit (UC) with LCWRA element"
   },
   {
-    "Age Range":"16-64",
+    "Age Range":"16-Pension Age",
     "Employment Status":"Employed",
     "Existing Benefits":"SSP ended",
     "Income/Savings":"Low income/savings < £16K",
@@ -67,7 +67,7 @@ const benefitsDecisionLogic = `
     "Additional or Replacement Benefits":"ESA, PIP, UC with health-related element, Blue Badge"
   },
   {
-    "Age Range":"16-64",
+    "Age Range":"16-Pension Age",
     "Employment Status":"Unemployed",
     "Existing Benefits":"JSA",
     "Income/Savings":"Low income",
@@ -75,7 +75,7 @@ const benefitsDecisionLogic = `
     "Additional or Replacement Benefits":"Replace JSA with ESA, claim PIP, UC with LCWRA"
   },
     {
-    "Age Range":"16-64",
+    "Age Range":"16-Pension Age",
     "Employment Status":"On Benefits",
     "Existing Benefits":"Universal Credit (UC)",
     "Income/Savings":"Low income",
@@ -83,7 +83,7 @@ const benefitsDecisionLogic = `
     "Additional or Replacement Benefits":"Add Limited Capability for Work (LCWRA) element, Personal Independence Payment (PIP)"
   },
   {
-    "Age Range":"16-64",
+    "Age Range":"16-Pension Age",
     "Employment Status":"Self-employed",
     "Existing Benefits":"None",
     "Income/Savings":"Income affected",
@@ -91,7 +91,7 @@ const benefitsDecisionLogic = `
     "Additional or Replacement Benefits":"UC with health element, PIP, ESA (New Style), Council Tax Support"
   },
   {
-    "Age Range":"16-64",
+    "Age Range":"16-Pension Age",
     "Employment Status":"Already on ESA",
     "Existing Benefits":"ESA",
     "Income/Savings":"Low income",
@@ -99,16 +99,16 @@ const benefitsDecisionLogic = `
     "Additional or Replacement Benefits":"Ensure they're in Support Group, PIP, Council Tax Support"
   },
   {
-    "Age Range":"65+",
-    "Employment Status":"Retired",
+    "Age Range":"Pension Age+",
+    "Employment Status":"Retired or any",
     "Existing Benefits":"State Pension",
     "Income/Savings":"Low income",
     "Health Impact (Cancer)":"Diagnosed with cancer",
     "Additional or Replacement Benefits":"Attendance Allowance, Pension Credit with Severe Disability Premium, Blue Badge, Free NHS travel/prescriptions"
   },
   {
-    "Age Range":"65+",
-    "Employment Status":"Retired",
+    "Age Range":"Pension Age+",
+    "Employment Status":"Retired or any",
     "Existing Benefits":"Pension Credit",
     "Income/Savings":"Low income",
     "Health Impact (Cancer)":"Cancer diagnosis",
@@ -165,6 +165,7 @@ const prompt = ai.definePrompt({
   4.  **Define Medical Terms:** If you must use a medical term, always provide a simple, concise definition immediately after. For example: "...you may experience neutropenia, which is a condition where you have a lower number of white blood cells, making you more susceptible to infections."
   5.  **Be Location-Aware:** If the user's query is about local services, use the \`lookupPostcode\` tool to find their city and local health authority. Use this information to provide tailored, practical advice. For example: "I see you're in the Manchester area, which is covered by the NHS Greater Manchester Integrated Care Board. They have specific resources that might help..."
   6. **Act as a Benefits Advisor**: If the user's conversation touches on financial worries, work changes, or their ability to cope, you MUST use the following JSON ruleset to determine if they might be eligible for additional financial support. Proactively suggest benefits they might be entitled to, explaining what they are in simple terms.
+    **CRITICAL Pension Age Rule**: The UK State Pension age is not fixed at 65. It varies based on date of birth. You MUST use the user's Date of Birth ({{{dob}}}) to determine if they have reached the state pension age according to UK government guidelines. The pension age is gradually increasing and is currently between 66 and 68. **Do not apply "Pension Age+" rules to someone who is, for example, 64, as they are not yet eligible for pension-age benefits like Pension Credit or Attendance Allowance.** Use your knowledge to accurately assess this.
 
   **Benefits Decision Logic (JSON Ruleset):**
   \`\`\`json

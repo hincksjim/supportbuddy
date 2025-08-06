@@ -66,19 +66,6 @@ export default function SummaryPage() {
     setCurrentUserEmail(email);
   }, []);
 
-  const loadDiaryEntries = () => {
-      if (!currentUserEmail) return;
-       try {
-            const storedDiaryEntries = localStorage.getItem(`diaryEntries_${currentUserEmail}`);
-            if (storedDiaryEntries) {
-                setDiaryEntries(JSON.parse(storedDiaryEntries));
-            }
-       } catch (e) {
-           console.error("Failed to load diary entries from localStorage", e);
-           setError("Could not load your diary data for the charts.");
-       }
-  }
-
   // Load all necessary data from localStorage
   const loadPrerequisites = () => {
     if (!currentUserEmail) return;
@@ -117,7 +104,12 @@ export default function SummaryPage() {
       }
 
       // Diary Entries
-      loadDiaryEntries();
+      const storedDiaryEntries = localStorage.getItem(`diaryEntries_${currentUserEmail}`);
+      if (storedDiaryEntries) {
+          setDiaryEntries(JSON.parse(storedDiaryEntries));
+      } else {
+          setDiaryEntries([]);
+      }
 
     } catch (e) {
       console.error("Failed to load data from localStorage", e);
@@ -192,7 +184,7 @@ export default function SummaryPage() {
 
   const handleRefreshCharts = () => {
     setIsChartLoading(true);
-    loadDiaryEntries();
+    loadPrerequisites();
     setTimeout(() => setIsChartLoading(false), 300);
   }
 
@@ -215,7 +207,7 @@ export default function SummaryPage() {
         </div>
       </div>
 
-       {diaryEntries.length > 1 && (
+       
          <Card>
             <CardHeader>
                 <div className="flex items-center justify-between">
@@ -229,58 +221,67 @@ export default function SummaryPage() {
                     </Button>
                 </div>
             </CardHeader>
-            <CardContent className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Overall Mood Trends</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <DiaryChart data={diaryEntries} chartType="mood" />
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Treatment Mood Trends</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <DiaryChart data={diaryEntries} chartType="treatment" />
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Diagnosis Mood Trends</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <DiaryChart data={diaryEntries} chartType="diagnosis" />
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Pain Trends</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <DiaryChart data={diaryEntries} chartType="pain" />
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                         <CardTitle className="text-base">Weight Trends</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <DiaryChart data={diaryEntries} chartType="weight" />
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Sleep Trends</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <DiaryChart data={diaryEntries} chartType="sleep" />
-                    </CardContent>
-                </Card>
+            <CardContent>
+                {diaryEntries.length > 1 ? (
+                    <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">Overall Mood Trends</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <DiaryChart data={diaryEntries} chartType="mood" />
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">Treatment Mood Trends</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <DiaryChart data={diaryEntries} chartType="treatment" />
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">Diagnosis Mood Trends</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <DiaryChart data={diaryEntries} chartType="diagnosis" />
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">Pain Trends</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <DiaryChart data={diaryEntries} chartType="pain" />
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">Weight Trends</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <DiaryChart data={diaryEntries} chartType="weight" />
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">Sleep Trends</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <DiaryChart data={diaryEntries} chartType="sleep" />
+                            </CardContent>
+                        </Card>
+                    </div>
+                ) : (
+                    <div className="text-center py-10 rounded-lg border-2 border-dashed">
+                        <h3 className="text-lg font-semibold">No Chart Data Available</h3>
+                        <p className="text-muted-foreground mt-1">You need at least two diary entries to see your wellness trends.</p>
+                    </div>
+                )}
             </CardContent>
          </Card>
-      )}
+      
 
       <Card>
         <CardHeader>
@@ -317,3 +318,5 @@ export default function SummaryPage() {
     </div>
   )
 }
+
+    

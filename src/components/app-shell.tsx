@@ -31,8 +31,8 @@ export function AppShell() {
 
   return (
     <nav className="sticky bottom-0 z-10 border-t bg-background/95 backdrop-blur-sm">
-      <div className="container mx-auto grid h-16 max-w-md grid-cols-10 items-center justify-around">
-        {navItems.map((item) => (
+      <div className="mx-auto grid h-16 max-w-md grid-cols-5 items-center justify-around">
+        {navItems.slice(0, 4).map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -47,6 +47,23 @@ export function AppShell() {
             <span>{item.label}</span>
           </Link>
         ))}
+        <div className="flex flex-col items-center justify-center">
+            {navItems.slice(4, 9).map(item => (
+                 <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                    "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors hover:text-primary",
+                    pathname.startsWith(item.href)
+                        ? "text-primary"
+                        : "text-muted-foreground"
+                    )}
+                >
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.label}</span>
+                </Link>
+            ))}
+        </div>
          <button
             onClick={handleLogout}
             className={cn(

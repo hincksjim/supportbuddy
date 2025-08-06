@@ -190,13 +190,6 @@ function WillTab({ data, setData, disabled }: { data: GoodbyeData['will'], setDa
 
     return (
         <div className="space-y-4">
-             <Alert variant="destructive">
-                <Gavel className="h-4 w-4" />
-                <AlertTitle>Not a Legal Document</AlertTitle>
-                <AlertDescription>
-                   The information in this section is for guidance only and is **not** a legally binding will. Please consult a solicitor to create an official will.
-                </AlertDescription>
-            </Alert>
             <Card>
                 <CardHeader>
                     <CardTitle>Latest Will Document</CardTitle>
@@ -238,7 +231,13 @@ function WillTab({ data, setData, disabled }: { data: GoodbyeData['will'], setDa
                     )}
                 </CardContent>
             </Card>
-
+            <Alert variant="destructive">
+                <Gavel className="h-4 w-4" />
+                <AlertTitle>Not a Legal Document</AlertTitle>
+                <AlertDescription>
+                   The information in this section is for guidance only and is **not** a legally binding will. Please consult a solicitor to create an official will.
+                </AlertDescription>
+            </Alert>
             <TextSection title="Executors" description="The person or people you would like to carry out your wishes." value={data.executors} onChange={(v) => handleTextChange('executors', v)} disabled={disabled} />
             <TextSection title="Guardians" description="Who you would like to look after any children or pets." value={data.guardians} onChange={(v) => handleTextChange('guardians', v)} disabled={disabled} />
             <TextSection title="Asset Distribution" description="Your general wishes for how your property and belongings should be distributed." value={data.assetDistribution} onChange={(v) => handleTextChange('assetDistribution', v)} disabled={disabled} />
@@ -523,3 +522,5 @@ export default function GoodbyePage() {
     </div>
   )
 }
+
+    

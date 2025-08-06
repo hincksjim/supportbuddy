@@ -184,12 +184,6 @@ export default function FinancePage() {
                 </Card>
 
             </div>
-
-            <div className="text-center py-10 rounded-lg border-2 border-dashed">
-                <Landmark className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h2 className="mt-4 text-xl font-semibold">Financial Planning Tools</h2>
-                <p className="text-muted-foreground mt-2">More tools for managing your finances are coming soon.</p>
-            </div>
         </div>
     )
 }

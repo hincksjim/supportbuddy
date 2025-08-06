@@ -3,7 +3,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { BotMessageSquare, LayoutDashboard, FileQuestion, Milestone, FileText, Landmark, Notebook, LogOut, ShieldCheck, Pill, Gavel } from "lucide-react"
+import { BotMessageSquare, LayoutDashboard, FileQuestion, Milestone, FileText, Landmark, Notebook, LogOut, ShieldCheck, Pill, Gavel, User } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar"
@@ -18,10 +18,11 @@ const navItems = [
   { href: "/timeline", icon: Milestone, label: "Timeline" },
   { href: "/summary", icon: FileText, label: "Summary" },
   { href: "/diary", icon: Notebook, label: "Diary" },
-  { href: "/finance", icon: Landmark, label: "Finance" },
   { href: "/medication", icon: Pill, label: "Meds" },
+  { href: "/finance", icon: Landmark, label: "Finance" },
   { href: "/benefits-checker", icon: Gavel, label: "Benefits" },
   { href: "/just-in-case", icon: ShieldCheck, label: "Just In Case"},
+  { href: "/profile", icon: User, label: "Profile"},
 ]
 
 export function AppShell() {

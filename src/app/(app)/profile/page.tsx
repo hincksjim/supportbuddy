@@ -1,0 +1,274 @@
+
+"use client"
+
+import { useState, useEffect, useCallback, ChangeEvent } from "react"
+import { useRouter } from "next/navigation"
+
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { IndeterminateCheckbox } from "@/components/ui/indeterminate-checkbox"
+import { useToast } from "@/hooks/use-toast"
+import { User, Save, Mail } from "lucide-react"
+
+const benefitsList = [
+    { id: 'uc', label: 'Universal Credit (UC)' },
+    { id: 'jsa', label: 'Jobseeker\'s Allowance (JSA)' },
+    { id: 'esa', label: 'Employment and Support Allowance (ESA)' },
+    { id: 'pension_credit', label: 'Pension Credit' },
+    { id: 'housing_benefit', label: 'Housing Benefit' },
+    { id: 'council_tax_support', label: 'Council Tax Support' },
+    { id: 'pip', label: 'Personal Independence Payment (PIP)' },
+    { id: 'attendance_allowance', label: 'Attendance Allowance' },
+    { id: 'carer_allowance', label: 'Carer\'s Allowance' },
+    { id: 'child_benefit', label: 'Child Benefit' },
+    { id: 'maternity_allowance', label: 'Maternity Allowance' },
+    { id: 'state_pension', label: 'State Pension' },
+    { id: 'dla', label: 'Disability Living Allowance (DLA)' },
+    { id: 'income_support', label: 'Income Support' },
+] as const
+
+interface UserData {
+    name?: string;
+    lastName?: string;
+    age?: string;
+    gender?: string;
+    postcode?: string;
+    dob?: string;
+    employmentStatus?: string;
+    income?: string;
+    savings?: string;
+    benefits?: string[];
+}
+
+export default function ProfilePage() {
+    const router = useRouter()
+    const { toast } = useToast()
+    const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+    const [userData, setUserData] = useState<UserData>({});
+    const [isLoading, setIsLoading] = useState(true);
+
+    const [selectedBenefits, setSelectedBenefits] = useState<Record<string, boolean>>({});
+
+    const loadUserData = useCallback(() => {
+        setIsLoading(true);
+        const email = localStorage.getItem("currentUserEmail");
+        if (email) {
+            setCurrentUserEmail(email);
+            const storedData = localStorage.getItem(`userData_${email}`);
+            if (storedData) {
+                const parsedData: UserData = JSON.parse(storedData);
+                setUserData(parsedData);
+                 // Initialize selectedBenefits from user data
+                const initialSelected: Record<string, boolean> = {};
+                benefitsList.forEach(b => {
+                    if (parsedData.benefits?.includes(b.label)) {
+                        initialSelected[b.id] = true;
+                    }
+                });
+                setSelectedBenefits(initialSelected);
+            }
+        } else {
+            router.push("/login");
+        }
+        setIsLoading(false);
+    }, [router]);
+
+    useEffect(() => {
+        loadUserData();
+    }, [loadUserData]);
+    
+    const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setUserData(prev => ({ ...prev, [name]: value }));
+    }
+
+    const handleSelectChange = (name: keyof UserData, value: string) => {
+        setUserData(prev => ({ ...prev, [name]: value }));
+    }
+
+    const handleBenefitChange = (benefitId: string, checked: boolean) => {
+        setSelectedBenefits(prev => ({ ...prev, [benefitId]: checked }))
+    }
+
+    const handleSave = () => {
+        if (!currentUserEmail) return;
+
+        const updatedBenefits = Object.entries(selectedBenefits)
+            .filter(([, checked]) => checked)
+            .map(([id]) => benefitsList.find(b => b.id === id)?.label)
+            .filter((l): l is string => l !== undefined); // Filter out undefined
+
+        const finalUserData = { ...userData, benefits: updatedBenefits };
+
+        localStorage.setItem(`userData_${currentUserEmail}`, JSON.stringify(finalUserData));
+        toast({
+            title: "Profile Saved",
+            description: "Your information has been updated successfully.",
+        });
+    }
+
+    const allBenefitsSelected = Object.keys(selectedBenefits).length > 0 && Object.values(selectedBenefits).every(Boolean) && Object.keys(selectedBenefits).length === benefitsList.length;
+    const someBenefitsSelected = Object.values(selectedBenefits).some(Boolean) && !allBenefitsSelected;
+
+
+    if (isLoading) {
+        return <div className="p-6">Loading...</div>
+    }
+
+    return (
+        <div className="p-4 md:p-6 space-y-8">
+             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold font-headline">My Profile</h1>
+                    <p className="text-muted-foreground">
+                       View and edit your personal information.
+                    </p>
+                </div>
+                 <Button onClick={handleSave}><Save className="mr-2" /> Save Changes</Button>
+            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Personal Details</CardTitle>
+                    <CardDescription>This information helps personalize the support you receive.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="flex items-center space-x-4 rounded-md border p-4 bg-muted/50">
+                        <Mail className="h-5 w-5 text-muted-foreground" />
+                        <div className="flex-grow">
+                            <Label htmlFor="email" className="text-xs text-muted-foreground">Email</Label>
+                            <div id="email" className="font-semibold">{currentUserEmail}</div>
+                        </div>
+                    </div>
+                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="name">First name</Label>
+                          <Input id="name" name="name" placeholder="Alex" value={userData.name || ''} onChange={handleInputChange} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="lastName">Last name</Label>
+                          <Input id="lastName" name="lastName" placeholder="Smith" value={userData.lastName || ''} onChange={handleInputChange}/>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="age">Age</Label>
+                            <Input id="age" name="age" type="number" placeholder="Your age" value={userData.age || ''} onChange={handleInputChange} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Gender</Label>
+                            <RadioGroup name="gender" value={userData.gender} onValueChange={(v) => handleSelectChange('gender', v)} className="flex gap-4 pt-2">
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="female" id="female" />
+                                    <Label htmlFor="female">Female</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="male" id="male" />
+                                    <Label htmlFor="male">Male</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="other" id="other" />
+                                    <Label htmlFor="other">Other</Label>
+                                </div>
+                            </RadioGroup>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="dob">Date of Birth</Label>
+                            <Input id="dob" name="dob" type="date" value={userData.dob ? new Date(userData.dob).toISOString().split('T')[0] : ''} onChange={handleInputChange} />
+                        </div>
+                         <div className="space-y-2">
+                          <Label htmlFor="postcode">Postcode</Label>
+                          <Input id="postcode" name="postcode" placeholder="Your postcode" value={userData.postcode || ''} onChange={handleInputChange}/>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Financial Information</CardTitle>
+                    <CardDescription>This information is used for benefits suggestions. It is stored securely on your device.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="employmentStatus">Employment Status</Label>
+                        <Select name="employmentStatus" onValueChange={(v) => handleSelectChange('employmentStatus', v)} value={userData.employmentStatus}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select your status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="employed">Employed</SelectItem>
+                                <SelectItem value="self-employed">Self-employed</SelectItem>
+                                <SelectItem value="retired">Retired</SelectItem>
+                                <SelectItem value="unemployed-not-on-benefits">Unemployed not on benefits</SelectItem>
+                                <SelectItem value="unemployed-on-benefits">Unemployed on benefits</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {(userData.employmentStatus === 'employed' || userData.employmentStatus === 'self-employed') && (
+                        <div className="space-y-2">
+                            <Label htmlFor="income">Annual Income (£)</Label>
+                            <Input id="income" name="income" type="number" placeholder="e.g., 30000" value={userData.income || ''} onChange={handleInputChange} />
+                        </div>
+                    )}
+
+                    {userData.employmentStatus === 'retired' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="savings">Savings (£)</Label>
+                            <Input id="savings" name="savings" type="number" placeholder="e.g., 5000" value={userData.savings || ''} onChange={handleInputChange} />
+                        </div>
+                    )}
+
+                    <div className="space-y-4 pt-2">
+                        <Label className="font-semibold">Benefits</Label>
+                        <p className="text-xs text-muted-foreground">Select any benefits you are currently receiving.</p>
+                        <div className="space-y-2 p-4 border rounded-md max-h-60 overflow-y-auto">
+                            <div className="flex items-center space-x-2 pb-2 border-b">
+                                <IndeterminateCheckbox
+                                    id="select-all-benefits"
+                                    checked={allBenefitsSelected}
+                                    indeterminate={someBenefitsSelected}
+                                    onCheckedChange={(checked) => {
+                                        const newSelected: Record<string, boolean> = {};
+                                        if (checked) {
+                                            benefitsList.forEach(b => newSelected[b.id] = true);
+                                        }
+                                        setSelectedBenefits(newSelected);
+                                    }}
+                                />
+                                <Label htmlFor="select-all-benefits" className="font-bold">Select All</Label>
+                            </div>
+                            {benefitsList.map(benefit => (
+                                <div key={benefit.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={benefit.id}
+                                        checked={selectedBenefits[benefit.id] || false}
+                                        onCheckedChange={(checked) => handleBenefitChange(benefit.id, !!checked)}
+                                    />
+                                    <Label htmlFor={benefit.id}>{benefit.label}</Label>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </CardContent>
+                 <CardFooter>
+                    <Button onClick={handleSave}><Save className="mr-2" /> Save Changes</Button>
+                </CardFooter>
+            </Card>
+        </div>
+    )
+}

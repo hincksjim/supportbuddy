@@ -55,6 +55,7 @@ export default function SignupPage() {
     
     const userData = {
         name: formData.get('first-name') as string || "User",
+        lastName: formData.get('last-name') as string,
         age: formData.get('age') as string,
         gender: formData.get('gender') as string,
         postcode: formData.get('postcode') as string,

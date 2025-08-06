@@ -59,12 +59,20 @@ export function AppShell() {
             </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
+             <div className="flex items-center justify-center p-2 group-data-[collapsible=icon]:hidden">
+                <SidebarTrigger />
+             </div>
              <SidebarMenu>
                  <SidebarMenuItem>
-                     <Button onClick={handleLogout} variant="ghost" className="w-full justify-start gap-2">
-                        <LogOut />
-                        <span>Logout</span>
-                    </Button>
+                    <Link href="/login" passHref legacyBehavior>
+                         <SidebarMenuButton
+                            onClick={() => localStorage.removeItem("currentUserEmail")}
+                            tooltip="Logout"
+                         >
+                            <LogOut />
+                            <span>Logout</span>
+                        </SidebarMenuButton>
+                    </Link>
                  </SidebarMenuItem>
              </SidebarMenu>
         </SidebarFooter>

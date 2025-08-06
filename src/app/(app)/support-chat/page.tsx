@@ -302,15 +302,6 @@ function SupportChatPageContent() {
     setAudioDataUri(null);
   };
   
-  const handleLogout = () => {
-    if (isListening) {
-        stopListening();
-    }
-    // Only clear the current user email, not all of localStorage
-    localStorage.removeItem("currentUserEmail");
-    router.push("/login")
-  }
-  
   const handleNewChat = () => {
     if (currentUserEmail) {
         localStorage.removeItem(`conversationHistory_${currentUserEmail}`);
@@ -328,12 +319,7 @@ function SupportChatPageContent() {
 
   return (
     <div className="relative flex h-full max-h-screen flex-col">
-       <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur-sm">
-          <div className="flex items-center gap-2 font-semibold">
-            <Logo className="w-6 h-6 text-primary" />
-            <span className="font-headline">Support Buddy</span>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
+       <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
             {isHistoricChat && (
                 <Button variant="outline" size="sm" onClick={handleNewChat}>
                     <Home className="mr-2 h-4 w-4" />
@@ -344,11 +330,7 @@ function SupportChatPageContent() {
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save
             </Button>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-                <LogOut className="w-4 h-4" />
-            </Button>
           </div>
-        </header>
 
       <div className="flex-1 overflow-hidden">
         <ScrollArea className="h-full" ref={scrollAreaRef}>

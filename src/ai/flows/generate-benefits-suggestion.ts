@@ -77,7 +77,7 @@ const benefitsDecisionLogic = `
     "Existing Benefits":"Universal Credit (UC)",
     "Income/Savings":"Low income",
     "Health Impact (Cancer)":"New cancer diagnosis",
-    "Additional or Replacement Benefits":"Add Limited Capability for Work (LCWRA) element, apply for PIP"
+    "Additional or Replacement Benefits":"Add Limited Capability for Work (LCWRA) element, Personal Independence Payment (PIP)"
   },
   {
     "Age Range":"16-64",
@@ -86,14 +86,6 @@ const benefitsDecisionLogic = `
     "Income/Savings":"Income affected",
     "Health Impact (Cancer)":"Cancer limits work",
     "Additional or Replacement Benefits":"UC with health element, PIP, ESA (New Style), Council Tax Support"
-  },
-  {
-    "Age Range":"16-64",
-    "Employment Status":"Already on UC",
-    "Existing Benefits":"UC",
-    "Income/Savings":"Low income",
-    "Health Impact (Cancer)":"New cancer diagnosis",
-    "Additional or Replacement Benefits":"Add LCWRA element (extra ~£390/month), apply for PIP"
   },
   {
     "Age Range":"16-64",
@@ -178,4 +170,5 @@ const generateBenefitsSuggestionFlow = ai.defineFlow(
     return output!;
   }
 );
+
 

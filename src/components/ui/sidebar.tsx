@@ -250,11 +250,9 @@ const Sidebar = React.forwardRef<
             data-sidebar="sidebar"
             className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
           >
-           <div className="flex h-full flex-col">
-              {children}
-              <div className="mt-auto group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:py-2 hidden">
-                <SidebarTrigger />
-              </div>
+            {children}
+            <div className="mt-auto hidden justify-center items-center py-2 md:flex group-data-[collapsible=icon]:flex">
+              <SidebarTrigger />
             </div>
           </div>
         </div>
@@ -766,5 +764,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
-    

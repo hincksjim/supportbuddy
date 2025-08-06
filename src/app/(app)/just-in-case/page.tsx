@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 
 // Main data structure for the entire page
 interface GoodbyeData {
@@ -155,6 +156,7 @@ function MessagesTab({ data, setData, disabled }: { data: MessageToLovedOne[], s
 function WillTab({ data, setData, disabled }: { data: GoodbyeData['will'], setData: (d: GoodbyeData['will']) => void, disabled: boolean }) {
     const { toast } = useToast();
     const [isUploading, setIsUploading] = useState(false);
+    const [hasWill, setHasWill] = useState(!!data.latestWill);
 
     const handleTextChange = (field: keyof Omit<GoodbyeData['will'], 'latestWill'>, value: string) => {
         setData({ ...data, [field]: value });
@@ -189,48 +191,70 @@ function WillTab({ data, setData, disabled }: { data: GoodbyeData['will'], setDa
     }
 
     return (
-        <div className="space-y-4">
-            <Card>
+        <div className="space-y-6">
+             <Card>
                 <CardHeader>
-                    <CardTitle>Latest Will Document</CardTitle>
-                    <CardDescription>Upload a copy of your most recent official will.</CardDescription>
+                     <div className="flex items-center space-x-2">
+                        <Switch id="has-will-switch" checked={hasWill} onCheckedChange={setHasWill} disabled={disabled}/>
+                        <Label htmlFor="has-will-switch" className="text-base font-semibold">Do you have a will to upload?</Label>
+                    </div>
                 </CardHeader>
                 <CardContent>
-                    {data.latestWill ? (
-                        <div className="flex items-center justify-between p-4 border rounded-md bg-muted/50">
-                            <div className="flex items-center gap-4">
-                                <FileText className="w-8 h-8 text-primary"/>
-                                <div>
-                                    <p className="font-semibold">{data.latestWill.fileName}</p>
-                                    <p className="text-sm text-muted-foreground">Uploaded on {new Date(data.latestWill.uploadDate).toLocaleDateString()}</p>
-                                </div>
-                            </div>
-                            <Button variant="destructive" size="icon" onClick={removeWill} disabled={disabled}>
-                                <Trash2 className="w-4 h-4"/>
-                            </Button>
-                        </div>
+                    {hasWill ? (
+                        // "I have a will" view
+                         <Card>
+                            <CardHeader>
+                                <CardTitle>Latest Will Document</CardTitle>
+                                <CardDescription>Upload a copy of your most recent official will.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {data.latestWill ? (
+                                    <div className="flex items-center justify-between p-4 border rounded-md bg-muted/50">
+                                        <div className="flex items-center gap-4">
+                                            <FileText className="w-8 h-8 text-primary"/>
+                                            <div>
+                                                <p className="font-semibold">{data.latestWill.fileName}</p>
+                                                <p className="text-sm text-muted-foreground">Uploaded on {new Date(data.latestWill.uploadDate).toLocaleDateString()}</p>
+                                            </div>
+                                        </div>
+                                        <Button variant="destructive" size="icon" onClick={removeWill} disabled={disabled}>
+                                            <Trash2 className="w-4 h-4"/>
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="relative">
+                                        <Input
+                                        id="will-upload"
+                                        type="file"
+                                        className="absolute inset-0 z-10 w-full h-full opacity-0 cursor-pointer"
+                                        onChange={handleFileUpload}
+                                        disabled={isUploading || disabled}
+                                        accept="application/pdf,image/*"
+                                        />
+                                        <div className="flex items-center justify-center w-full h-24 border-2 border-dashed rounded-md hover:border-primary transition-colors">
+                                        {isUploading ? <Loader2 className="h-8 w-8 animate-spin"/> : (
+                                            <div className="text-center">
+                                                <FileUp className="mx-auto h-8 w-8 text-muted-foreground" />
+                                                <p className="mt-2 text-sm text-muted-foreground">Click to upload your will</p>
+                                            </div>
+                                        )}
+                                        </div>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
                     ) : (
-                         <div className="relative">
-                            <Input
-                            id="will-upload"
-                            type="file"
-                            className="absolute inset-0 z-10 w-full h-full opacity-0 cursor-pointer"
-                            onChange={handleFileUpload}
-                            disabled={isUploading || disabled}
-                            accept="application/pdf,image/*"
-                            />
-                            <div className="flex items-center justify-center w-full h-24 border-2 border-dashed rounded-md hover:border-primary transition-colors">
-                            {isUploading ? <Loader2 className="h-8 w-8 animate-spin"/> : (
-                                <div className="text-center">
-                                    <FileUp className="mx-auto h-8 w-8 text-muted-foreground" />
-                                    <p className="mt-2 text-sm text-muted-foreground">Click to upload your will</p>
-                                </div>
-                            )}
-                            </div>
+                        // "I don't have a will" view
+                        <div className="space-y-4">
+                            <TextSection title="Executors" description="The person or people you would like to carry out your wishes." value={data.executors} onChange={(v) => handleTextChange('executors', v)} disabled={disabled} />
+                            <TextSection title="Guardians" description="Who you would like to look after any children or pets." value={data.guardians} onChange={(v) => handleTextChange('guardians', v)} disabled={disabled} />
+                            <TextSection title="Asset Distribution" description="Your general wishes for how your property and belongings should be distributed." value={data.assetDistribution} onChange={(v) => handleTextChange('assetDistribution', v)} disabled={disabled} />
+                            <TextSection title="Personal Wishes" description="Any other specific personal wishes or items you want to mention." value={data.personalWishes} onChange={(v) => handleTextChange('personalWishes', v)} disabled={disabled} />
                         </div>
                     )}
                 </CardContent>
             </Card>
+
             <Alert variant="destructive">
                 <Gavel className="h-4 w-4" />
                 <AlertTitle>Not a Legal Document</AlertTitle>
@@ -238,10 +262,6 @@ function WillTab({ data, setData, disabled }: { data: GoodbyeData['will'], setDa
                    The information in this section is for guidance only and is **not** a legally binding will. Please consult a solicitor to create an official will.
                 </AlertDescription>
             </Alert>
-            <TextSection title="Executors" description="The person or people you would like to carry out your wishes." value={data.executors} onChange={(v) => handleTextChange('executors', v)} disabled={disabled} />
-            <TextSection title="Guardians" description="Who you would like to look after any children or pets." value={data.guardians} onChange={(v) => handleTextChange('guardians', v)} disabled={disabled} />
-            <TextSection title="Asset Distribution" description="Your general wishes for how your property and belongings should be distributed." value={data.assetDistribution} onChange={(v) => handleTextChange('assetDistribution', v)} disabled={disabled} />
-            <TextSection title="Personal Wishes" description="Any other specific personal wishes or items you want to mention." value={data.personalWishes} onChange={(v) => handleTextChange('personalWishes', v)} disabled={disabled} />
         </div>
     )
 }

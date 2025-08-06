@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
@@ -552,14 +551,6 @@ export default function GoodbyePage() {
             </Button>
         </div>
       </div>
-
-       <Alert variant="destructive">
-          <ShieldCheck className="h-4 w-4" />
-          <AlertTitle>For Your Information & Security</AlertTitle>
-          <AlertDescription>
-            This is a prototype. All information entered here is stored **only on your current device's browser** and is not encrypted or backed up online. Do not store highly sensitive information like passwords directly. This is not a legal will.
-          </AlertDescription>
-        </Alert>
       
         <Tabs defaultValue="messages" className="w-full">
             <TabsList className="grid w-full grid-cols-1 md:grid-cols-7 h-auto">
@@ -616,5 +607,3 @@ export default function GoodbyePage() {
     </div>
   )
 }
-
-    

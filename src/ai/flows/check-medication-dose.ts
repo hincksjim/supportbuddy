@@ -12,7 +12,9 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const MedDoseSchema = z.object({
+// The MedDoseSchema is now defined in the Diary page component where it's used by the client.
+// The flow's input schema will still validate against this structure.
+const MedDoseSchema = z.object({
   time: z.string().describe("The time the dose was taken, in 'HH:mm' format."),
   quantity: z.number().describe('The number of pills/units taken at that time.'),
 });

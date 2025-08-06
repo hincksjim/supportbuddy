@@ -248,11 +248,11 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 ---
 ### **Sources**
 *(List all the source documents and conversations as a numbered list with their citation marker.)*
-{{#each sourceDocuments}}
-{{add @index 1}}. [D{{@index}}] Document: "{{title}}" (Analyzed: {{date}}, ID: {{id}})
+{{#each sourceDocuments as |doc|}}
+*   [D{{@index}}] Document: "{{doc.title}}" (Analyzed: {{doc.date}}, ID: {{doc.id}})
 {{/each}}
-{{#each sourceConversations}}
-{{add (add @index 1) (len ../sourceDocuments)}}. [C{{@index}}] Conversation: "{{title}}" (Summarized: {{date}}, ID: {{id}})
+{{#each sourceConversations as |convo|}}
+*   [C{{@index}}] Conversation: "{{convo.title}}" (Summarized: {{convo.date}}, ID: {{convo.id}})
 {{/each}}
 `,
 });
@@ -268,3 +268,5 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

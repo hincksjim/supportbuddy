@@ -143,8 +143,8 @@ const prompt = ai.definePrompt({
 Your primary goal is to synthesize ALL information provided into a clear, organized, and factual Markdown report. You MUST populate the report template below. You are a meticulous personal health assistant; your job is to find and collate every relevant detail from all the sources provided.
 
 **CRITICAL INSTRUCTIONS:**
-1.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources (Documents, Conversations, Diary, Medications, Timeline, Financials) to build the report. These are your primary sources of truth. The conversation transcripts are especially important for narrative details.
-2.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, a date, or a feeling), you **MUST** cite where you found it using a reference marker, like **[D0]** for the first document or **[C1]** for the second conversation. The letter indicates the type (D for Document, C for Conversation) and the number is the index.
+1.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources (Documents, Conversations, Diary, Medications, Timeline, Financials) to build the report. The saved conversation transcripts are a primary source of truth for the user's narrative.
+2.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, a date, or a feeling), you **MUST** cite where you found it using a reference marker, like **[D0]** for the first document or **[C1]** for the second conversation. The letter indicates the type (D for Document, C for Conversation) and the number is the index from the source list.
 3.  **FORMAT WITH MARKDOWN:** The entire output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes as defined in the template.
 4.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details or make medical predictions.
 5.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow," you MUST calculate the specific date. If a timeframe is ambiguous (e.g., "in two weeks"), state it exactly as provided.
@@ -249,10 +249,10 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 ### **Sources**
 *(List all the source documents and conversations as a numbered list with their citation marker.)*
 {{#each sourceDocuments}}
-1. [D{{@index}}] Document: "{{title}}" (Analyzed: {{date}}, ID: {{id}})
+{{add @index 1}}. [D{{@index}}] Document: "{{title}}" (Analyzed: {{date}}, ID: {{id}})
 {{/each}}
 {{#each sourceConversations}}
-{{add (len ../sourceDocuments) (add @index 1)}}. [C{{@index}}] Conversation: "{{title}}" (Summarized: {{date}}, ID: {{id}})
+{{add (add @index 1) (len ../sourceDocuments)}}. [C{{@index}}] Conversation: "{{title}}" (Summarized: {{date}}, ID: {{id}})
 {{/each}}
 `,
 });

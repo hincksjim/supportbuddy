@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import {
   FileUp, Loader2, PlusCircle, FileText, X, ShieldCheck, Info, RefreshCw,
-  MessageSquare, BookOpen, Wrench, Heart, Computer, Vault, Save, Trash2, Video, AudioLines, Gavel
+  MessageSquare, BookOpen, Wrench, Heart, Computer, Vault, Save, Trash2, Video, AudioLines, Gavel, Printer, Download
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,6 +22,17 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import Image from "next/image"
 
 // Main data structure for the entire page
 interface GoodbyeData {
@@ -152,6 +163,65 @@ function MessagesTab({ data, setData, disabled }: { data: MessageToLovedOne[], s
     )
 }
 
+function ViewWillDialog({ will, children }: { will: LatestWill; children: React.ReactNode }) {
+    const handlePrint = () => {
+        const iframe = document.getElementById('will-iframe') as HTMLIFrameElement;
+        if (iframe) {
+            iframe.contentWindow?.print();
+        } else {
+            const printable = window.open('', '_blank');
+            printable?.document.write(`<html><head><title>Print Will</title></head><body><img src="${will.fileDataUri}" style="max-width:100%;" /></body></html>`);
+            printable?.document.close();
+            printable?.print();
+        }
+    }
+
+    const handleDownload = () => {
+        const link = document.createElement('a');
+        link.href = will.fileDataUri;
+        link.download = will.fileName || 'will-document';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
+  return (
+    <Dialog>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="max-w-3xl h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Will Document: {will.fileName}</DialogTitle>
+          <DialogDescription>
+            Uploaded on {new Date(will.uploadDate).toLocaleDateString()}.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="overflow-y-auto rounded-md border flex-1">
+          {will.fileType.startsWith("image/") ? (
+              <Image src={will.fileDataUri} alt={will.fileName} width={800} height={1200} className="object-contain" />
+          ) : (
+              <iframe id="will-iframe" src={will.fileDataUri} className="w-full h-full" title={will.fileName} />
+          )}
+        </div>
+         <DialogFooter className="mt-4 sm:justify-end gap-2">
+            <Button type="button" variant="outline" onClick={handleDownload}>
+              <Download className="mr-2" />
+              Download
+            </Button>
+            <Button type="button" onClick={handlePrint}>
+              <Printer className="mr-2" />
+              Print
+            </Button>
+            <DialogClose asChild>
+                <Button type="button" variant="secondary">
+                Close
+                </Button>
+            </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // Component for Will tab
 function WillTab({ data, setData, disabled }: { data: GoodbyeData['will'], setData: (d: GoodbyeData['will']) => void, disabled: boolean }) {
     const { toast } = useToast();
@@ -205,22 +275,24 @@ function WillTab({ data, setData, disabled }: { data: GoodbyeData['will'], setDa
                          <Card>
                             <CardHeader>
                                 <CardTitle>Latest Will Document</CardTitle>
-                                <CardDescription>Upload a copy of your most recent official will.</CardDescription>
+                                <CardDescription>Upload a copy of your most recent official will. Click to view.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {data.latestWill ? (
-                                    <div className="flex items-center justify-between p-4 border rounded-md bg-muted/50">
-                                        <div className="flex items-center gap-4">
-                                            <FileText className="w-8 h-8 text-primary"/>
-                                            <div>
-                                                <p className="font-semibold">{data.latestWill.fileName}</p>
-                                                <p className="text-sm text-muted-foreground">Uploaded on {new Date(data.latestWill.uploadDate).toLocaleDateString()}</p>
+                                    <ViewWillDialog will={data.latestWill}>
+                                        <div className="flex items-center justify-between p-4 border rounded-md bg-muted/50 hover:bg-muted cursor-pointer transition-colors">
+                                            <div className="flex items-center gap-4">
+                                                <FileText className="w-8 h-8 text-primary"/>
+                                                <div>
+                                                    <p className="font-semibold">{data.latestWill.fileName}</p>
+                                                    <p className="text-sm text-muted-foreground">Uploaded on {new Date(data.latestWill.uploadDate).toLocaleDateString()}</p>
+                                                </div>
                                             </div>
+                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); removeWill() }} disabled={disabled} className="text-destructive hover:bg-destructive/10">
+                                                <Trash2 className="w-4 h-4"/>
+                                            </Button>
                                         </div>
-                                        <Button variant="destructive" size="icon" onClick={removeWill} disabled={disabled}>
-                                            <Trash2 className="w-4 h-4"/>
-                                        </Button>
-                                    </div>
+                                    </ViewWillDialog>
                                 ) : (
                                     <div className="relative">
                                         <Input
@@ -544,7 +616,5 @@ export default function GoodbyePage() {
     </div>
   )
 }
-
-    
 
     

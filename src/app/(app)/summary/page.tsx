@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -11,6 +10,7 @@ import { marked } from "marked"
 import { generatePersonalSummary, SourceDocument, SourceConversation } from "@/ai/flows/generate-personal-summary"
 import type { GenerateTreatmentTimelineOutput } from "@/ai/flows/generate-treatment-timeline"
 import { DiaryEntry } from "@/app/(app)/diary/page"
+import { Medication } from "@/app/(app)/medication/page"
 import { DiaryChart } from "@/components/diary-chart"
 
 interface Message {
@@ -48,6 +48,10 @@ interface UserData {
   age?: string;
   gender?: string;
   postcode?: string;
+  employmentStatus?: string;
+  income?: string;
+  savings?: string;
+  benefits?: string[];
 }
 
 export default function SummaryPage() {
@@ -64,6 +68,7 @@ export default function SummaryPage() {
   const [analysisData, setAnalysisData] = useState<AnalysisResult[]>([])
   const [sourceConversationsData, setSourceConversationsData] = useState<StoredConversation[]>([])
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([])
+  const [medicationData, setMedicationData] = useState<Medication[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
@@ -109,6 +114,15 @@ export default function SummaryPage() {
       } else {
           setDiaryEntries([]);
       }
+
+       // Medication Data
+      const storedMedications = localStorage.getItem(`medications_${currentUserEmail}`);
+      if (storedMedications) {
+        setMedicationData(JSON.parse(storedMedications));
+      } else {
+        setMedicationData([]);
+      }
+
       setHasLoaded(true);
 
     } catch (e) {
@@ -119,47 +133,48 @@ export default function SummaryPage() {
   
   useEffect(() => {
     if (currentUserEmail) {
-        loadPrerequisites();
         const savedReport = localStorage.getItem(`personalSummaryReport_${currentUserEmail}`);
         if (savedReport) {
             setReport(savedReport);
-        } else {
-            handleGenerateReport(true);
         }
+        // Always load fresh data
+        loadPrerequisites();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserEmail]);
 
 
-  // Effect to check for data on initial load
+  // Effect to check for data on initial load and maybe auto-generate
   useEffect(() => {
-    if (hasLoaded) {
+    if (hasLoaded && !report) {
       const hasContent = analysisData.length > 0 || sourceConversationsData.length > 0;
-      if (!hasContent) {
+      if (hasContent) {
+          handleGenerateReport(true); // Auto-generate if there's content and no report
+      } else {
           setError("You need to have a conversation or analyze a document first to generate a summary report.");
       }
     }
-  }, [hasLoaded, analysisData, sourceConversationsData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasLoaded, analysisData, sourceConversationsData, report]);
 
 
   const handleGenerateReport = async (isInitialLoad = false) => {
     if (!currentUserEmail) return;
 
     if (!isInitialLoad) {
-        loadPrerequisites();
+        loadPrerequisites(); // Force a refresh of all data
     }
     
-    const hasContent = analysisData.length > 0 || sourceConversationsData.length > 0;
-    if (!hasContent && !isInitialLoad) {
-        setError("You need to have a conversation or analyze a document first to generate a summary report.");
-        return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
     // Give UI time to update before blocking with AI call
     setTimeout(async () => {
+        const hasContent = analysisData.length > 0 || sourceConversationsData.length > 0;
+        if (!hasContent) {
+            setError("You need to have a conversation or analyze a document first to generate a summary report.");
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
         try {
             const sourceDocuments: SourceDocument[] = analysisData.map(a => ({
                 id: a.id,
@@ -187,9 +202,15 @@ export default function SummaryPage() {
                 age: userData.age || "",
                 gender: userData.gender || "",
                 postcode: userData.postcode || "",
+                employmentStatus: userData.employmentStatus || "",
+                income: userData.income || "",
+                savings: userData.savings || "",
+                existingBenefits: userData.benefits || [],
                 timelineData,
                 sourceDocuments,
-                sourceConversations
+                sourceConversations,
+                diaryData: diaryEntries,
+                medicationData: medicationData
             });
             setReport(result.report);
             localStorage.setItem(`personalSummaryReport_${currentUserEmail}`, result.report);
@@ -338,5 +359,3 @@ export default function SummaryPage() {
     </div>
   )
 }
-
-    

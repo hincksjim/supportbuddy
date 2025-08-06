@@ -50,18 +50,54 @@ const SourceConversationSchema = z.object({
 });
 export type SourceConversation = z.infer<typeof SourceConversationSchema>;
 
+const DiaryEntrySchema = z.object({
+  id: z.string(),
+  date: z.string(),
+  mood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
+  diagnosisMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
+  treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
+  painScore: z.number().nullable(),
+  weight: z.string(),
+  sleep: z.string(),
+  food: z.string(),
+  worriedAbout: z.string(),
+  positiveAbout: z.string(),
+  notes: z.string(),
+  medsTaken: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    time: z.string(),
+    quantity: z.number(),
+    isPrescribed: z.boolean(),
+  })),
+});
+
+const MedicationSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  strength: z.string(),
+  dose: z.string(),
+  issuedBy: z.string(),
+  issuedDate: z.string(),
+});
 
 const GeneratePersonalSummaryInputSchema = z.object({
     userName: z.string().describe("The user's first name."),
     age: z.string().describe("The user's age."),
     gender: z.string().describe("The user's gender."),
     postcode: z.string().describe("The user's postcode."),
+    employmentStatus: z.string().describe("The user's current employment status."),
+    income: z.string().optional().describe("The user's annual income, if provided."),
+    savings: z.string().optional().describe("The user's savings, if provided."),
+    existingBenefits: z.array(z.string()).optional().describe("A list of benefits the user is already receiving."),
     timelineData: z.object({
         disclaimer: z.string(),
         timeline: z.array(TimelineStageSchema)
     }).nullable().describe('The user\'s current treatment timeline data, which includes completed steps and notes.'),
-    sourceDocuments: z.array(SourceDocumentSchema).describe('An array of previously analyzed documents, including their titles and analysis content. Use this as a key source of factual information.'),
-    sourceConversations: z.array(SourceConversationSchema).describe('An array of summaries and full transcripts from previous conversations. This is the primary source of truth for the report. Synthesize these conversations to build a complete picture.'),
+    sourceDocuments: z.array(SourceDocumentSchema).describe('An array of previously analyzed documents, including their titles and analysis content.'),
+    sourceConversations: z.array(SourceConversationSchema).describe('An array of summaries and full transcripts from previous conversations.'),
+    diaryData: z.array(DiaryEntrySchema).describe('An array of the user\'s diary entries.'),
+    medicationData: z.array(MedicationSchema).describe('An array of the user\'s prescribed medications.'),
 });
 export type GeneratePersonalSummaryInput = z.infer<
   typeof GeneratePersonalSummaryInputSchema
@@ -77,10 +113,7 @@ export type GeneratePersonalSummaryOutput = z.infer<
 export async function generatePersonalSummary(
   input: GeneratePersonalSummaryInput
 ): Promise<GeneratePersonalSummaryOutput> {
-  // We can call the tool directly here to enrich the data available to the prompt.
   const locationInfo = await lookupPostcode({ postcode: input.postcode });
-  
-  // Get the current date to help the AI infer dates from relative terms.
   const currentDate = new Date().toLocaleDateString('en-GB', {
     year: 'numeric',
     month: 'long',
@@ -107,53 +140,60 @@ const prompt = ai.definePrompt({
   prompt: `You are an AI assistant tasked with creating a comprehensive "Personal Summary Report" for a user navigating their cancer journey.
 
 **TASK:**
-Your primary goal is to synthesize all the information provided into a clear, organized, and factual Markdown report. You MUST populate the report template below. The **Source Documents** and **Source Conversations** are your primary sources of truth. You must scour all of them to find the required information.
+Your primary goal is to synthesize ALL information provided into a clear, organized, and factual Markdown report. You MUST populate the report template below. You are a meticulous personal health assistant; your job is to find and collate every relevant detail from all the sources provided.
 
 **CRITICAL INSTRUCTIONS:**
-1.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources to build the report. The source documents and conversations are a critical source of factual information.
-2.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, or a date), you **MUST** cite where you found it using a numbered reference marker in square brackets, like **[1]**. The number should correspond to an entry in the "Sources" section at the end of the report.
+1.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources (Documents, Conversations, Diary, Medications, Timeline, Financials) to build the report. These are your primary sources of truth.
+2.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, a date, or a feeling), you **MUST** cite where you found it using a numbered reference marker in square brackets, like **[1]**. The number should correspond to an entry in the "Sources" section at the end of the report.
 3.  **FORMAT WITH MARKDOWN:** The entire output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes as defined in the template.
-4.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details, infer medical information you aren't given, or make predictions.
-5.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow" or "on Thursday," you MUST calculate the specific date and include it. For example, if today is "Wednesday, 7 August 2024" and the user says their appointment is "tomorrow," you should write "Appointment on Thursday, 8 August 2024." **SAFETY:** If a timeframe is ambiguous (e.g., "in two weeks," "next month"), DO NOT invent a date. State the information exactly as it was provided.
+4.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details or make medical predictions.
+5.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow," you MUST calculate the specific date. If a timeframe is ambiguous (e.g., "in two weeks"), state it exactly as provided.
 6.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
-7.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources (especially the full conversation transcripts within 'sourceConversations') for any mention of doctor names, nurse names, hospital names, contact details (phone numbers, etc.), **NHS Numbers**, and **Hospital Numbers**. Synthesize this information into the appropriate sections ("Personal Details" or "Medical Team & Contacts").
-8.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". In this section, you will list all the source documents and conversations you were provided. Each one should be a numbered item. You MUST use the title, date, and ID provided for each source.
+7.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, contact details, **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections.
+8.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents and conversations you were provided, using the title, date, and ID for each.
 
 ---
 **FIRST, REVIEW ALL AVAILABLE INFORMATION SOURCES TO USE:**
 
 **1. Source Documents (High Importance for Factual Data):**
 {{#each sourceDocuments}}
-*   **Source ID (for citation):** {{@index}}
-*   **Document Title:** "{{title}}"
-*   **Analysis Date:** {{date}}
-*   **Analysis ID:** {{id}}
-*   **Analysis Content:**
-    > {{{analysis}}}
+*   **Source ID (for citation):** D{{@index}}
+*   **Document Title:** "{{title}}" (Analyzed: {{date}})
 ---
 {{/each}}
 
-**2. Source Conversations (Primary Source of Information):**
+**2. Source Conversations (Primary Source of Narrative and Details):**
 {{#each sourceConversations}}
-*   **Source ID (for citation):** {{add @index (len ../sourceDocuments)}}
-*   **Conversation Title:** "{{title}}"
-*   **Summary Date:** {{date}}
-*   **Summary ID:** {{id}}
-*   **Full Conversation Transcript (Highest Importance for details):**
+*   **Source ID (for citation):** C{{@index}}
+*   **Conversation Title:** "{{title}}" (Summarized: {{date}})
+*   **Full Conversation Transcript:**
     {{#each fullConversation}}
         {{role}}: {{{content}}}
     {{/each}}
 ---
 {{/each}}
 
-**3. Timeline Data (For user-curated milestone tracking):**
-*   The user's interactive timeline is available in the input. Use it as one of the sources for the "Timeline & Milestones" section, but also look for implied milestones in other sources.
+**3. Diary Entries (For Wellness Trends, Symptoms, and Daily Feelings):**
+{{#each diaryData}}
+*   **Source Date (for citation):** Diary - {{date}}
+*   **Content:** Mood: {{mood}}, Pain: {{painScore}}, Worried About: "{{worriedAbout}}", Positive About: "{{positiveAbout}}", Notes: "{{notes}}"
+---
+{{/each}}
+
+**4. Medication List (For Current Prescriptions):**
+{{#each medicationData}}
+*   **Medication:** {{name}} {{strength}}, Dose: {{dose}}
+---
+{{/each}}
+
+**5. User's Timeline (For Milestones):**
+*   Use the timeline data to understand planned and completed steps.
 ---
 
 **NOW, POPULATE THE REPORT TEMPLATE BELOW:**
 
 ### **Personal Summary Report**
-> **Disclaimer:** This report is a summary of the information you have provided from your chats and documents. It is for personal reference only and should not be considered a medical document. Always consult with your healthcare provider for official information and advice.
+> **Disclaimer:** This report is a summary of the information you have provided. It is for personal reference only and should not be considered a medical document. Always consult with your healthcare provider for official information and advice.
 
 ### **Personal Details**
 *   **Name:** {{{userName}}}
@@ -161,39 +201,56 @@ Your primary goal is to synthesize all the information provided into a clear, or
 *   **Gender:** {{{gender}}}
 *   **Location:** {{{locationInfo.city}}} (Postcode: {{{postcode}}})
 *   **Local Health Authority:** {{{locationInfo.nhs_ha}}}
-*   **NHS Number:** [Extract from sources, e.g., 123 456 7890] [1]
-*   **Hospital Number:** [Extract from sources] [1]
+*   **NHS Number:** [Extract from sources, e.g., 123 456 7890] [C1]
+*   **Hospital Number:** [Extract from sources] [D0]
 
 ### **Medical Team & Contacts**
 *(Extract any mentioned doctors, nurses, or hospitals from ALL available data sources. If none are mentioned, state "No information provided yet.")*
-*   **Primary Consultant:** [Name, Contact Details] [1]
-*   **Specialist Nurse:** [Name, Contact Details] [2]
-*   **Hospital/Clinic for Diagnosis:** [Name] [1]
-*   **Hospital/Clinic for Treatment/Surgery:** [Name] [3]
+*   **Primary Consultant:** [Name, Contact Details] [C0]
+*   **Specialist Nurse:** [Name, Contact Details] [C1]
+*   **Hospital/Clinic for Diagnosis:** [Name] [D0]
+*   **Hospital/Clinic for Treatment/Surgery:** [Name] [C2]
 
 ### **Diagnosis & Condition Summary**
-*(Synthesize the key medical details from ALL available data sources into a concise summary. Include cancer type, stage, grade, dates, and key test results mentioned. Cite your sources for each key finding using a numbered marker like [1].)*
+*(Synthesize the key medical details from ALL data sources into a concise summary. Include cancer type, stage, dates, and key test results. Cite your sources for each key finding using a numbered marker like [D0] or [C1].)*
+
+### **Current Medications**
+*(List all medications from the 'medicationData' source. If none, state "No medications listed.")*
+{{#if medicationData}}
+{{#each medicationData}}
+*   **{{name}} ({{strength}}):** {{dose}} - *Prescribed by {{issuedBy}} on {{issuedDate}}*
+{{/each}}
+{{else}}
+*   No medications listed.
+{{/if}}
+
+### **Wellness & Diary Insights**
+*(Summarize key trends or significant one-off events from the 'diaryData'. Mention patterns in mood, pain, sleep, or weight. Also, highlight any significant worries or positive notes mentioned by the user. Cite the diary entry date.)*
 
 ### **Timeline & Milestones**
-
 **Completed Milestones:**
-*(Carefully review ALL data sources—documents, chats, and the user's interactive timeline—to identify completed events. A discharge summary implies a hospital stay is complete. A chat message saying "My scan was yesterday" is a completed milestone. List them here with dates if available.)*
-*   **Initial Diagnosis Confirmed:** (e.g., Renal Cell Carcinoma) [1]
-*   **MDT Meeting Held:** (e.g., Discussed treatment options) [2]
+*(Review ALL data sources—documents, chats, and the user's timeline—to identify completed events. List them here with dates if available and cite the source.)*
+*   **Initial Diagnosis Confirmed:** (e.g., Renal Cell Carcinoma) [D0]
+*   **MDT Meeting Held:** (e.g., Discussed treatment options) [C2]
 
 **Next Expected Milestone(s):**
-*(Based on all available information, identify the next logical step in the user's journey. This might be from their interactive timeline, or it might be implied from a document (e.g., "Follow-up appointment scheduled for...") or a chat. Use the current date ({{{currentDate}}}) to calculate specific dates where possible. Cite the source.)*
-*   **Surgical Procedure:** (e.g., at Wrexham Maelor Hospital on Friday, 9 August 2024) [3]
-*   **Follow-up Consultation:** (e.g., with Dr. Smith in two weeks) [1]
+*(Based on all available information, identify the next logical step. Use the current date ({{{currentDate}}}) to calculate specific dates where possible. Cite the source.)*
+*   **Surgical Procedure:** (e.g., at Wrexham Maelor Hospital on Friday, 9 August 2024) [C3]
+
+### **Financial Summary**
+*   **Employment Status:** {{{employmentStatus}}}
+*   **Annual Income:** {{{income}}}
+*   **Savings:** {{{savings}}}
+*   **Existing Benefits:** {{#if existingBenefits}}{{#each existingBenefits}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}None listed{{/if}}
 
 ---
 ### **Sources**
-*(List all the source documents and conversations as a numbered list. Use the title, date, and ID provided for each.)*
+*(List all the source documents and conversations as a numbered list.)*
 {{#each sourceDocuments}}
-{{add @index 1}}.  Document: "{{title}}" (Analyzed: {{date}}, ID: {{id}})
+{{add @index 1}}.  [D{{@index}}] Document: "{{title}}" (Analyzed: {{date}}, ID: {{id}})
 {{/each}}
 {{#each sourceConversations}}
-{{add (add @index 1) (len ../sourceDocuments)}}. Conversation: "{{title}}" (Summarized: {{date}}, ID: {{id}})
+{{add (add @index 1) (len ../sourceDocuments)}}. [C{{@index}}] Conversation: "{{title}}" (Summarized: {{date}}, ID: {{id}})
 {{/each}}
 `,
 });

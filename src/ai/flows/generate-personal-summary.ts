@@ -149,7 +149,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 4.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details or make medical predictions.
 5.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow," you MUST calculate the specific date. If a timeframe is ambiguous (e.g., "in two weeks"), state it exactly as provided.
 6.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
-7.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources (especially conversations and documents) for any mention of doctor names, nurse names, hospital names, contact details, **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections.
+7.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources (especially conversations and documents) for any mention of doctor names, nurse names, hospital names, contact details (including phone numbers), **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections.
 8.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents and conversations you were provided, using the title, date, and ID for each, along with their citation marker.
 
 ---
@@ -207,11 +207,9 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 *   **Hospital Number:** [Extract from sources] [D0]
 
 ### **Medical Team & Contacts**
-*(Extract any mentioned doctors, nurses, or hospitals from ALL available data sources. If none are mentioned, state "No information provided yet.")*
-*   **Primary Consultant:** [Name, Contact Details] [C0]
-*   **Specialist Nurse:** [Name, Contact Details] [C1]
-*   **Hospital/Clinic for Diagnosis:** [Name] [D0]
-*   **Hospital/Clinic for Treatment/Surgery:** [Name] [C2]
+*(This section should be a bulleted list of any and all medical contacts found in the data sources. Extract any mentioned doctors, specialist teams (e.g., "urology cancer team"), nurses, or hospitals, along with their contact details. If none are mentioned, state "No information provided yet.")*
+*   [Example: Urology Cancer Team at Wrexham Maelor Hospital - Phone: 03000857868] [C0]
+*   [Example: Dr. Smith, Consultant Oncologist] [D1]
 
 ### **Diagnosis & Condition Summary**
 *(Synthesize the key medical details from ALL data sources into a concise summary. Include cancer type, stage, dates, and key test results. Cite your sources for each key finding using a reference marker like [D0] or [C1].)*
@@ -232,12 +230,12 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 ### **Timeline & Milestones**
 **Completed Milestones:**
 *(Review ALL data sources—documents, chats, and the user's timeline—to identify completed events. List them here with dates if available and cite the source.)*
-*   **Initial Diagnosis Confirmed:** (e.g., Renal Cell Carcinoma) [D0]
-*   **MDT Meeting Held:** (e.g., Discussed treatment options) [C2]
+*   [Example: Initial Diagnosis Confirmed (Renal Cell Carcinoma)] [D0]
+*   [Example: MDT Meeting Held (Discussed treatment options)] [C2]
 
 **Next Expected Milestone(s):**
 *(Based on all available information, identify the next logical step. Use the current date ({{{currentDate}}}) to calculate specific dates where possible. Cite the source.)*
-*   **Surgical Procedure:** (e.g., at Wrexham Maelor Hospital on Friday, 9 August 2024) [C3]
+*   [Example: Surgical Procedure at Wrexham Maelor Hospital on Friday, 9 August 2024] [C3]
 
 ### **Financial Summary**
 *   **Employment Status:** {{{employmentStatus}}}
@@ -268,5 +266,3 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

@@ -64,6 +64,7 @@ export default function SummaryPage() {
   const [analysisData, setAnalysisData] = useState<AnalysisResult[]>([])
   const [sourceConversationsData, setSourceConversationsData] = useState<StoredConversation[]>([])
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([])
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
     const email = localStorage.getItem("currentUserEmail");
@@ -103,10 +104,12 @@ export default function SummaryPage() {
       // Diary Entries
       const storedDiaryEntries = localStorage.getItem(`diaryEntries_${currentUserEmail}`);
       if (storedDiaryEntries) {
-          setDiaryEntries(JSON.parse(storedDiaryEntries));
+          const parsedEntries = JSON.parse(storedDiaryEntries);
+          setDiaryEntries(parsedEntries);
       } else {
           setDiaryEntries([]);
       }
+      setHasLoaded(true);
 
     } catch (e) {
       console.error("Failed to load data from localStorage", e);
@@ -127,6 +130,18 @@ export default function SummaryPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserEmail]);
 
+
+  // Effect to check for data on initial load
+  useEffect(() => {
+    if (hasLoaded) {
+      const hasContent = analysisData.length > 0 || sourceConversationsData.length > 0;
+      if (!hasContent) {
+          setError("You need to have a conversation or analyze a document first to generate a summary report.");
+      }
+    }
+  }, [hasLoaded, analysisData, sourceConversationsData]);
+
+
   const handleGenerateReport = async (isInitialLoad = false) => {
     if (!currentUserEmail) return;
 
@@ -134,19 +149,11 @@ export default function SummaryPage() {
         loadPrerequisites();
     }
     
-    // Defer check to after load attempt inside the hook
-    useEffect(() => {
-        if (isInitialLoad && analysisData.length < 1 && sourceConversationsData.length < 1) {
-            setError("You need to have a conversation or analyze a document first to generate a summary report.");
-            return
-        }
-        
-        // This effect should only run once on the initial load if the data is not present.
-        // It's part of the handleGenerateReport logic, but tied to the component lifecycle.
-        
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isInitialLoad, analysisData, sourceConversationsData]);
-
+    const hasContent = analysisData.length > 0 || sourceConversationsData.length > 0;
+    if (!hasContent && !isInitialLoad) {
+        setError("You need to have a conversation or analyze a document first to generate a summary report.");
+        return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -288,7 +295,7 @@ export default function SummaryPage() {
                     </div>
                 ) : (
                     <div className="text-center py-10 rounded-lg border-2 border-dashed">
-                        <h3 className="text-lg font-semibold">No Chart Data Available</h3>
+                        <h3 className="text-lg font-semibold">Not Enough Data for Charts</h3>
                         <p className="text-muted-foreground mt-1">You need at least two diary entries to see your wellness trends.</p>
                     </div>
                 )}
@@ -331,3 +338,5 @@ export default function SummaryPage() {
     </div>
   )
 }
+
+    

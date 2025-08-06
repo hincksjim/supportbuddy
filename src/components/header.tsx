@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { LogOut } from "lucide-react"
 import { Logo } from "@/components/icons"
 import { Button } from "@/components/ui/button"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 
 interface UserData {
   name?: string;
@@ -31,9 +32,12 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-10 grid h-14 grid-cols-3 items-center gap-4 border-b border-primary/20 bg-primary px-4 text-primary-foreground backdrop-blur-sm">
+    <header className="sticky top-0 z-10 grid h-14 shrink-0 grid-cols-3 items-center gap-4 border-b border-primary/20 bg-primary px-4 text-primary-foreground">
       <div className="flex items-center gap-2 font-semibold">
-        <Logo className="h-6 w-6" />
+        <div className="md:hidden">
+            <SidebarTrigger />
+        </div>
+        <Logo className="h-6 w-6 hidden md:block" />
         <span className="font-headline hidden sm:inline-block">Support Buddy</span>
       </div>
       <div className="text-center">

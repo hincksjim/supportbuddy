@@ -264,7 +264,7 @@ export default function MedicationPage() {
             </div>
 
             {medications.length > 0 ? (
-                <div className="space-y-6">
+                <div className="space-y-6 w-full">
                     {medications.map(med => (
                         <MedicationCard key={med.id} medication={med} onSave={handleSaveMedication} onDelete={handleDeleteMedication} />
                     ))}

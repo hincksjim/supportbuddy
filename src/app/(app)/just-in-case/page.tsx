@@ -255,13 +255,15 @@ function WillTab({ data, setData, disabled }: { data: GoodbyeData['will'], setDa
                 </CardContent>
             </Card>
 
-            <Alert variant="destructive">
-                <Gavel className="h-4 w-4" />
-                <AlertTitle>Not a Legal Document</AlertTitle>
-                <AlertDescription>
-                   The information in this section is for guidance only and is **not** a legally binding will. Please consult a solicitor to create an official will.
-                </AlertDescription>
-            </Alert>
+            {!hasWill && (
+              <Alert variant="destructive">
+                  <Gavel className="h-4 w-4" />
+                  <AlertTitle>Not a Legal Document</AlertTitle>
+                  <AlertDescription>
+                    The information in this section is for guidance only and is **not** a legally binding will. Please consult a solicitor to create an official will.
+                  </AlertDescription>
+              </Alert>
+            )}
         </div>
     )
 }
@@ -542,5 +544,7 @@ export default function GoodbyePage() {
     </div>
   )
 }
+
+    
 
     

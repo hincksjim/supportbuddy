@@ -68,9 +68,13 @@ export default function BenefitsCheckerPage() {
                 existingBenefits: currentUserData.benefits || [],
             });
             setMatrixData(result);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Failed to generate benefits matrix:", err);
-            setError("Sorry, there was an error generating the benefits matrix. Please try again.");
+            if (err.message && err.message.includes("503")) {
+                 setError("The AI service is currently busy. Please wait a moment and try refreshing.");
+            } else {
+                setError("Sorry, there was an error generating the benefits matrix. Please try again.");
+            }
         } finally {
             setIsLoading(false);
         }

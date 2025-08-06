@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import {
   FileUp, Loader2, PlusCircle, FileText, X, ShieldCheck, Info, RefreshCw,
-  MessageSquare, BookOpen, Wrench, Heart, Computer, Vault, Save, Trash2, Video, AudioLines
+  MessageSquare, BookOpen, Wrench, Heart, Computer, Vault, Save, Trash2, Video, AudioLines, Gavel
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -49,6 +49,12 @@ interface GoodbyeData {
     digitalContent: string;
     onlineAccounts: string;
   };
+  will: {
+    executors: string;
+    guardians: string;
+    assetDistribution: string;
+    personalWishes: string;
+  };
   memoryVault: VaultItem[];
 }
 
@@ -74,6 +80,7 @@ const initialData: GoodbyeData = {
   practicalInstructions: { documentsLocation: "", passwordAccess: "", homeCare: "", subscriptions: "" },
   endOfLifeWishes: { funeral: "", memorialMedia: "", peopleToInform: "", organDonation: "" },
   digitalLegacy: { socialMedia: "", photosAndVideos: "", digitalContent: "", onlineAccounts: "" },
+  will: { executors: "", guardians: "", assetDistribution: "", personalWishes: "" },
   memoryVault: [],
 };
 
@@ -345,12 +352,13 @@ export default function GoodbyePage() {
         </Alert>
       
         <Tabs defaultValue="messages" className="w-full">
-            <TabsList className="grid w-full grid-cols-1 md:grid-cols-6 h-auto">
+            <TabsList className="grid w-full grid-cols-1 md:grid-cols-7 h-auto">
                 <TabsTrigger value="messages"><MessageSquare className="mr-2"/>Messages</TabsTrigger>
                 <TabsTrigger value="advice"><BookOpen className="mr-2"/>Advice</TabsTrigger>
                 <TabsTrigger value="instructions"><Wrench className="mr-2"/>Instructions</TabsTrigger>
                 <TabsTrigger value="wishes"><Heart className="mr-2"/>Wishes</TabsTrigger>
                 <TabsTrigger value="legacy"><Computer className="mr-2"/>Digital Legacy</TabsTrigger>
+                <TabsTrigger value="will"><Gavel className="mr-2"/>Will</TabsTrigger>
                 <TabsTrigger value="vault"><Vault className="mr-2"/>Memory Vault</TabsTrigger>
             </TabsList>
             
@@ -386,6 +394,20 @@ export default function GoodbyePage() {
                 <TextSection title="Online Accounts" description="Instructions for other online accounts (e.g., gaming, forums, email)." value={data.digitalLegacy.onlineAccounts} onChange={(v) => handleFieldChange('digitalLegacy', 'onlineAccounts', v)} />
             </TabsContent>
 
+            <TabsContent value="will" className="pt-4 space-y-4">
+                <Alert variant="destructive">
+                    <Gavel className="h-4 w-4" />
+                    <AlertTitle>Not a Legal Document</AlertTitle>
+                    <AlertDescription>
+                       The information in this section is for guidance only and is **not** a legally binding will. Please consult a solicitor to create an official will.
+                    </AlertDescription>
+                </Alert>
+                <TextSection title="Executors" description="The person or people you would like to carry out your wishes." value={data.will.executors} onChange={(v) => handleFieldChange('will', 'executors', v)} />
+                <TextSection title="Guardians" description="Who you would like to look after any children or pets." value={data.will.guardians} onChange={(v) => handleFieldChange('will', 'guardians', v)} />
+                <TextSection title="Asset Distribution" description="Your general wishes for how your property and belongings should be distributed." value={data.will.assetDistribution} onChange={(v) => handleFieldChange('will', 'assetDistribution', v)} />
+                <TextSection title="Personal Wishes" description="Any other specific personal wishes or items you want to mention." value={data.will.personalWishes} onChange={(v) => handleFieldChange('will', 'personalWishes', v)} />
+            </TabsContent>
+
             <TabsContent value="vault" className="pt-4">
                 <MemoryVaultTab data={data.memoryVault} setData={handleVaultChange} />
             </TabsContent>
@@ -394,5 +416,3 @@ export default function GoodbyePage() {
     </div>
   )
 }
-
-    

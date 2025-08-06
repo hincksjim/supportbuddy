@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Zap, Check, Pencil, Save } from "lucide-react"
@@ -30,6 +31,11 @@ export default function TimelinePage() {
   const [conversationHistory, setConversationHistory] = useState<Message[]>([])
   const [error, setError] = useState<string | null>(null)
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const timelineDataRef = useRef(timelineData);
+
+  useEffect(() => {
+    timelineDataRef.current = timelineData;
+  }, [timelineData]);
 
   useEffect(() => {
     const email = localStorage.getItem("currentUserEmail");
@@ -62,6 +68,13 @@ export default function TimelinePage() {
     if (currentUserEmail) {
         loadData()
     }
+    
+    return () => {
+        if (currentUserEmail && timelineDataRef.current) {
+            saveTimeline(timelineDataRef.current);
+        }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserEmail])
   
   const saveTimeline = (data: TimelineData) => {
@@ -111,7 +124,7 @@ export default function TimelinePage() {
       }
       
       setTimelineData(newTimelineData);
-      saveTimeline(newTimelineData);
+      // Note: We don't save here anymore, it will be saved on exit.
   }
 
   return (

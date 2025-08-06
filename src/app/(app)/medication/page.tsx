@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -197,6 +197,11 @@ function MedicationCard({ medication, onSave, onDelete }: { medication: Medicati
 export default function MedicationPage() {
     const [medications, setMedications] = useState<Medication[]>([]);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+    const medicationsRef = useRef(medications);
+
+    useEffect(() => {
+        medicationsRef.current = medications;
+    }, [medications]);
 
      useEffect(() => {
         const email = localStorage.getItem("currentUserEmail");
@@ -218,20 +223,33 @@ export default function MedicationPage() {
             console.error("Could not load medications from localStorage", error);
         }
     }
+    
+    const saveMedications = () => {
+        if (!currentUserEmail) return;
+        try {
+            localStorage.setItem(`medications_${currentUserEmail}`, JSON.stringify(medicationsRef.current));
+        } catch (error) {
+            console.error("Could not save medications to localStorage", error);
+        }
+    }
 
     useEffect(() => {
         if (currentUserEmail) {
             loadMedications();
         }
+        
+        return () => {
+            if (currentUserEmail) {
+                saveMedications();
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUserEmail]);
 
     const handleSaveMedication = (medication: Medication) => {
         if (!currentUserEmail) return;
         
-        const storageKey = `medications_${currentUserEmail}`;
-        const storedMeds = localStorage.getItem(storageKey);
-        const currentMeds: Medication[] = storedMeds ? JSON.parse(storedMeds) : [];
-        
+        const currentMeds = [...medications];
         const existingIndex = currentMeds.findIndex(m => m.id === medication.id);
 
         if (existingIndex > -1) {
@@ -240,18 +258,14 @@ export default function MedicationPage() {
             currentMeds.push(medication);
         }
         
-        localStorage.setItem(storageKey, JSON.stringify(currentMeds));
-        loadMedications();
+        currentMeds.sort((a, b) => new Date(b.issuedDate).getTime() - new Date(a.issuedDate).getTime());
+        setMedications(currentMeds);
     };
 
     const handleDeleteMedication = (id: string) => {
         if (!currentUserEmail) return;
-        const storageKey = `medications_${currentUserEmail}`;
-        const storedMeds = localStorage.getItem(storageKey);
-        const currentMeds: Medication[] = storedMeds ? JSON.parse(storedMeds) : [];
-        const updatedMeds = currentMeds.filter(m => m.id !== id);
-        localStorage.setItem(storageKey, JSON.stringify(updatedMeds));
-        loadMedications();
+        const updatedMeds = medications.filter(m => m.id !== id);
+        setMedications(updatedMeds);
     }
 
     return (

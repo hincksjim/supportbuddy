@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -565,6 +565,11 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail }: { entry: DiaryEntry
 export default function DiaryPage() {
     const [entries, setEntries] = useState<DiaryEntry[]>([]);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+    const entriesRef = useRef(entries);
+
+    useEffect(() => {
+        entriesRef.current = entries;
+    }, [entries]);
 
      useEffect(() => {
         const email = localStorage.getItem("currentUserEmail");
@@ -588,19 +593,32 @@ export default function DiaryPage() {
         }
     }
 
+    const saveEntries = () => {
+        if (!currentUserEmail) return;
+        try {
+             localStorage.setItem(`diaryEntries_${currentUserEmail}`, JSON.stringify(entriesRef.current));
+        } catch (error) {
+            console.error("Could not save diary entries to localStorage", error);
+        }
+    }
+
     useEffect(() => {
         if (currentUserEmail) {
             loadEntries();
         }
+
+        return () => {
+            if (currentUserEmail) {
+                saveEntries();
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUserEmail]);
 
     const handleSaveEntry = (entry: DiaryEntry) => {
         if (!currentUserEmail) return;
         
-        const storageKey = `diaryEntries_${currentUserEmail}`;
-        const storedEntries = localStorage.getItem(storageKey);
-        const currentEntries: DiaryEntry[] = storedEntries ? JSON.parse(storedEntries) : [];
-        
+        const currentEntries = [...entries];
         const existingIndex = currentEntries.findIndex(e => e.id === entry.id);
 
         if (existingIndex > -1) {
@@ -611,8 +629,8 @@ export default function DiaryPage() {
             currentEntries.push(entry);
         }
         
-        localStorage.setItem(storageKey, JSON.stringify(currentEntries));
-        loadEntries(); // Reload and sort entries
+        currentEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setEntries(currentEntries);
     };
 
     return (

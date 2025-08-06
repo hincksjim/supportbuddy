@@ -62,6 +62,11 @@ function SupportChatPageContent() {
   const { toast } = useToast()
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef(messages);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
   
   const speakMessage = async (text: string) => {
     try {
@@ -109,7 +114,6 @@ function SupportChatPageContent() {
       const assistantMessage: Message = { role: "assistant", content: result.answer }
       const finalMessages = [...newMessages, assistantMessage];
       setMessages(finalMessages)
-      localStorage.setItem(`conversationHistory_${currentUserEmail}`, JSON.stringify(finalMessages));
       await speakMessage(result.answer)
     } catch (error) {
       console.error("Error from AI support flow: ", error)
@@ -279,6 +283,13 @@ function SupportChatPageContent() {
           speakMessage(welcomeMessage);
         }
     }
+    
+    // Save on exit
+    return () => {
+        if (currentUserEmail && !isHistoricChat && messagesRef.current.length > 1) {
+             localStorage.setItem(`conversationHistory_${currentUserEmail}`, JSON.stringify(messagesRef.current));
+        }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserEmail, searchParams, userData.name]);
 
@@ -304,6 +315,9 @@ function SupportChatPageContent() {
   
   const handleNewChat = () => {
     if (currentUserEmail) {
+        if (messages.length > 1) {
+             localStorage.setItem(`conversationHistory_${currentUserEmail}`, JSON.stringify(messages));
+        }
         localStorage.removeItem(`conversationHistory_${currentUserEmail}`);
     }
     router.push("/support-chat");

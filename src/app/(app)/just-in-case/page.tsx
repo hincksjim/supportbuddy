@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import {
   FileUp, Loader2, PlusCircle, FileText, X, ShieldCheck, Info, RefreshCw,
   MessageSquare, BookOpen, Wrench, Heart, Computer, Vault, Save, Trash2, Video, AudioLines
@@ -252,7 +252,7 @@ export default function GoodbyePage() {
   const [data, setData] = useState<GoodbyeData>(initialData);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const dataRef = React.useRef(data);
+  const dataRef = useRef(data);
 
   useEffect(() => {
       dataRef.current = data;
@@ -394,3 +394,5 @@ export default function GoodbyePage() {
     </div>
   )
 }
+
+    

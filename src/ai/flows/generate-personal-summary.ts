@@ -143,14 +143,14 @@ const prompt = ai.definePrompt({
 Your primary goal is to synthesize ALL information provided into a clear, organized, and factual Markdown report. You MUST populate the report template below. You are a meticulous personal health assistant; your job is to find and collate every relevant detail from all the sources provided.
 
 **CRITICAL INSTRUCTIONS:**
-1.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources (Documents, Conversations, Diary, Medications, Timeline, Financials) to build the report. These are your primary sources of truth.
-2.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, a date, or a feeling), you **MUST** cite where you found it using a numbered reference marker in square brackets, like **[1]**. The number should correspond to an entry in the "Sources" section at the end of the report.
+1.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources (Documents, Conversations, Diary, Medications, Timeline, Financials) to build the report. These are your primary sources of truth. The conversation transcripts are especially important for narrative details.
+2.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, a date, or a feeling), you **MUST** cite where you found it using a reference marker, like **[D0]** for the first document or **[C1]** for the second conversation. The letter indicates the type (D for Document, C for Conversation) and the number is the index.
 3.  **FORMAT WITH MARKDOWN:** The entire output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes as defined in the template.
 4.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details or make medical predictions.
 5.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow," you MUST calculate the specific date. If a timeframe is ambiguous (e.g., "in two weeks"), state it exactly as provided.
 6.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
-7.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, contact details, **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections.
-8.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents and conversations you were provided, using the title, date, and ID for each.
+7.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources (especially conversations and documents) for any mention of doctor names, nurse names, hospital names, contact details, **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections.
+8.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents and conversations you were provided, using the title, date, and ID for each, along with their citation marker.
 
 ---
 **FIRST, REVIEW ALL AVAILABLE INFORMATION SOURCES TO USE:**
@@ -159,6 +159,8 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 {{#each sourceDocuments}}
 *   **Source ID (for citation):** D{{@index}}
 *   **Document Title:** "{{title}}" (Analyzed: {{date}})
+*   **Analysis:**
+    {{{analysis}}}
 ---
 {{/each}}
 
@@ -166,7 +168,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 {{#each sourceConversations}}
 *   **Source ID (for citation):** C{{@index}}
 *   **Conversation Title:** "{{title}}" (Summarized: {{date}})
-*   **Full Conversation Transcript:**
+*   **Full Conversation Transcript (Review carefully for details):**
     {{#each fullConversation}}
         {{role}}: {{{content}}}
     {{/each}}
@@ -212,7 +214,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 *   **Hospital/Clinic for Treatment/Surgery:** [Name] [C2]
 
 ### **Diagnosis & Condition Summary**
-*(Synthesize the key medical details from ALL data sources into a concise summary. Include cancer type, stage, dates, and key test results. Cite your sources for each key finding using a numbered marker like [D0] or [C1].)*
+*(Synthesize the key medical details from ALL data sources into a concise summary. Include cancer type, stage, dates, and key test results. Cite your sources for each key finding using a reference marker like [D0] or [C1].)*
 
 ### **Current Medications**
 *(List all medications from the 'medicationData' source. If none, state "No medications listed.")*
@@ -245,12 +247,12 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 
 ---
 ### **Sources**
-*(List all the source documents and conversations as a numbered list.)*
+*(List all the source documents and conversations as a numbered list with their citation marker.)*
 {{#each sourceDocuments}}
-{{add @index 1}}.  [D{{@index}}] Document: "{{title}}" (Analyzed: {{date}}, ID: {{id}})
+1. [D{{@index}}] Document: "{{title}}" (Analyzed: {{date}}, ID: {{id}})
 {{/each}}
 {{#each sourceConversations}}
-{{add (add @index 1) (len ../sourceDocuments)}}. [C{{@index}}] Conversation: "{{title}}" (Summarized: {{date}}, ID: {{id}})
+{{add (len ../sourceDocuments) (add @index 1)}}. [C{{@index}}] Conversation: "{{title}}" (Summarized: {{date}}, ID: {{id}})
 {{/each}}
 `,
 });

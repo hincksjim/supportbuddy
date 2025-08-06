@@ -31,15 +31,17 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur-sm">
+    <header className="sticky top-0 z-10 grid h-14 grid-cols-3 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur-sm">
       <div className="flex items-center gap-2 font-semibold">
         <Logo className="h-6 w-6 text-primary" />
-        <span className="font-headline">Support Buddy</span>
+        <span className="font-headline hidden sm:inline-block">Support Buddy</span>
       </div>
-      <div className="ml-auto flex items-center gap-4">
+      <div className="text-center">
         <p className="text-sm text-muted-foreground hidden sm:block">
           Welcome, {userData.name || "User"}
         </p>
+      </div>
+      <div className="flex items-center justify-end">
         <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
           <LogOut className="h-4 w-4" />
         </Button>

@@ -2,10 +2,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Landmark, Briefcase, HandCoins, PiggyBank, Wallet, Lightbulb, Loader2 } from "lucide-react"
+import { Landmark, Briefcase, HandCoins, PiggyBank, Wallet, Lightbulb, Loader2, RefreshCw } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { generateBenefitsSuggestion, GenerateBenefitsSuggestionInput } from "@/ai/flows/generate-benefits-suggestion"
+import { Button } from "@/components/ui/button"
 
 interface UserData {
     name?: string;
@@ -26,8 +27,10 @@ export default function FinancePage() {
     const [suggestedBenefits, setSuggestedBenefits] = useState<BenefitSuggestion[]>([]);
     const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
-    useEffect(() => {
+    const loadData = () => {
+        setIsLoading(true);
         const email = localStorage.getItem("currentUserEmail");
         if (email) {
             setCurrentUserEmail(email);
@@ -41,6 +44,11 @@ export default function FinancePage() {
                 setUserData({ ...parsedData, employmentStatus: formattedStatus });
             }
         }
+        setIsLoading(false);
+    }
+
+    useEffect(() => {
+        loadData();
     }, []);
 
     useEffect(() => {
@@ -77,16 +85,24 @@ export default function FinancePage() {
         if (isNaN(number)) return value;
         return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(number);
     }
+    
+    const handleRefresh = () => {
+        loadData();
+    }
 
     return (
         <div className="p-4 md:p-6 space-y-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold font-headline">Financials</h1>
                     <p className="text-muted-foreground">
                         A summary of your current financial situation and potential support.
                     </p>
                 </div>
+                <Button onClick={handleRefresh} disabled={isLoading}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Refresh
+                </Button>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { FileUp, Loader2, PlusCircle, FileText, X, ShieldCheck, Info } from "lucide-react"
+import { FileUp, Loader2, PlusCircle, FileText, X, ShieldCheck, Info, RefreshCw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -202,23 +202,30 @@ function ViewGoodbyeDocumentDialog({ doc, children }: { doc: GoodbyeDocument; ch
 export default function GoodbyePage() {
   const [documents, setDocuments] = useState<GoodbyeDocument[]>([])
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
+  const loadData = () => {
+    setIsLoading(true);
     const email = localStorage.getItem("currentUserEmail");
     setCurrentUserEmail(email);
-  }, []);
+    if (email) {
+        try {
+            const storedDocs = localStorage.getItem(`goodbyeDocs_${email}`);
+            if (storedDocs) {
+                setDocuments(JSON.parse(storedDocs));
+            } else {
+                setDocuments([]);
+            }
+        } catch (error) {
+            console.error("Could not load documents from localStorage", error);
+        }
+    }
+    setIsLoading(false);
+  }
   
   useEffect(() => {
-    if (!currentUserEmail) return;
-    try {
-      const storedDocs = localStorage.getItem(`goodbyeDocs_${currentUserEmail}`)
-      if (storedDocs) {
-        setDocuments(JSON.parse(storedDocs))
-      }
-    } catch (error) {
-      console.error("Could not load documents from localStorage", error)
-    }
-  }, [currentUserEmail])
+    loadData();
+  }, [])
 
   const handleNewDocument = (newDoc: GoodbyeDocument) => {
     if (!currentUserEmail) return;
@@ -241,13 +248,17 @@ export default function GoodbyePage() {
 
   return (
     <div className="p-4 md:p-6 space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 className="text-3xl font-bold font-headline">Goodbye</h1>
             <p className="text-muted-foreground">
             A private space for your most important documents.
             </p>
         </div>
+        <Button onClick={loadData} disabled={isLoading}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+        </Button>
       </div>
 
       <Alert>
@@ -312,5 +323,3 @@ export default function GoodbyePage() {
     </div>
   )
 }
-
-    

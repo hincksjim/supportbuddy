@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -72,8 +73,9 @@ const prompt = ai.definePrompt({
 3.  **CREATE A DISCLAIMER:** The \`disclaimer\` field is mandatory. It must clearly state that this is a general example, not a substitute for professional medical advice, and the user's actual journey may differ.
 4.  **BE PERSONALIZED BUT GENERAL:** Base the timeline on the user's condition details from the conversation (e.g., "For a large renal mass like yours..."). Keep the steps general enough to be safe but tailored to the context.
 5.  **FOCUS ON "WHAT" AND "WHY":** For each step, provide a simple \`description\` explaining what it is and why it's important. (e.g., "MDT Meeting: A team of specialists reviews your case to recommend the best treatment path.").
-6.  **NEVER PREDICT OUTCOMES:** Do not make any predictions about prognosis, recovery, or treatment success.
-7.  **DEFAULT STATUS:** All steps should have their \`status\` field set to "pending" and \`notes\` set to an empty string by default.
+6.  **ADD POST-MDT CONSULTATION:** After the "MDT Meeting" step, you MUST include a step for the face-to-face meeting. Title it "Post-MDT Consultation" and describe it as: "A face-to-face meeting with your consultant to discuss the MDT's findings and agree on a treatment plan. This is a key opportunity to ask questions."
+7.  **NEVER PREDICT OUTCOMES:** Do not make any predictions about prognosis, recovery, or treatment success.
+8.  **DEFAULT STATUS:** All steps should have their \`status\` field set to "pending" and \`notes\` set to an empty string by default.
 
 **Task:**
 Analyze the provided conversation history. Identify the user's condition, stage, and other relevant details. Generate a structured JSON timeline that follows all the rules above.

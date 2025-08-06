@@ -23,7 +23,8 @@ const BenefitInfoSchema = z.object({
     name: z.string().describe("The name of the benefit."),
     isEligible: z.boolean().describe("Whether the user is likely eligible for this benefit in this scenario."),
     isCurrent: z.boolean().describe("Whether the user is already receiving this benefit."),
-    reason: z.string().describe("A brief explanation for the eligibility status.")
+    reason: z.string().describe("A brief, one-sentence explanation for the eligibility status."),
+    requirements: z.string().describe("A slightly more detailed, user-friendly explanation of the key requirements or purpose of the benefit (2-3 sentences).")
 });
 
 const ScenarioSchema = z.object({
@@ -48,40 +49,44 @@ const benefitsDecisionLogic = `
   // This is a comprehensive list of rules for determining UK benefit eligibility based on various life circumstances.
   // The AI will use these rules to populate the matrix for different scenarios.
   {
-    "Age Range":"Under 16", "Employment Status":"N/A", "Health Impact (Cancer)":"Has cancer",
-    "Resulting Benefits":"Disability Living Allowance (DLA), Carer's Allowance (for parent), NHS travel/prescription support"
+    "Benefit": "Disability Living Allowance (DLA)", "Who its for": "For children under 16 to help with the extra costs of being disabled.",
+    "Rule": "Age Range Under 16, Health Impact (Cancer) Has cancer"
   },
   {
-    "Age Range":"16-64", "Employment Status":"Employed", "Health Impact (Cancer)":"Cannot work (cancer)",
-    "Resulting Benefits":"Statutory Sick Pay (SSP), Personal Independence Payment (PIP), New Style Employment and Support Allowance (ESA), Universal Credit (UC) with LCWRA element"
+    "Benefit": "Carer's Allowance", "Who its for": "For people who spend at least 35 hours a week caring for someone with substantial caring needs.",
+    "Rule": "Age Range Any, Health Impact (Cancer) Caring 35+ hours/week for someone with cancer"
   },
   {
-    "Age Range":"16-64", "Employment Status":"Employed", "Health Impact (Cancer)":"SSP ended, ongoing illness",
-    "Resulting Benefits":"New Style ESA, PIP, UC with health-related element, Blue Badge, Council Tax Support"
+    "Benefit": "Statutory Sick Pay (SSP)", "Who its for": "Paid by your employer for up to 28 weeks if you're too ill to work.",
+    "Rule": "Age Range 16-64, Employment Status Employed, Health Impact (Cancer) Cannot work (cancer)"
   },
   {
-    "Age Range":"16-64", "Employment Status":"Unemployed", "Health Impact (Cancer)":"Diagnosed with cancer",
-    "Resulting Benefits":"Replace Jobseeker's Allowance (JSA) with New Style ESA, claim PIP, Universal Credit (UC) with LCWRA"
+    "Benefit": "Personal Independence Payment (PIP)", "Who its for": "Helps with extra living costs if you have both a long-term physical or mental health condition and difficulty doing certain everyday tasks or getting around.",
+    "Rule": "Age Range 16-64, Health Impact (Cancer) any"
   },
   {
-    "Age Range":"16-64", "Employment Status":"On Benefits", "Health Impact (Cancer)":"New cancer diagnosis",
-    "Existing Benefits": "Universal Credit (UC)", "Resulting Benefits":"Add Limited Capability for Work (LCWRA) element, Personal Independence Payment (PIP)"
+    "Benefit": "New Style Employment and Support Allowance (ESA)", "Who its for": "For people who have a disability or health condition that affects how much they can work. It is based on your National Insurance contributions.",
+    "Rule": "Age Range 16-64, Employment Status Employed or Self-employed or Unemployed"
   },
   {
-    "Age Range":"16-64", "Employment Status":"Self-employed", "Health Impact (Cancer)":"Cancer limits work",
-    "Resulting Benefits":"UC with health element, PIP, New Style ESA, Council Tax Support"
+    "Benefit": "Universal Credit (UC)", "Who its for": "A payment to help with your living costs. You may be able to get it if you’re on a low income, out of work or you cannot work.",
+    "Rule": "Age Range 16-64, Income/Savings Low income/savings < £16K"
   },
   {
-    "Age Range":"65+", "Employment Status":"Retired", "Health Impact (Cancer)":"Diagnosed with cancer",
-    "Resulting Benefits":"Attendance Allowance, Pension Credit with Severe Disability Premium, Blue Badge, Free NHS travel/prescriptions"
+    "Benefit": "Attendance Allowance", "Who its for": "For people over State Pension age who have a disability and need someone to help look after them.",
+    "Rule": "Age Range 65+, Health Impact (Cancer) any"
   },
   {
-    "Age Range":"Any", "Employment Status":"Any", "Health Impact (Cancer)":"Caring 35+ hours/week for someone with cancer",
-    "Resulting Benefits":"Carer's Allowance, Council Tax discount for carers"
+    "Benefit": "Pension Credit", "Who its for": "An income-related benefit to give you some extra money in retirement if you're on a low income.",
+    "Rule": "Age Range 65+, Employment Status Retired"
   },
   {
-    "Age Range":"Terminal", "Employment Status":"Any", "Health Impact (Cancer)":"Terminal (expected < 12 months)",
-    "Resulting Benefits":"Fast-track: PIP (highest rate), Attendance Allowance, DLA, UC/ESA with no work requirements"
+    "Benefit": "Blue Badge", "Who its for": "Helps people with disabilities or health conditions park closer to their destination.",
+    "Rule": "Age Range Any, Health Impact (Cancer) any mobility issues"
+  },
+  {
+    "Benefit": "Council Tax Support", "Who its for": "Helps people on low incomes pay their Council Tax bill.",
+    "Rule": "Age Range Any, Income/Savings Low income"
   }
 ]
 `;
@@ -97,7 +102,7 @@ const prompt = ai.definePrompt({
 *   Employment Status: {{{employmentStatus}}}
 *   Existing Benefits: {{#if existingBenefits}}{{#each existingBenefits}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}{{else}}None{{/if}}
 
-**Benefits Decision Logic (JSON Ruleset):**
+**Benefits Definitions (JSON Ruleset):**
 \`\`\`json
 ${benefitsDecisionLogic}
 \`\`\`
@@ -121,11 +126,12 @@ Create a response for the following three scenarios. For each scenario, determin
     *   List all potential benefits from the rules.
 
 **Output Formatting Instructions:**
-For each scenario, you must generate a list of all possible benefits mentioned in the ruleset. For each benefit in that list, you MUST determine three things:
+For each scenario, you must generate a list of all possible benefits mentioned in the ruleset. For each benefit in that list, you MUST determine four things:
 1.  \`name\`: The name of the benefit.
 2.  \`isEligible\`: A boolean. Set to \`true\` if the rules for the given scenario suggest this benefit.
 3.  \`isCurrent\`: A boolean. Set to \`true\` if this benefit is in the user's \`existingBenefits\` list.
-4.  \`reason\`: A brief explanation. If \`isCurrent\` is true, the reason MUST be "You are already receiving this benefit.". If eligible, explain why (e.g., "For help with daily living costs due to illness"). If not eligible, state "Not typically available in this scenario."
+4.  \`reason\`: A brief, one-sentence explanation for the eligibility status. If \`isCurrent\` is true, the reason MUST be "You are already receiving this benefit.". If eligible, explain why (e.g., "For help with daily living costs due to illness"). If not eligible, state "Not typically available in this scenario."
+5.  \`requirements\`: A slightly more detailed, user-friendly explanation of the key requirements or purpose of the benefit (2-3 sentences), based on the "Who its for" description in the JSON ruleset.
 
 **Crucial Logic:** If a benefit is marked as \`isCurrent: true\`, you MUST also set \`isEligible: true\`. This ensures the UI correctly shows it as "Already Receiving" rather than "Not Eligible".
 

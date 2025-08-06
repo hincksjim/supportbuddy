@@ -18,7 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Loader2, RefreshCw, CheckCircle2, XCircle, MinusCircle } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Loader2, RefreshCw, CheckCircle2, XCircle, MinusCircle, Info } from "lucide-react"
 import { generateBenefitsMatrix, GenerateBenefitsMatrixOutput } from "@/ai/flows/generate-benefits-matrix"
 
 interface UserData {
@@ -119,7 +120,7 @@ export default function BenefitsCheckerPage() {
                 <CardHeader>
                     <CardTitle>Benefits Matrix</CardTitle>
                     <CardDescription>
-                        This table shows potential eligibility based on the information in your profile.
+                        This table shows potential eligibility based on the information in your profile. Click an icon for more info.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -173,26 +174,29 @@ export default function BenefitsCheckerPage() {
                                                 if (!benefitInfo) {
                                                     return <TableCell key={scenario.scenario} className="text-center text-muted-foreground">—</TableCell>;
                                                 }
+                                                
+                                                const Icon = benefitInfo.isEligible ? (benefitInfo.isCurrent ? MinusCircle : CheckCircle2) : XCircle;
+                                                const color = benefitInfo.isEligible ? (benefitInfo.isCurrent ? "text-blue-600" : "text-green-600") : "text-destructive";
+                                                const text = benefitInfo.isEligible ? (benefitInfo.isCurrent ? "Already Receiving" : "Likely Eligible") : "Not Eligible";
+
                                                 return (
                                                     <TableCell key={scenario.scenario} className="text-center">
-                                                        {benefitInfo.isEligible ? (
-                                                            benefitInfo.isCurrent ? (
-                                                                <div className="flex flex-col items-center text-blue-600" title={benefitInfo.reason}>
-                                                                    <MinusCircle className="w-6 h-6" />
-                                                                    <span className="text-xs">Already Receiving</span>
+                                                        <Popover>
+                                                            <PopoverTrigger asChild>
+                                                                <div className={`flex flex-col items-center cursor-pointer ${color}`} title={benefitInfo.reason}>
+                                                                    <Icon className="w-6 h-6" />
+                                                                    <span className="text-xs">{text}</span>
                                                                 </div>
-                                                            ) : (
-                                                                <div className="flex flex-col items-center text-green-600" title={benefitInfo.reason}>
-                                                                    <CheckCircle2 className="w-6 h-6" />
-                                                                     <span className="text-xs">Likely Eligible</span>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-80">
+                                                                <div className="space-y-2">
+                                                                    <h4 className="font-medium leading-none">{benefitInfo.name}</h4>
+                                                                    <p className="text-sm text-muted-foreground">
+                                                                       {benefitInfo.requirements}
+                                                                    </p>
                                                                 </div>
-                                                            )
-                                                        ) : (
-                                                            <div className="flex flex-col items-center text-destructive" title={benefitInfo.reason}>
-                                                                <XCircle className="w-6 h-6" />
-                                                                <span className="text-xs">Not Eligible</span>
-                                                            </div>
-                                                        )}
+                                                            </PopoverContent>
+                                                        </Popover>
                                                     </TableCell>
                                                 )
                                             })}

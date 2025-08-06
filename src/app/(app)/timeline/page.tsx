@@ -31,10 +31,18 @@ export default function TimelinePage() {
   const [conversationHistory, setConversationHistory] = useState<Message[]>([])
   const [error, setError] = useState<string | null>(null)
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [openAccordionItems, setOpenAccordionItems] = useState<string[]>([]);
   const timelineDataRef = useRef(timelineData);
 
   useEffect(() => {
     timelineDataRef.current = timelineData;
+    if (timelineData) {
+        // Automatically open stages that are not fully completed
+        const activeStages = timelineData.timeline
+            .filter(stage => stage.steps.some(step => step.status !== 'completed'))
+            .map(stage => stage.title);
+        setOpenAccordionItems(activeStages);
+    }
   }, [timelineData]);
 
   useEffect(() => {
@@ -77,8 +85,8 @@ export default function TimelinePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserEmail])
   
-  const saveTimeline = (data: TimelineData) => {
-      if (!currentUserEmail) return;
+  const saveTimeline = (data: TimelineData | null) => {
+      if (!currentUserEmail || !data) return;
       try {
           localStorage.setItem(`treatmentTimeline_${currentUserEmail}`, JSON.stringify(data));
       } catch (e) {
@@ -95,11 +103,11 @@ export default function TimelinePage() {
 
     setIsLoading(true)
     setError(null)
-    setTimelineData(null) // Clear existing timeline
-
+    
     try {
       const result = await generateTreatmentTimeline({
         conversationHistory: conversationHistory,
+        existingTimeline: timelineData, // Pass the current timeline to the AI
       })
       setTimelineData(result)
       saveTimeline(result);
@@ -114,7 +122,8 @@ export default function TimelinePage() {
   const handleStepChange = (stageIndex: number, stepIndex: number, field: 'status' | 'notes', value: string | boolean) => {
       if (!timelineData) return;
       
-      const newTimelineData = { ...timelineData };
+      // Create a deep copy to avoid direct mutation
+      const newTimelineData = JSON.parse(JSON.stringify(timelineData));
       const step = newTimelineData.timeline[stageIndex].steps[stepIndex];
       
       if (field === 'status') {
@@ -124,9 +133,9 @@ export default function TimelinePage() {
       }
       
       setTimelineData(newTimelineData);
-      // Note: We don't save here anymore, it will be saved on exit.
+      // Changes are saved on component unmount
   }
-
+  
   return (
     <div className="p-4 md:p-6 space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -167,46 +176,52 @@ export default function TimelinePage() {
                     <AlertTitle>Disclaimer</AlertTitle>
                     <AlertDescription>{timelineData.disclaimer}</AlertDescription>
                 </Alert>
-                <Accordion type="multiple" defaultValue={timelineData.timeline.map(s => s.title)} className="w-full">
-                    {timelineData.timeline.map((stage, stageIndex) => (
-                        <AccordionItem value={stage.title} key={stageIndex}>
-                            <AccordionTrigger className="text-lg font-semibold">
-                                {stage.title}
-                            </AccordionTrigger>
-                            <AccordionContent className="space-y-4">
-                                <p className="text-muted-foreground">{stage.description}</p>
-                                {stage.steps.map((step, stepIndex) => (
-                                    <div key={step.id} className="p-4 border rounded-lg space-y-3 bg-secondary/30">
-                                       <div className="flex items-start justify-between gap-4">
-                                            <div className="flex items-start gap-3">
-                                                <Checkbox 
-                                                    id={`step-${step.id}`} 
-                                                    className="mt-1"
-                                                    checked={step.status === 'completed'}
-                                                    onCheckedChange={(checked) => handleStepChange(stageIndex, stepIndex, 'status', !!checked)}
-                                                />
-                                                <div className="grid gap-0.5">
-                                                    <label htmlFor={`step-${step.id}`} className="font-medium text-sm cursor-pointer">{step.title}</label>
-                                                    <p className="text-xs text-muted-foreground">{step.description}</p>
+                <Accordion type="multiple" value={openAccordionItems} onValueChange={setOpenAccordionItems} className="w-full">
+                    {timelineData.timeline.map((stage, stageIndex) => {
+                        const isCompleted = stage.steps.every(step => step.status === 'completed');
+                        return (
+                            <AccordionItem value={stage.title} key={stageIndex} className={cn(isCompleted && "bg-muted/40 border-b-0 rounded-lg")}>
+                                <AccordionTrigger className={cn("text-lg font-semibold px-4", isCompleted && "text-muted-foreground hover:no-underline")}>
+                                   <div className="flex items-center gap-3">
+                                     {isCompleted && <Check className="w-5 h-5 text-green-600" />}
+                                     {stage.title}
+                                   </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="space-y-4 px-4">
+                                    <p className="text-muted-foreground">{stage.description}</p>
+                                    {stage.steps.map((step, stepIndex) => (
+                                        <div key={step.id} className="p-4 border rounded-lg space-y-3 bg-background">
+                                           <div className="flex items-start justify-between gap-4">
+                                                <div className="flex items-start gap-3">
+                                                    <Checkbox 
+                                                        id={`step-${step.id}`} 
+                                                        className="mt-1"
+                                                        checked={step.status === 'completed'}
+                                                        onCheckedChange={(checked) => handleStepChange(stageIndex, stepIndex, 'status', !!checked)}
+                                                    />
+                                                    <div className="grid gap-0.5">
+                                                        <label htmlFor={`step-${step.id}`} className="font-medium text-sm cursor-pointer">{step.title}</label>
+                                                        <p className="text-xs text-muted-foreground">{step.description}</p>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="text-xs text-right text-muted-foreground shrink-0">{step.target}</div>
-                                       </div>
-                                       <div className="pl-7 space-y-2">
-                                            <Label htmlFor={`notes-${step.id}`} className="text-xs font-semibold">My Notes</Label>
-                                            <Textarea 
-                                                id={`notes-${step.id}`}
-                                                placeholder="Add notes about appointments, questions, etc..."
-                                                value={step.notes}
-                                                onChange={(e) => handleStepChange(stageIndex, stepIndex, 'notes', e.target.value)}
-                                                className="text-xs bg-background"
-                                            />
-                                       </div>
-                                    </div>
-                                ))}
-                            </AccordionContent>
-                        </AccordionItem>
-                    ))}
+                                                <div className="text-xs text-right text-muted-foreground shrink-0">{step.target}</div>
+                                           </div>
+                                           <div className="pl-7 space-y-2">
+                                                <Label htmlFor={`notes-${step.id}`} className="text-xs font-semibold">My Notes</Label>
+                                                <Textarea 
+                                                    id={`notes-${step.id}`}
+                                                    placeholder="Add notes about appointments, questions, etc..."
+                                                    value={step.notes}
+                                                    onChange={(e) => handleStepChange(stageIndex, stepIndex, 'notes', e.target.value)}
+                                                    className="text-xs bg-background"
+                                                />
+                                           </div>
+                                        </div>
+                                    ))}
+                                </AccordionContent>
+                            </AccordionItem>
+                        )
+                    })}
                 </Accordion>
             </div>
           )}

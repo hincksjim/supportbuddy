@@ -42,7 +42,11 @@ const SourceConversationSchema = z.object({
     id: z.string().describe("The unique ID of the conversation summary."),
     title: z.string().describe("The AI-generated title for the conversation summary."),
     date: z.string().describe("The date the conversation was summarized."),
-    summary: z.string().describe("The AI-generated summary of the conversation."), 
+    summary: z.string().describe("The AI-generated summary of the conversation."),
+    fullConversation: z.array(z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string(),
+    })).describe("The full transcript of the conversation for detailed analysis.")
 });
 export type SourceConversation = z.infer<typeof SourceConversationSchema>;
 
@@ -52,20 +56,12 @@ const GeneratePersonalSummaryInputSchema = z.object({
     age: z.string().describe("The user's age."),
     gender: z.string().describe("The user's gender."),
     postcode: z.string().describe("The user's postcode."),
-    conversationHistory: z
-        .array(
-        z.object({
-            role: z.enum(['user', 'assistant']),
-            content: z.string(),
-        })
-        )
-        .describe('The history of the conversation so far. This is the primary source for the summary.'),
     timelineData: z.object({
         disclaimer: z.string(),
         timeline: z.array(TimelineStageSchema)
     }).nullable().describe('The user\'s current treatment timeline data, which includes completed steps and notes.'),
     sourceDocuments: z.array(SourceDocumentSchema).describe('An array of previously analyzed documents, including their titles and analysis content. Use this as a key source of factual information.'),
-    sourceConversations: z.array(SourceConversationSchema).describe('An array of summaries from previous conversations. Use this for context and to identify trends or key discussions over time.'),
+    sourceConversations: z.array(SourceConversationSchema).describe('An array of summaries and full transcripts from previous conversations. This is the primary source of truth for the report. Synthesize these conversations to build a complete picture.'),
 });
 export type GeneratePersonalSummaryInput = z.infer<
   typeof GeneratePersonalSummaryInputSchema
@@ -111,7 +107,7 @@ const prompt = ai.definePrompt({
   prompt: `You are an AI assistant tasked with creating a comprehensive "Personal Summary Report" for a user navigating their cancer journey.
 
 **TASK:**
-Your primary goal is to synthesize all the information provided into a clear, organized, and factual Markdown report. You MUST populate the report template below using data from the **Source Documents**, **Source Conversations**, **Conversation History**, and **Timeline Data**.
+Your primary goal is to synthesize all the information provided into a clear, organized, and factual Markdown report. You MUST populate the report template below. The **Source Documents** and **Source Conversations** are your primary sources of truth. You must scour all of them to find the required information.
 
 **CRITICAL INSTRUCTIONS:**
 1.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources to build the report. The source documents and conversations are a critical source of factual information.
@@ -120,7 +116,7 @@ Your primary goal is to synthesize all the information provided into a clear, or
 4.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details, infer medical information you aren't given, or make predictions.
 5.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow" or "on Thursday," you MUST calculate the specific date and include it. For example, if today is "Wednesday, 7 August 2024" and the user says their appointment is "tomorrow," you should write "Appointment on Thursday, 8 August 2024." **SAFETY:** If a timeframe is ambiguous (e.g., "in two weeks," "next month"), DO NOT invent a date. State the information exactly as it was provided.
 6.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
-7.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, contact details (phone numbers, etc.), **NHS Numbers**, and **Hospital Numbers**. Synthesize this information into the appropriate sections ("Personal Details" or "Medical Team & Contacts").
+7.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources (especially the full conversation transcripts within 'sourceConversations') for any mention of doctor names, nurse names, hospital names, contact details (phone numbers, etc.), **NHS Numbers**, and **Hospital Numbers**. Synthesize this information into the appropriate sections ("Personal Details" or "Medical Team & Contacts").
 8.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". In this section, you will list all the source documents and conversations you were provided. Each one should be a numbered item. You MUST use the title, date, and ID provided for each source.
 
 ---
@@ -137,21 +133,20 @@ Your primary goal is to synthesize all the information provided into a clear, or
 ---
 {{/each}}
 
-**2. Source Conversations (High Importance for Context & Feelings):**
+**2. Source Conversations (Primary Source of Information):**
 {{#each sourceConversations}}
-*   **Source ID (for citation):** {{@index}}
+*   **Source ID (for citation):** {{add @index (len ../sourceDocuments)}}
 *   **Conversation Title:** "{{title}}"
 *   **Summary Date:** {{date}}
 *   **Summary ID:** {{id}}
-*   **Summary Content:**
-    > {{{summary}}}
+*   **Full Conversation Transcript (Highest Importance for details):**
+    {{#each fullConversation}}
+        {{role}}: {{{content}}}
+    {{/each}}
 ---
 {{/each}}
 
-**3. Full Conversation History (For detailed context):**
-*   A full transcript is available in the input. Use it to find details not present in the summaries.
----
-**4. Timeline Data (For user-curated milestone tracking):**
+**3. Timeline Data (For user-curated milestone tracking):**
 *   The user's interactive timeline is available in the input. Use it as one of the sources for the "Timeline & Milestones" section, but also look for implied milestones in other sources.
 ---
 
@@ -194,9 +189,12 @@ Your primary goal is to synthesize all the information provided into a clear, or
 ---
 ### **Sources**
 *(List all the source documents and conversations as a numbered list. Use the title, date, and ID provided for each.)*
-1.  Document: "{{sourceDocuments.[0].title}}" (Analyzed: {{sourceDocuments.[0].date}}, ID: {{sourceDocuments.[0].id}})
-2.  Conversation: "{{sourceConversations.[0].title}}" (Summarized: {{sourceConversations.[0].date}}, ID: {{sourceConversations.[0].id}})
-3.  Conversation: "{{sourceConversations.[1].title}}" (Summarized: {{sourceConversations.[1].date}}, ID: {{sourceConversations.[1].id}})
+{{#each sourceDocuments}}
+{{add @index 1}}.  Document: "{{title}}" (Analyzed: {{date}}, ID: {{id}})
+{{/each}}
+{{#each sourceConversations}}
+{{add (add @index 1) (len ../sourceDocuments)}}. Conversation: "{{title}}" (Summarized: {{date}}, ID: {{id}})
+{{/each}}
 `,
 });
 

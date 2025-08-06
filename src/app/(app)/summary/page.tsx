@@ -36,6 +36,11 @@ interface ConversationSummary {
   date: string;
 }
 
+interface StoredConversation {
+    id: string;
+    messages: Message[];
+}
+
 type TimelineData = GenerateTreatmentTimelineOutput;
 
 interface UserData {
@@ -55,10 +60,9 @@ export default function SummaryPage() {
   
   // State to hold all the data needed for the report
   const [userData, setUserData] = useState<UserData>({});
-  const [conversationHistory, setConversationHistory] = useState<Message[]>([])
   const [timelineData, setTimelineData] = useState<TimelineData | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisResult[]>([])
-  const [conversationSummaries, setConversationSummaries] = useState<ConversationSummary[]>([])
+  const [sourceConversationsData, setSourceConversationsData] = useState<StoredConversation[]>([])
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([])
 
   useEffect(() => {
@@ -76,15 +80,6 @@ export default function SummaryPage() {
           setUserData(JSON.parse(storedUserData));
       }
       
-      // Conversation History (primary source)
-      const storedHistory = localStorage.getItem(`conversationHistory_${currentUserEmail}`);
-      if (storedHistory) {
-        const parsedHistory = JSON.parse(storedHistory);
-        if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
-          setConversationHistory(parsedHistory);
-        }
-      }
-      
       // Timeline Data
       const storedTimeline = localStorage.getItem(`treatmentTimeline_${currentUserEmail}`);
       if (storedTimeline) {
@@ -97,10 +92,12 @@ export default function SummaryPage() {
         setAnalysisData(JSON.parse(storedAnalyses));
       }
       
-      // Conversation Summaries
-      const storedSummaries = localStorage.getItem(`conversationSummaries_${currentUserEmail}`);
-      if (storedSummaries) {
-        setConversationSummaries(JSON.parse(storedSummaries));
+      // All Saved Conversations
+      const storedConversations = localStorage.getItem(`allConversations_${currentUserEmail}`);
+      if (storedConversations) {
+        setSourceConversationsData(JSON.parse(storedConversations));
+      } else {
+        setSourceConversationsData([]);
       }
 
       // Diary Entries
@@ -137,14 +134,24 @@ export default function SummaryPage() {
         loadPrerequisites();
     }
     
-    if (conversationHistory.length < 1 && analysisData.length < 1 && conversationSummaries.length < 1 && isInitialLoad) {
-        setError("You need to have a conversation or analyze a document first to generate a summary report.");
-        return
-    }
+    // Defer check to after load attempt inside the hook
+    useEffect(() => {
+        if (isInitialLoad && analysisData.length < 1 && sourceConversationsData.length < 1) {
+            setError("You need to have a conversation or analyze a document first to generate a summary report.");
+            return
+        }
+        
+        // This effect should only run once on the initial load if the data is not present.
+        // It's part of the handleGenerateReport logic, but tied to the component lifecycle.
+        
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isInitialLoad, analysisData, sourceConversationsData]);
+
 
     setIsLoading(true);
     setError(null);
 
+    // Give UI time to update before blocking with AI call
     setTimeout(async () => {
         try {
             const sourceDocuments: SourceDocument[] = analysisData.map(a => ({
@@ -154,19 +161,25 @@ export default function SummaryPage() {
                 analysis: a.analysis,
             }));
 
-            const sourceConversations: SourceConversation[] = conversationSummaries.map(c => ({
-                id: c.id,
-                title: c.title,
-                date: new Date(c.date).toLocaleDateString(),
-                summary: c.summary
-            }));
+            const allSummariesStr = localStorage.getItem(`conversationSummaries_${currentUserEmail}`);
+            const allSummaries: ConversationSummary[] = allSummariesStr ? JSON.parse(allSummariesStr) : [];
+
+            const sourceConversations: SourceConversation[] = sourceConversationsData.map(c => {
+                const summary = allSummaries.find(s => s.id === c.id);
+                return {
+                    id: c.id,
+                    title: summary?.title || "Conversation",
+                    date: summary ? new Date(summary.date).toLocaleDateString() : 'N/A',
+                    summary: summary?.summary || "No summary available.",
+                    fullConversation: c.messages,
+                }
+            });
 
             const result = await generatePersonalSummary({
                 userName: userData.name || "User",
                 age: userData.age || "",
                 gender: userData.gender || "",
                 postcode: userData.postcode || "",
-                conversationHistory,
                 timelineData,
                 sourceDocuments,
                 sourceConversations
@@ -307,7 +320,7 @@ export default function SummaryPage() {
               <p className="text-muted-foreground mt-2">Have a chat or analyze a document, then click "Refresh Report".</p>
             </div>
           )}
-          {report && !isLoading && (
+          {report && (
              <div 
                 className="prose dark:prose-invert max-w-none text-foreground"
                 dangerouslySetInnerHTML={{ __html: reportHtml as string }}
@@ -318,5 +331,3 @@ export default function SummaryPage() {
     </div>
   )
 }
-
-    

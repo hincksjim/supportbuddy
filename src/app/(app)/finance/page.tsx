@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Landmark, Briefcase, HandCoins, PiggyBank, Wallet, Lightbulb, Loader2, RefreshCw } from "lucide-react"
+import { Landmark, Briefcase, HandCoins, PiggyBank, Wallet, Lightbulb, Loader2, RefreshCw, AlertCircle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { generateBenefitsSuggestion, GenerateBenefitsSuggestionInput } from "@/ai/flows/generate-benefits-suggestion"
@@ -26,6 +26,7 @@ export default function FinancePage() {
     const [userData, setUserData] = useState<UserData>({});
     const [suggestedBenefits, setSuggestedBenefits] = useState<BenefitSuggestion[]>([]);
     const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
+    const [suggestionError, setSuggestionError] = useState<string | null>(null);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -42,52 +43,62 @@ export default function FinancePage() {
                 if (formattedStatus === 'Unemployed on benefits') formattedStatus = 'On Benefits';
                 
                 setUserData({ ...parsedData, employmentStatus: formattedStatus });
+                return { ...parsedData, employmentStatus: formattedStatus };
             }
         }
         setIsLoading(false);
+        return null;
     }
 
+    const fetchSuggestions = async (currentUserData: UserData | null) => {
+        if (!currentUserData || !currentUserData.age) {
+            setIsLoadingSuggestions(false);
+            return;
+        }
+
+        setIsLoadingSuggestions(true);
+        setSuggestionError(null);
+        
+        try {
+            const input: GenerateBenefitsSuggestionInput = {
+                age: currentUserData.age || "",
+                employmentStatus: currentUserData.employmentStatus || "",
+                existingBenefits: currentUserData.benefits || [],
+            };
+            if (currentUserData.income) input.income = currentUserData.income;
+            if (currentUserData.savings) input.savings = currentUserData.savings;
+
+            const result = await generateBenefitsSuggestion(input);
+            setSuggestedBenefits(result.suggestions);
+
+        } catch (error: any) {
+            console.error("Failed to fetch benefit suggestions:", error);
+             if (error.message && (error.message.includes("429") || error.message.includes("Too Many Requests"))) {
+                setSuggestionError("You've exceeded the number of requests for today. Please try again tomorrow.");
+            } else {
+                setSuggestionError("Sorry, there was an error fetching benefit suggestions.");
+            }
+        } finally {
+            setIsLoadingSuggestions(false);
+        }
+    };
+
     useEffect(() => {
-        loadData();
+        const loadedData = loadData();
+        fetchSuggestions(loadedData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    useEffect(() => {
-        if (!currentUserEmail || !userData.age) return;
-
-        const fetchSuggestions = async () => {
-            setIsLoadingSuggestions(true);
-            try {
-                const input: GenerateBenefitsSuggestionInput = {
-                    age: userData.age || "",
-                    employmentStatus: userData.employmentStatus || "",
-                    existingBenefits: userData.benefits || [],
-                };
-                if (userData.income) input.income = userData.income;
-                if (userData.savings) input.savings = userData.savings;
-
-                const result = await generateBenefitsSuggestion(input);
-                setSuggestedBenefits(result.suggestions);
-
-            } catch (error) {
-                console.error("Failed to fetch benefit suggestions:", error);
-            } finally {
-                setIsLoadingSuggestions(false);
-            }
-        };
-
-        fetchSuggestions();
-
-    }, [currentUserEmail, userData]);
+    const handleRefresh = () => {
+        const loadedData = loadData();
+        fetchSuggestions(loadedData);
+    }
 
     const formatCurrency = (value: string | undefined) => {
         if (!value) return "Not provided";
         const number = parseFloat(value);
         if (isNaN(number)) return value;
         return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(number);
-    }
-    
-    const handleRefresh = () => {
-        loadData();
     }
 
     return (
@@ -99,7 +110,7 @@ export default function FinancePage() {
                         A summary of your current financial situation and potential support.
                     </p>
                 </div>
-                <Button onClick={handleRefresh} disabled={isLoading}>
+                <Button onClick={handleRefresh} disabled={isLoading || isLoadingSuggestions}>
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Refresh
                 </Button>
@@ -184,6 +195,12 @@ export default function FinancePage() {
                                 <Loader2 className="h-5 w-5 animate-spin" />
                                 <p>Analyzing your eligibility...</p>
                             </div>
+                       ) : suggestionError ? (
+                            <Alert variant="destructive">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>Could Not Fetch Suggestions</AlertTitle>
+                                <AlertDescription>{suggestionError}</AlertDescription>
+                            </Alert>
                        ) : suggestedBenefits.length > 0 ? (
                            <div className="space-y-4">
                             {suggestedBenefits.map((suggestion, index) => (

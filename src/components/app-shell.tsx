@@ -32,7 +32,7 @@ export function AppShell() {
   };
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
         <SidebarHeader className="border-b">
            <div className="flex items-center gap-2">
             <Logo className="w-7 h-7 text-primary" />
@@ -59,20 +59,18 @@ export function AppShell() {
             </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-             <div className="flex items-center justify-center p-2 group-data-[collapsible=icon]:hidden">
-                <SidebarTrigger />
-             </div>
              <SidebarMenu>
                  <SidebarMenuItem>
-                    <Link href="/login" passHref legacyBehavior>
-                         <SidebarMenuButton
-                            onClick={() => localStorage.removeItem("currentUserEmail")}
-                            tooltip="Logout"
-                         >
-                            <LogOut />
-                            <span>Logout</span>
-                        </SidebarMenuButton>
-                    </Link>
+                    <SidebarMenuButton
+                        onClick={() => {
+                            localStorage.removeItem("currentUserEmail");
+                            router.push("/login");
+                        }}
+                        tooltip="Logout"
+                        >
+                        <LogOut />
+                        <span>Logout</span>
+                    </SidebarMenuButton>
                  </SidebarMenuItem>
              </SidebarMenu>
         </SidebarFooter>

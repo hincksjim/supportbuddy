@@ -125,7 +125,9 @@ For each scenario, you must generate a list of all possible benefits mentioned i
 1.  \`name\`: The name of the benefit.
 2.  \`isEligible\`: A boolean. Set to \`true\` if the rules for the given scenario suggest this benefit.
 3.  \`isCurrent\`: A boolean. Set to \`true\` if this benefit is in the user's \`existingBenefits\` list.
-4.  \`reason\`: A brief explanation. If eligible, explain why (e.g., "For help with daily living costs due to illness"). If not eligible, state "Not typically available in this scenario." If it's a current benefit, state "You are already receiving this benefit."
+4.  \`reason\`: A brief explanation. If \`isCurrent\` is true, the reason MUST be "You are already receiving this benefit.". If eligible, explain why (e.g., "For help with daily living costs due to illness"). If not eligible, state "Not typically available in this scenario."
+
+**Crucial Logic:** If a benefit is marked as \`isCurrent: true\`, you MUST also set \`isEligible: true\`. This ensures the UI correctly shows it as "Already Receiving" rather than "Not Eligible".
 
 Your final output MUST be a valid JSON object matching the provided schema.
 `,

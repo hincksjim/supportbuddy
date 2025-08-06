@@ -44,6 +44,15 @@ function MedicationDialog({ onSave, existingMedication }: { onSave: (med: Medica
     const [isSaving, setIsSaving] = useState(false);
     const [id, setId] = useState(new Date().toISOString());
 
+    const resetForm = () => {
+        setId(new Date().toISOString());
+        setName('');
+        setStrength('');
+        setDose('');
+        setIssuedBy('');
+        setIssuedDate(new Date().toISOString().split('T')[0]);
+    }
+
     useEffect(() => {
         if (existingMedication) {
             setId(existingMedication.id);
@@ -53,13 +62,7 @@ function MedicationDialog({ onSave, existingMedication }: { onSave: (med: Medica
             setIssuedBy(existingMedication.issuedBy);
             setIssuedDate(new Date(existingMedication.issuedDate).toISOString().split('T')[0]);
         } else {
-            // Reset for new entry
-            setId(new Date().toISOString());
-            setName('');
-            setStrength('');
-            setDose('');
-            setIssuedBy('');
-            setIssuedDate(new Date().toISOString().split('T')[0]);
+            resetForm();
         }
     }, [existingMedication]);
 
@@ -77,9 +80,26 @@ function MedicationDialog({ onSave, existingMedication }: { onSave: (med: Medica
         setIsSaving(false);
         document.getElementById(`close-med-dialog-${id}`)?.click();
     };
+
+    const onOpenChange = (open: boolean) => {
+        if (open) {
+            if (existingMedication) {
+                // Pre-fill form for editing
+                setId(existingMedication.id);
+                setName(existingMedication.name);
+                setStrength(existingMedication.strength);
+                setDose(existingMedication.dose);
+                setIssuedBy(existingMedication.issuedBy);
+                setIssuedDate(new Date(existingMedication.issuedDate).toISOString().split('T')[0]);
+            } else {
+                // Reset form for new entry
+                resetForm();
+            }
+        }
+    }
     
     return (
-        <Dialog>
+        <Dialog onOpenChange={onOpenChange}>
              <DialogTrigger asChild>
                 {existingMedication ? (
                      <Button variant="outline" size="sm">Edit</Button>

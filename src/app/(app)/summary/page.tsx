@@ -237,73 +237,133 @@ export default function SummaryPage() {
   }
 
   const handleDownloadPdf = async () => {
-    const chartsElement = chartsRef.current;
-    const reportElement = reportRef.current;
+      const reportElement = reportRef.current;
+      const chartsContainer = chartsRef.current;
 
-    if (!chartsElement || !reportElement) {
-        console.error("One or more elements for PDF generation are not found.");
-        return;
-    }
+      if (!reportElement || !chartsContainer) {
+          console.error("One or more elements for PDF generation are not found.");
+          return;
+      }
+      setIsLoading(true);
 
-    setIsLoading(true);
-    try {
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const margin = 10;
-        let currentY = margin;
-        
-        const addCanvasToPdf = async (canvas: HTMLCanvasElement, pdfInstance: jsPDF, yPosition: number) => {
-            const imgData = canvas.toDataURL('image/png', 1.0);
-            const imgProps = pdfInstance.getImageProperties(imgData);
-            const pdfImageWidth = pdfWidth - 2 * margin;
-            const pdfImageHeight = (imgProps.height * pdfImageWidth) / imgProps.width;
-            
-            let heightLeft = pdfImageHeight;
-            let position = yPosition;
+      try {
+          const pdf = new jsPDF('p', 'mm', 'a4');
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          const margin = 15;
+          let yPos = margin;
 
-            // Initial add
-            if (yPosition + heightLeft > pdfHeight - margin) {
-                pdfInstance.addPage();
-                position = margin;
-            }
-            pdfInstance.addImage(imgData, 'PNG', margin, position, pdfImageWidth, pdfImageHeight);
-            heightLeft -= (pdfHeight - position - margin);
+          // --- 1. Add Title Page ---
+          pdf.setFontSize(28);
+          pdf.text("Personal Summary Report", pdfWidth / 2, pdfHeight / 2, { align: 'center' });
+          pdf.addPage();
+          yPos = margin;
 
-            // Add more pages if content overflows
-            while (heightLeft > 0) {
-                pdfInstance.addPage();
-                position = - (pdfImageHeight - heightLeft);
-                pdfInstance.addImage(imgData, 'PNG', margin, position, pdfImageWidth, pdfImageHeight);
-                heightLeft -= (pdfHeight - margin);
-            }
-             return yPosition + pdfImageHeight;
-        }
+          // --- 2. Add Charts ---
+          pdf.setFontSize(18);
+          pdf.text("Wellness Trends", margin, yPos);
+          yPos += 10;
+          
+          const chartElements = Array.from(chartsContainer.querySelectorAll('.chart-card-pdf')) as HTMLElement[];
+          const chartHeight = 80;
+          const chartWidth = (pdfWidth - (margin * 3)) / 2;
 
+          for (let i = 0; i < chartElements.length; i += 2) {
+              if (yPos + chartHeight > pdfHeight - margin) {
+                  pdf.addPage();
+                  yPos = margin;
+              }
 
-        // 1. Process Charts
-        const chartCanvas = await html2canvas(chartsElement, { scale: 2, useCORS: true, logging: false });
-        let nextY = await addCanvasToPdf(chartCanvas, pdf, currentY);
+              // Left chart
+              const canvas1 = await html2canvas(chartElements[i], { scale: 2 });
+              const imgData1 = canvas1.toDataURL('image/png');
+              pdf.addImage(imgData1, 'PNG', margin, yPos, chartWidth, chartHeight);
+              
+              // Right chart (if it exists)
+              if (i + 1 < chartElements.length) {
+                  const canvas2 = await html2canvas(chartElements[i+1], { scale: 2 });
+                  const imgData2 = canvas2.toDataURL('image/png');
+                  pdf.addImage(imgData2, 'PNG', margin + chartWidth + margin, yPos, chartWidth, chartHeight);
+              }
+              yPos += chartHeight + 10;
+          }
 
-        // 2. Process Report
-        const reportCanvas = await html2canvas(reportElement, { scale: 2, useCORS: true, logging: false });
-        if (nextY + 10 > pdfHeight - margin) { // Add space before report
-            pdf.addPage();
-            currentY = margin;
-        } else {
-            currentY = nextY + 10;
-        }
-        await addCanvasToPdf(reportCanvas, pdf, currentY);
+          // --- 3. Add AI Generated Report ---
+          pdf.addPage();
+          yPos = margin;
+          
+          const lexer = new marked.Lexer();
+          const tokens = lexer.lex(report || "");
 
+          const checkPageBreak = (heightNeeded: number) => {
+              if (yPos + heightNeeded > pdfHeight - margin) {
+                  pdf.addPage();
+                  yPos = margin;
+              }
+          };
+          
+          for (const token of tokens) {
+              if (token.type === 'heading') {
+                  const fontSize = token.depth === 2 ? 14 : (token.depth === 3 ? 12 : 10);
+                  const textHeight = (fontSize / 72) * 25.4 * 0.5; // Approx height
+                  checkPageBreak(textHeight);
+                  pdf.setFontSize(fontSize);
+                  pdf.setFont('helvetica', 'bold');
+                  const splitText = pdf.splitTextToSize(token.text, pdfWidth - margin * 2);
+                  pdf.text(splitText, margin, yPos);
+                  yPos += pdf.getTextDimensions(splitText).h + 4;
 
-        pdf.save("Personal-Summary-Report.pdf");
+              } else if (token.type === 'list') {
+                  pdf.setFontSize(10);
+                  pdf.setFont('helvetica', 'normal');
+                   for (const item of token.items) {
+                       const bulletPoint = `• ${item.text}`;
+                       const splitText = pdf.splitTextToSize(bulletPoint, pdfWidth - margin * 2 - 5);
+                       const textHeight = pdf.getTextDimensions(splitText).h;
+                       checkPageBreak(textHeight);
+                       pdf.text(splitText, margin + 5, yPos);
+                       yPos += textHeight + 2;
+                   }
+                   yPos += 5;
 
-    } catch (err) {
-        console.error("Could not generate PDF", err);
-        setError("There was an error creating the PDF file.");
-    } finally {
-        setIsLoading(false);
-    }
+              } else if (token.type === 'paragraph' || token.type === 'text') {
+                  pdf.setFontSize(10);
+                  pdf.setFont('helvetica', 'normal');
+                  const splitText = pdf.splitTextToSize(token.text, pdfWidth - margin * 2);
+                  const textHeight = pdf.getTextDimensions(splitText).h;
+                  checkPageBreak(textHeight);
+                  pdf.text(splitText, margin, yPos);
+                  yPos += textHeight + 3;
+
+              } else if (token.type === 'space') {
+                  yPos += 5;
+              } else if (token.type === 'hr') {
+                  checkPageBreak(5);
+                  pdf.setDrawColor(200, 200, 200);
+                  pdf.line(margin, yPos, pdfWidth - margin, yPos);
+                  yPos += 5;
+              } else if (token.type === 'blockquote') {
+                  pdf.setFontSize(10);
+                  pdf.setFont('helvetica', 'italic');
+                  const text = token.text;
+                   const splitText = pdf.splitTextToSize(text, pdfWidth - margin * 2 - 10);
+                   const textHeight = pdf.getTextDimensions(splitText).h;
+                   checkPageBreak(textHeight + 4);
+                   pdf.setDrawColor(200, 200, 200);
+                   pdf.line(margin, yPos - 2, margin, yPos + textHeight); // Left border
+                   pdf.text(splitText, margin + 5, yPos);
+                   yPos += textHeight + 6;
+              }
+          }
+
+          pdf.save("Personal-Summary-Report.pdf");
+
+      } catch (err) {
+          console.error("Could not generate PDF", err);
+          setError("There was an error creating the PDF file.");
+      } finally {
+          setIsLoading(false);
+      }
   };
 
 
@@ -331,81 +391,79 @@ export default function SummaryPage() {
       </div>
 
        <div className="space-y-8">
-         <div ref={chartsRef}>
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle>Wellness Trends</CardTitle>
-                            <CardDescription>A visual overview of your diary entries.</CardDescription>
-                        </div>
-                        <Button onClick={handleRefreshCharts} disabled={isChartLoading} variant="outline" size="sm">
-                            {isChartLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                            Refresh Charts
-                        </Button>
+         <Card ref={chartsRef}>
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <CardTitle>Wellness Trends</CardTitle>
+                        <CardDescription>A visual overview of your diary entries.</CardDescription>
                     </div>
-                </CardHeader>
-                <CardContent>
-                    {diaryEntries.length > 1 ? (
-                        <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-base">Overall Mood Trends</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <DiaryChart data={diaryEntries} chartType="mood" />
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-base">Treatment Mood Trends</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <DiaryChart data={diaryEntries} chartType="treatment" />
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-base">Diagnosis Mood Trends</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <DiaryChart data={diaryEntries} chartType="diagnosis" />
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-base">Pain Trends</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <DiaryChart data={diaryEntries} chartType="pain" />
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-base">Weight Trends</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <DiaryChart data={diaryEntries} chartType="weight" />
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-base">Sleep Trends</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <DiaryChart data={diaryEntries} chartType="sleep" />
-                                </CardContent>
-                            </Card>
-                        </div>
-                    ) : (
-                        <div className="text-center py-10 rounded-lg border-2 border-dashed">
-                            <h3 className="text-lg font-semibold">Not Enough Data for Charts</h3>
-                            <p className="text-muted-foreground mt-1">You need at least two diary entries to see your wellness trends.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-         </div>
+                    <Button onClick={handleRefreshCharts} disabled={isChartLoading} variant="outline" size="sm">
+                        {isChartLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                        Refresh Charts
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {diaryEntries.length > 1 ? (
+                    <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card className="chart-card-pdf">
+                            <CardHeader>
+                                <CardTitle className="text-base">Overall Mood Trends</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <DiaryChart data={diaryEntries} chartType="mood" />
+                            </CardContent>
+                        </Card>
+                        <Card className="chart-card-pdf">
+                            <CardHeader>
+                                <CardTitle className="text-base">Treatment Mood Trends</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <DiaryChart data={diaryEntries} chartType="treatment" />
+                            </CardContent>
+                        </Card>
+                        <Card className="chart-card-pdf">
+                            <CardHeader>
+                                <CardTitle className="text-base">Diagnosis Mood Trends</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <DiaryChart data={diaryEntries} chartType="diagnosis" />
+                            </CardContent>
+                        </Card>
+                        <Card className="chart-card-pdf">
+                            <CardHeader>
+                                <CardTitle className="text-base">Pain Trends</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <DiaryChart data={diaryEntries} chartType="pain" />
+                            </CardContent>
+                        </Card>
+                        <Card className="chart-card-pdf">
+                            <CardHeader>
+                                <CardTitle className="text-base">Weight Trends</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <DiaryChart data={diaryEntries} chartType="weight" />
+                            </CardContent>
+                        </Card>
+                        <Card className="chart-card-pdf">
+                            <CardHeader>
+                                <CardTitle className="text-base">Sleep Trends</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <DiaryChart data={diaryEntries} chartType="sleep" />
+                            </CardContent>
+                        </Card>
+                    </div>
+                ) : (
+                    <div className="text-center py-10 rounded-lg border-2 border-dashed">
+                        <h3 className="text-lg font-semibold">Not Enough Data for Charts</h3>
+                        <p className="text-muted-foreground mt-1">You need at least two diary entries to see your wellness trends.</p>
+                    </div>
+                )}
+            </CardContent>
+         </Card>
       
         <div ref={reportRef}>
             <Card>
@@ -445,3 +503,5 @@ export default function SummaryPage() {
     </div>
   )
 }
+
+    

@@ -37,7 +37,7 @@ export default function TimelinePage() {
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [openAccordionItems, setOpenAccordionItems] = useState<string[]>([]);
   const timelineDataRef = useRef(timelineData);
-  const timelineCardRef = useRef<HTMLDivElement>(null);
+  const timelineContainerRef = useRef<HTMLDivElement>(null);
 
 
   useEffect(() => {
@@ -149,57 +149,42 @@ export default function TimelinePage() {
   }
   
   const handleDownloadPdf = async () => {
-    const input = timelineCardRef.current;
-    if (!input || !timelineData) {
+    const container = timelineContainerRef.current;
+    if (!container || !timelineData) {
         return;
     }
     setIsDownloading(true);
 
-    // Save the original state of open accordion items
     const originalOpenItems = openAccordionItems;
-    // Set all items to be open
     setOpenAccordionItems(timelineData.timeline.map(stage => stage.title));
-
-    // Wait for the DOM to update with all accordions open
+    
     setTimeout(async () => {
         try {
-            const canvas = await html2canvas(input, {
-                scale: 2,
-                // Ensure it captures the full scroll height
-                windowHeight: input.scrollHeight,
-                windowWidth: input.scrollWidth, 
-            });
-
-            const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
+            const margin = 10;
+            let yPos = margin;
 
-            const imgProps= pdf.getImageProperties(imgData);
-            const imgWidth = imgProps.width;
-            const imgHeight = imgProps.height;
+            const stageElements = Array.from(container.querySelectorAll('.timeline-stage-card')) as HTMLElement[];
 
-            const ratio = imgWidth / imgHeight;
-            let finalImgHeight = pdfHeight - 20; // with margin
-            let finalImgWidth = finalImgHeight * ratio;
+            for (const element of stageElements) {
+                const canvas = await html2canvas(element, { scale: 2 });
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = canvas.width;
+                const imgHeight = canvas.height;
+                const ratio = imgWidth / imgHeight;
 
-            if (finalImgWidth > pdfWidth) {
-                finalImgWidth = pdfWidth - 20; // with margin
-                finalImgHeight = finalImgWidth / ratio;
-            }
+                const finalImgWidth = pdfWidth - margin * 2;
+                const finalImgHeight = finalImgWidth / ratio;
 
-            let heightLeft = imgHeight;
-            let position = 0;
-            const pageMargin = 10;
+                if (yPos + finalImgHeight > pdfHeight - margin) {
+                    pdf.addPage();
+                    yPos = margin;
+                }
 
-            pdf.addImage(imgData, 'PNG', pageMargin, position + pageMargin, finalImgWidth, finalImgHeight);
-            heightLeft -= imgHeight;
-
-            while (heightLeft > 0) {
-                position -= (pdfHeight - (pageMargin * 2));
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', pageMargin, position + pageMargin, finalImgWidth, finalImgHeight);
-                heightLeft -= imgHeight;
+                pdf.addImage(imgData, 'PNG', margin, yPos, finalImgWidth, finalImgHeight);
+                yPos += finalImgHeight + 5; 
             }
             
             pdf.save('My-Treatment-Timeline.pdf');
@@ -208,11 +193,10 @@ export default function TimelinePage() {
             console.error("PDF generation failed:", err);
             setError("Sorry, there was an error creating the PDF.");
         } finally {
-            // Restore the original state of open accordion items
             setOpenAccordionItems(originalOpenItems);
             setIsDownloading(false);
         }
-    }, 500); // A small delay to allow for re-rendering
+    }, 500);
 };
 
   return (
@@ -236,7 +220,7 @@ export default function TimelinePage() {
          </div>
       </div>
 
-      <Card>
+      <Card ref={timelineContainerRef}>
         <CardContent className="pt-6">
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-20">
@@ -256,7 +240,7 @@ export default function TimelinePage() {
             </div>
           )}
           {timelineData && (
-            <div className="space-y-6" ref={timelineCardRef}>
+            <div className="space-y-6">
                  <Alert>
                     <AlertTitle>Disclaimer</AlertTitle>
                     <AlertDescription>{timelineData.disclaimer}</AlertDescription>
@@ -265,7 +249,7 @@ export default function TimelinePage() {
                     {timelineData.timeline.map((stage, stageIndex) => {
                         const isCompleted = stage.steps.every(step => step.status === 'completed');
                         return (
-                            <AccordionItem value={stage.title} key={stageIndex} className={cn(isCompleted && "bg-muted/40 border-b-0 rounded-lg")}>
+                            <AccordionItem value={stage.title} key={stageIndex} className={cn("timeline-stage-card border-b-0", isCompleted && "bg-muted/40 rounded-lg")}>
                                 <AccordionTrigger className={cn("text-lg font-semibold px-4", isCompleted && "text-muted-foreground hover:no-underline")}>
                                    <div className="flex items-center gap-3">
                                      {isCompleted && <Check className="w-5 h-5 text-green-600" />}

@@ -226,7 +226,6 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 
 ### **Wellness & Diary Insights**
 *(Review the last 5 diary entries. You MUST create a Markdown bulleted list. Each bullet point MUST represent one single day and start on a new line. For example: * August 5th, 2025: Mood: bad, Pain: 0, Worried about MDT outcome. [Diary])*
-*   [Date]: [Summary of the day's entry]
 
 ### **Timeline & Milestones**
 **Completed Milestones:**
@@ -268,3 +267,5 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

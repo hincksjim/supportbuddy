@@ -1,8 +1,8 @@
 
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { Sun, Moon, Laptop, Bot, Save } from "lucide-react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { Sun, Moon, Laptop, Bot, Save, Play, Loader2 } from "lucide-react"
 import { useTheme } from "next-themes"
 
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils"
 import { AvatarFemale, AvatarMale } from "@/components/icons"
 import { useToast } from "@/hooks/use-toast"
+import { textToSpeech } from "@/ai/flows/text-to-speech"
 
 interface UserData {
   avatar?: 'male' | 'female';
@@ -42,6 +43,10 @@ export default function SettingsPage() {
     const [userData, setUserData] = useState<UserData>({});
     const [selectedVoice, setSelectedVoice] = useState('Algenib');
     const [isMounted, setIsMounted] = useState(false)
+    const [isPlaying, setIsPlaying] = useState(false)
+    const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
+    const audioRef = useRef<HTMLAudioElement>(null);
+
 
     useEffect(() => {
         setIsMounted(true)
@@ -58,6 +63,13 @@ export default function SettingsPage() {
             }
         }
     }, [])
+    
+    useEffect(() => {
+        if (audioRef.current && audioDataUri) {
+          audioRef.current.src = audioDataUri;
+          audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+        }
+    }, [audioDataUri]);
 
     const handleSave = () => {
         if (!currentUserEmail) return;
@@ -69,6 +81,25 @@ export default function SettingsPage() {
             title: "Settings Saved",
             description: "Your preferences have been updated.",
         });
+    }
+
+    const handlePlaySample = async () => {
+        if (isPlaying) return;
+        setIsPlaying(true);
+        try {
+            const result = await textToSpeech({
+                text: "Hello, I am your support buddy. You can choose my voice here.",
+                voice: selectedVoice
+            });
+            if (result.audioDataUri) {
+                setAudioDataUri(result.audioDataUri);
+            } else {
+                 toast({ title: "Could not play sample", description: "The audio could not be generated.", variant: "destructive" });
+            }
+        } catch (error) {
+            console.error("Failed to play voice sample:", error);
+            toast({ title: "Error", description: "Could not play voice sample.", variant: "destructive" });
+        }
     }
     
     const handleAvatarChange = (avatar: 'male' | 'female') => {
@@ -175,16 +206,22 @@ export default function SettingsPage() {
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div className="space-y-2">
                             <Label>Voice</Label>
-                            <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a voice" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {voices.map(v => (
-                                        <SelectItem key={v.name} value={v.name}>{v.name} ({v.gender})</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <div className="flex items-center gap-2">
+                                <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a voice" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {voices.map(v => (
+                                            <SelectItem key={v.name} value={v.name}>{v.name} ({v.gender})</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button onClick={handlePlaySample} disabled={isPlaying} size="icon" variant="outline">
+                                    {isPlaying ? <Loader2 className="animate-spin" /> : <Play />}
+                                    <span className="sr-only">Play sample</span>
+                                </Button>
+                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label>Response Mood</Label>
@@ -202,6 +239,7 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+            <audio ref={audioRef} onEnded={() => setIsPlaying(false)} className="hidden" />
         </div>
     )
 }

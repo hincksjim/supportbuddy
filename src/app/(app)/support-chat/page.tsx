@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useRef, useEffect, Suspense } from "react"
-import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX, PlusCircle } from "lucide-react"
+import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX, PlusCircle, Download, Bookmark } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,12 @@ import { useToast } from "@/hooks/use-toast"
 interface Message {
   role: "user" | "assistant"
   content: string
+}
+
+interface SavedMessage {
+    id: string;
+    content: string;
+    date: string;
 }
 
 interface ConversationSummary {
@@ -375,6 +381,39 @@ function SupportChatPageContent() {
       }
   }
 
+  const handleDownloadMessage = (content: string) => {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'chat-response.txt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSaveMessage = (message: Message) => {
+    if (!currentUserEmail) return;
+
+    const savedMessage: SavedMessage = {
+        id: new Date().toISOString(),
+        content: message.content,
+        date: new Date().toISOString()
+    };
+    
+    const key = `savedMessages_${currentUserEmail}`;
+    const stored = localStorage.getItem(key);
+    const items: SavedMessage[] = stored ? JSON.parse(stored) : [];
+    items.unshift(savedMessage); // Add to the top of the list
+    localStorage.setItem(key, JSON.stringify(items));
+    
+    toast({
+        title: "Message Saved",
+        description: "You can view it in your 'Saved Items' page.",
+    });
+  };
+
   return (
     <div className="relative flex h-full max-h-screen flex-col">
        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
@@ -406,33 +445,48 @@ function SupportChatPageContent() {
               <div
                 key={index}
                 className={cn(
-                  "flex items-start gap-4",
+                  "flex items-start gap-4 group",
                   message.role === "user" ? "justify-end" : "justify-start"
                 )}
               >
                 {message.role === "assistant" && (
-                  <Avatar className="w-8 h-8 border bg-accent/50">
-                    <AvatarFallback className="bg-transparent text-foreground">
-                        <BuddyAvatarIcon className="w-5 h-5" />
-                    </AvatarFallback>
-                  </Avatar>
+                    <div className="flex items-end gap-2">
+                         <Avatar className="w-8 h-8 border bg-accent/50">
+                            <AvatarFallback className="bg-transparent text-foreground">
+                                <BuddyAvatarIcon className="w-5 h-5" />
+                            </AvatarFallback>
+                          </Avatar>
+                        <div
+                        className="max-w-xl rounded-xl p-3 shadow-md bg-card"
+                        >
+                            <p className="whitespace-pre-wrap">{message.content}</p>
+                        </div>
+                         <div className="flex-col gap-1 self-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownloadMessage(message.content)}>
+                                <Download className="w-4 h-4"/>
+                            </Button>
+                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleSaveMessage(message)}>
+                                <Bookmark className="w-4 h-4"/>
+                            </Button>
+                        </div>
+                    </div>
                 )}
-                <div
-                  className={cn(
-                    "max-w-xl rounded-xl p-3 shadow-md",
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card"
-                  )}
-                >
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                </div>
-                {message.role === "user" && (
-                  <Avatar className="w-8 h-8 border">
-                    <AvatarFallback className="bg-secondary text-secondary-foreground">
-                        <User className="w-5 h-5" />
-                    </AvatarFallback>
-                  </Avatar>
+                 {message.role === "user" && (
+                    <>
+                        <div
+                        className={cn(
+                            "max-w-xl rounded-xl p-3 shadow-md",
+                            "bg-primary text-primary-foreground"
+                        )}
+                        >
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                        </div>
+                        <Avatar className="w-8 h-8 border">
+                        <AvatarFallback className="bg-secondary text-secondary-foreground">
+                            <User className="w-5 h-5" />
+                        </AvatarFallback>
+                        </Avatar>
+                    </>
                 )}
               </div>
             ))}
@@ -510,5 +564,3 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
-
-    

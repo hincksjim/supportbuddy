@@ -154,20 +154,24 @@ export default function TimelinePage() {
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
+
         const canvasWidth = canvas.width;
         const canvasHeight = canvas.height;
+        
         const ratio = canvasWidth / canvasHeight;
-        const imgWidth = pdfWidth - 20;
+        const imgWidth = pdfWidth - 20; // 10mm margin on each side
         const imgHeight = imgWidth / ratio;
 
         let heightLeft = imgHeight;
-        let position = 10;
-        
-        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-        heightLeft -= (pdfHeight - 20);
+        let position = 10; // Top margin
 
+        // Add the first page
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= (pdfHeight - 20); // Subtract visible height
+
+        // Add new pages if content is taller than one page
         while (heightLeft > 0) {
-            position = -imgHeight + heightLeft;
+            position -= (pdfHeight - 20); // Move position up by one page height
             pdf.addPage();
             pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
             heightLeft -= (pdfHeight - 20);

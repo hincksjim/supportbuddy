@@ -63,10 +63,11 @@ export default function SummaryPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isChartLoading, setIsChartLoading] = useState(false);
   const [error, setError] = useState<string | null>(null)
-  const reportRef = useRef<HTMLDivElement>(null)
-  const printableRef = useRef<HTMLDivElement>(null)
   
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+
+  const chartsRef = useRef<HTMLDivElement>(null);
+  const reportRef = useRef<HTMLDivElement>(null);
   
   // State to hold all the data needed for the report
   const [userData, setUserData] = useState<UserData>({});
@@ -235,50 +236,73 @@ export default function SummaryPage() {
     setTimeout(() => setIsChartLoading(false), 300);
   }
 
-  const handleDownloadPdf = () => {
-    const input = printableRef.current;
-    if (!input) {
-      console.error("Printable element not found");
-      return;
+  const handleDownloadPdf = async () => {
+    const chartsElement = chartsRef.current;
+    const reportElement = reportRef.current;
+
+    if (!chartsElement || !reportElement) {
+        console.error("One or more elements for PDF generation are not found.");
+        return;
     }
+
     setIsLoading(true);
-    html2canvas(input, {
-        scale: 2,
-        useCORS: true, 
-        logging: false 
-    }).then(canvas => {
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      
-      const canvasWidth = canvas.width;
-      const canvasHeight = canvas.height;
-      const canvasRatio = canvasWidth / canvasHeight;
+    try {
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const margin = 15;
 
-      const imgWidth = pdfWidth - 20; // with some margin
-      const imgHeight = imgWidth / canvasRatio;
-      
-      let heightLeft = imgHeight;
-      let position = 10; // top margin
+        // --- Process Charts ---
+        const chartCanvas = await html2canvas(chartsElement, { scale: 1.5, useCORS: true, logging: false });
+        const chartImgData = chartCanvas.toDataURL('image/png');
+        const chartImgProps = pdf.getImageProperties(chartImgData);
+        const chartPdfWidth = pdfWidth - 2 * margin;
+        const chartPdfHeight = (chartImgProps.height * chartPdfWidth) / chartImgProps.width;
 
-      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-      heightLeft -= (pdfHeight - 20);
+        let chartHeightLeft = chartPdfHeight;
+        let chartPosition = margin;
 
-      while (heightLeft > 0) {
-        position = -heightLeft + 10;
+        pdf.addImage(chartImgData, 'PNG', margin, chartPosition, chartPdfWidth, chartPdfHeight);
+        chartHeightLeft -= (pdfHeight - 2 * margin);
+
+        while (chartHeightLeft > 0) {
+            pdf.addPage();
+            chartPosition = -chartHeightLeft + margin;
+            pdf.addImage(chartImgData, 'PNG', margin, chartPosition, chartPdfWidth, chartPdfHeight);
+            chartHeightLeft -= (pdfHeight - 2 * margin);
+        }
+
+        // --- Process Report ---
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-        heightLeft -= (pdfHeight - 20);
-      }
-      
-      pdf.save("Personal-Summary-Report.pdf");
-      setIsLoading(false);
-    }).catch(err => {
+        const reportCanvas = await html2canvas(reportElement, { scale: 1.5, useCORS: true, logging: false });
+        const reportImgData = reportCanvas.toDataURL('image/png');
+        const reportImgProps = pdf.getImageProperties(reportImgData);
+        const reportPdfWidth = pdfWidth - 2 * margin;
+        const reportPdfHeight = (reportImgProps.height * reportPdfWidth) / reportImgProps.width;
+
+        let reportHeightLeft = reportPdfHeight;
+        let reportPosition = margin;
+
+        pdf.addImage(reportImgData, 'PNG', margin, reportPosition, reportPdfWidth, reportPdfHeight);
+        reportHeightLeft -= (pdfHeight - 2 * margin);
+
+        while (reportHeightLeft > 0) {
+            pdf.addPage();
+            reportPosition = -reportHeightLeft + margin;
+            pdf.addImage(reportImgData, 'PNG', margin, reportPosition, reportPdfWidth, reportPdfHeight);
+            reportHeightLeft -= (pdfHeight - 2 * margin);
+        }
+
+        pdf.save("Personal-Summary-Report.pdf");
+
+    } catch (err) {
         console.error("Could not generate PDF", err);
+        setError("There was an error creating the PDF file.");
+    } finally {
         setIsLoading(false);
-    });
+    }
   };
+
 
   const reportHtml = report ? marked(report) : "";
 
@@ -303,8 +327,8 @@ export default function SummaryPage() {
         </div>
       </div>
 
-       <div ref={printableRef} className="space-y-8">
-         <Card>
+       <div className="space-y-8">
+         <Card ref={chartsRef}>
             <CardHeader>
                 <div className="flex items-center justify-between">
                      <div>
@@ -378,7 +402,7 @@ export default function SummaryPage() {
             </CardContent>
          </Card>
       
-        <Card>
+        <Card ref={reportRef}>
             <CardHeader>
                 <CardTitle>AI Generated Report</CardTitle>
                 <CardDescription>This report is generated from your conversations, documents, and timeline.</CardDescription>
@@ -404,7 +428,6 @@ export default function SummaryPage() {
             )}
             {report && (
                 <div
-                    ref={reportRef}
                     className="prose dark:prose-invert max-w-none text-foreground"
                     dangerouslySetInnerHTML={{ __html: reportHtml as string }}
                 />
@@ -415,3 +438,5 @@ export default function SummaryPage() {
     </div>
   )
 }
+
+    

@@ -166,6 +166,7 @@ const prompt = ai.definePrompt({
   5.  **Be Location-Aware:** If the user's query is about local services, use the \`lookupPostcode\` tool to find their city and local health authority. Use this information to provide tailored, practical advice. For example: "I see you're in the Manchester area, which is covered by the NHS Greater Manchester Integrated Care Board. They have specific resources that might help..."
   6. **Act as a Benefits Advisor**: If the user's conversation touches on financial worries, work changes, or their ability to cope, you MUST use the following JSON ruleset to determine if they might be eligible for additional financial support. Proactively suggest benefits they might be entitled to, explaining what they are in simple terms.
     **CRITICAL Pension Age Rule**: The UK State Pension age is not fixed at 65. It varies based on date of birth. You MUST use the user's Date of Birth ({{{dob}}}) to determine if they have reached the state pension age according to UK government guidelines. The pension age is gradually increasing and is currently between 66 and 68. **Do not apply "Pension Age+" rules to someone who is, for example, 64, as they are not yet eligible for pension-age benefits like Pension Credit or Attendance Allowance.** Use your knowledge to accurately assess this.
+    **Employment Status Mapping**: For the purpose of applying the rules, consider the status 'unemployed-on-benefits' to be the same as 'On Benefits'.
 
   **Benefits Decision Logic (JSON Ruleset):**
   \`\`\`json

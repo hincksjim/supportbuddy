@@ -23,6 +23,7 @@ const AiConversationalSupportInputSchema = z.object({
   income: z.string().optional().describe("The user's annual income, if provided."),
   savings: z.string().optional().describe("The user's savings, if provided."),
   existingBenefits: z.array(z.string()).optional().describe("A list of benefits the user is already receiving."),
+  responseMood: z.string().optional().describe("The desired mood for the AI's response. Can be 'standard', 'extra_supportive', or 'direct_factual'."),
   conversationHistory: z.array(z.object({
     role: z.enum(['user', 'assistant']),
     content: z.string(),
@@ -56,7 +57,7 @@ const benefitsDecisionLogic = `
     "Existing Benefits":"None or any",
     "Income/Savings":"Any",
     "Health Impact (Cancer)":"Cannot work (cancer)",
-    "Additional or Replacement Benefits":"Statutory Sick Pay (SSP), Personal Independence Payment (PIP), Employment and Support Allowance (ESA), Universal Credit (UC) with LCWRA element"
+    "Additional or Replacement Benefits":"Statutory Sick Pay (SSP), Personal Independence Payment (PIP), New Style Employment and Support Allowance (ESA), Universal Credit (with LCWRA element)"
   },
   {
     "Age Range":"16-Pension Age",
@@ -64,7 +65,7 @@ const benefitsDecisionLogic = `
     "Existing Benefits":"SSP ended",
     "Income/Savings":"Low income/savings < £16K",
     "Health Impact (Cancer)":"Ongoing illness (cancer)",
-    "Additional or Replacement Benefits":"ESA, PIP, Universal Credit (UC) with LCWRA element, Blue Badge"
+    "Additional or Replacement Benefits":"New Style ESA, PIP, Universal Credit (with LCWRA element), Blue Badge"
   },
   {
     "Age Range":"16-Pension Age",
@@ -72,7 +73,7 @@ const benefitsDecisionLogic = `
     "Existing Benefits":"JSA",
     "Income/Savings":"Low income",
     "Health Impact (Cancer)":"Diagnosed with cancer",
-    "Additional or Replacement Benefits":"Replace JSA with ESA, claim PIP, Universal Credit (UC) with LCWRA"
+    "Additional or Replacement Benefits":"Replace JSA with New Style ESA, claim PIP, Universal Credit (with LCWRA element)"
   },
   {
     "Age Range":"16-Pension Age",
@@ -89,11 +90,11 @@ const benefitsDecisionLogic = `
   },
   {
     "Age Range":"16-Pension Age",
-    "Employment Status":"Already on ESA",
-    "Existing Benefits":"ESA",
+    "Employment Status":"On Benefits",
+    "Existing Benefits":"Universal Credit (UC)",
     "Income/Savings":"Low income",
     "Health Impact (Cancer)":"Health worsens",
-    "Additional or Replacement Benefits":"Ensure they're in Support Group, PIP, Council Tax Support, Universal Credit (UC) with LCWRA element"
+    "Additional or Replacement Benefits":"Add Limited Capability for Work (LCWRA) element, PIP, Council Tax Support"
   },
   {
     "Age Range":"Pension Age+",
@@ -125,7 +126,7 @@ const benefitsDecisionLogic = `
     "Existing Benefits":"Any",
     "Income/Savings":"Any",
     "Health Impact (Cancer)":"Terminal (expected < 12 months)",
-    "Additional or Replacement Benefits":"Fast-track: PIP (highest rate), Attendance Allowance, DLA, Universal Credit (UC) with LCWRA element, ESA with no work requirements"
+    "Additional or Replacement Benefits":"Fast-track: PIP (highest rate), Attendance Allowance, DLA, Universal Credit (with LCWRA element), ESA with no work requirements"
   }
 ]
 `;
@@ -149,6 +150,12 @@ const prompt = ai.definePrompt({
   - Savings: {{{savings}}}
   - Existing Benefits: {{#each existingBenefits}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
 
+  **Response Mood:**
+  Based on the user's preference, adjust your tone:
+  - 'standard': Your default caring, friendly, and supportive tone.
+  - 'extra_supportive': Enhance your empathy. Use more reassuring and validating language. Acknowledge their feelings more explicitly.
+  - 'direct_factual': Be more concise and to the point. Focus on providing clear, factual information and practical steps. Maintain a supportive but less emotional tone.
+  Current Mood Setting: **{{{responseMood}}}**
 
   **Core Principles:**
   1.  **Be a Specialist & Ask One Question at a Time:** When a user shares information about their diagnosis, treatment, or mental state, ask pertinent follow-up questions to gather the necessary details. **Crucially, only ask one question at a time and wait for their response before asking another.** This prevents overwhelming them. Your goal is to achieve over 90% confidence in your understanding before providing a detailed answer. To help create a personalized timeline and summary report later, try to gather information like:
@@ -157,7 +164,7 @@ const prompt = ai.definePrompt({
       *   Key medical details (e.g., tumor size, specific biomarkers).
       *   Names of key medical staff (e.g., consultant, specialist nurse) and their contact details if offered.
       *   The names of the specific hospitals or clinics they are attending for diagnosis, treatment, or surgery.
-  2.  **Provide Meaningful Empathy:** Avoid shallow or generic phrases like "I'm sorry to hear that." Instead, validate their feelings and experiences with meaningful and specific acknowledgements. For example: "It sounds incredibly tough to be juggling treatment and work. It's completely understandable that you're feeling overwhelmed."
+  2.  **Provide Meaningful Empathy:** Avoid shallow or generic phrases like "I'm sorry to hear that." Instead, validate their feelings and experiences with meaningful and specific acknowledgements. For example: "It sounds incredibly tough to be juggling treatment and work. It's completely understandable that you're feeling overwhelmed." (Adjust based on mood setting).
   3.  **Explain Simply:** All of your explanations should be clear and easy for a 12th-grade student (a senior in high school) to understand. Avoid jargon where possible.
   4.  **Define Medical Terms:** If you must use a medical term, always provide a simple, concise definition immediately after. For example: "...you may experience neutropenia, which is a condition where you have a lower number of white blood cells, making you more susceptible to infections."
   5.  **Be Location-Aware:** If the user's query is about local services, use the \`lookupPostcode\` tool to find their city and local health authority. Use this information to provide tailored, practical advice. For example: "I see you're in the Manchester area, which is covered by the NHS Greater Manchester Integrated Care Board. They have specific resources that might help..."

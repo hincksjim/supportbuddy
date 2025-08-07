@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useRef, useEffect, Suspense } from "react"
-import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX, PlusCircle, Download, Bookmark, ChevronDown } from "lucide-react"
+import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX, PlusCircle, Download, Bookmark, ChevronDown, Settings } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import Link from "next/link"
 
 interface Message {
   role: "user" | "assistant"
@@ -61,6 +62,7 @@ interface UserData {
   income?: string;
   savings?: string;
   benefits?: string[];
+  responseMood?: string;
 }
 
 const voices = [
@@ -128,6 +130,7 @@ function SupportChatPageContent() {
         dob: userData.dob || "",
         employmentStatus: userData.employmentStatus || "",
         existingBenefits: userData.benefits || [],
+        responseMood: userData.responseMood || 'standard',
         conversationHistory: messages,
         question: finalInput 
       };
@@ -405,12 +408,6 @@ function SupportChatPageContent() {
       }
   }
 
-  const handleVoiceChange = (voice: string) => {
-      setSelectedVoice(voice);
-      localStorage.setItem('ttsVoice', voice);
-      toast({ title: `Voice changed to ${voice}` });
-  }
-
   const handleDownloadMessage = (content: string) => {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -434,12 +431,10 @@ function SupportChatPageContent() {
         date: new Date().toISOString()
     };
     
-    // For now, we'll store this in the conversation summaries key as a generic activity list
-    // A better approach would be a unified activity key, but this works for now.
     const key = `conversationSummaries_${currentUserEmail}`;
     const stored = localStorage.getItem(key);
     const items = stored ? JSON.parse(stored) : [];
-    items.unshift(savedMessage); // Add to the top of the list
+    items.unshift(savedMessage);
     localStorage.setItem(key, JSON.stringify(items));
     
     toast({
@@ -462,27 +457,12 @@ function SupportChatPageContent() {
                     New Chat
                 </Button>
             )}
-            <Button variant="outline" size="sm" onClick={toggleTts} title={isTtsEnabled ? "Disable Text-to-Speech" : "Enable Text-to-Speech"}>
-                {isTtsEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                <span className="sr-only">Toggle Text-to-Speech</span>
+             <Button asChild variant="outline" size="sm">
+                <Link href="/settings">
+                    <Settings className="h-4 w-4" />
+                    <span className="sr-only">Settings</span>
+                </Link>
             </Button>
-             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" disabled={!isTtsEnabled}>
-                        Voice
-                        <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                    <DropdownMenuLabel>Select a Voice</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {voices.map((voice) => (
-                        <DropdownMenuItem key={voice.name} onSelect={() => handleVoiceChange(voice.name)} disabled={selectedVoice === voice.name}>
-                            {voice.name} ({voice.gender})
-                        </DropdownMenuItem>
-                    ))}
-                </DropdownMenuContent>
-            </DropdownMenu>
             <Button variant="outline" size="sm" onClick={handleSaveSummary} disabled={isSaving || isHistoricChat}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save

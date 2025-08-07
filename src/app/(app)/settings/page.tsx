@@ -1,0 +1,207 @@
+
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import { Sun, Moon, Laptop, Bot, Save } from "lucide-react"
+import { useTheme } from "next-themes"
+
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+import { AvatarFemale, AvatarMale } from "@/components/icons"
+import { useToast } from "@/hooks/use-toast"
+
+interface UserData {
+  avatar?: 'male' | 'female';
+  responseMood?: string;
+  [key: string]: any;
+}
+
+const voices = [
+    { name: 'Algenib', gender: 'Male' },
+    { name: 'Enceladus', gender: 'Male' },
+    { name: 'Antares', gender: 'Male' },
+    { name: 'Canopus', gender: 'Female' },
+    { name: 'Callirrhoe', gender: 'Female' },
+    { name: 'Sirius', gender: 'Female' },
+]
+
+export default function SettingsPage() {
+    const { theme, setTheme } = useTheme()
+    const { toast } = useToast()
+    const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+    const [userData, setUserData] = useState<UserData>({});
+    const [selectedVoice, setSelectedVoice] = useState('Algenib');
+    const [isMounted, setIsMounted] = useState(false)
+
+    useEffect(() => {
+        setIsMounted(true)
+        const email = localStorage.getItem("currentUserEmail");
+        if (email) {
+            setCurrentUserEmail(email);
+            const storedData = localStorage.getItem(`userData_${email}`);
+            if (storedData) {
+                setUserData(JSON.parse(storedData));
+            }
+            const voiceSetting = localStorage.getItem('ttsVoice');
+            if (voiceSetting) {
+                setSelectedVoice(voiceSetting);
+            }
+        }
+    }, [])
+
+    const handleSave = () => {
+        if (!currentUserEmail) return;
+
+        localStorage.setItem(`userData_${currentUserEmail}`, JSON.stringify(userData));
+        localStorage.setItem('ttsVoice', selectedVoice);
+        
+        toast({
+            title: "Settings Saved",
+            description: "Your preferences have been updated.",
+        });
+    }
+    
+    const handleAvatarChange = (avatar: 'male' | 'female') => {
+        setUserData(prev => ({...prev, avatar}));
+    }
+    
+    const handleMoodChange = (mood: string) => {
+        setUserData(prev => ({...prev, responseMood: mood}));
+    }
+    
+    if (!isMounted) {
+        return null
+    }
+
+    return (
+        <div className="p-4 md:p-6 space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold font-headline">Settings</h1>
+                    <p className="text-muted-foreground">
+                       Customize your application experience.
+                    </p>
+                </div>
+                 <Button onClick={handleSave}><Save className="mr-2" /> Save Changes</Button>
+            </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Appearance</CardTitle>
+                    <CardDescription>Adjust how the application looks.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                        <Label>Theme</Label>
+                        <RadioGroup
+                            value={theme}
+                            onValueChange={setTheme}
+                            className="grid max-w-md grid-cols-1 gap-4 sm:grid-cols-3"
+                        >
+                            <div>
+                                <RadioGroupItem value="light" id="light" className="peer sr-only" />
+                                <Label
+                                htmlFor="light"
+                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                                >
+                                <Sun className="mb-3 h-6 w-6" />
+                                Light
+                                </Label>
+                            </div>
+                            <div>
+                                <RadioGroupItem value="dark" id="dark" className="peer sr-only" />
+                                <Label
+                                htmlFor="dark"
+                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                                >
+                                <Moon className="mb-3 h-6 w-6" />
+                                Dark
+                                </Label>
+                            </div>
+                            <div>
+                                <RadioGroupItem value="system" id="system" className="peer sr-only" />
+                                <Label
+                                htmlFor="system"
+                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                                >
+                                <Laptop className="mb-3 h-6 w-6" />
+                                System
+                                </Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Support Buddy Persona</CardTitle>
+                    <CardDescription>Choose the avatar and voice for your AI companion.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-8">
+                    <div className="space-y-4">
+                        <Label className="font-medium">Avatar</Label>
+                        <div className="flex justify-around gap-4 max-w-md">
+                            <div
+                                className={cn(
+                                "cursor-pointer rounded-full p-2 transition-all duration-200",
+                                userData.avatar === "female" ? "bg-accent ring-2 ring-primary" : "hover:bg-accent/50"
+                                )}
+                                onClick={() => handleAvatarChange("female")}
+                            >
+                                <AvatarFemale className="h-24 w-24 text-foreground" />
+                            </div>
+                            <div
+                                className={cn(
+                                "cursor-pointer rounded-full p-2 transition-all duration-200",
+                                userData.avatar === "male" ? "bg-accent ring-2 ring-primary" : "hover:bg-accent/50"
+                                )}
+                                onClick={() => handleAvatarChange("male")}
+                            >
+                                <AvatarMale className="h-24 w-24 text-foreground" />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label>Voice</Label>
+                            <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a voice" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {voices.map(v => (
+                                        <SelectItem key={v.name} value={v.name}>{v.name} ({v.gender})</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Response Mood</Label>
+                            <Select value={userData.responseMood || 'standard'} onValueChange={handleMoodChange}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a mood" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="standard">Standard</SelectItem>
+                                    <SelectItem value="extra_supportive">Extra Supportive</SelectItem>
+                                    <SelectItem value="direct_factual">Direct and Factual</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}

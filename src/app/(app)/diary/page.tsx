@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
-import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle } from "lucide-react"
+import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Medication } from "@/app/(app)/medication/page"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -33,6 +33,8 @@ import { checkMedicationDose, MedDose } from "@/ai/flows/check-medication-dose"
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import jsPDF from "jspdf"
+import html2canvas from "html2canvas"
 
 
 // Data structure for meds taken
@@ -472,7 +474,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
 
 function DiaryEntryCard({ entry, onSave, currentUserEmail }: { entry: DiaryEntry; onSave: (entry: DiaryEntry) => void; currentUserEmail: string | null; }) {
     return (
-        <Card>
+        <Card className="diary-entry-card">
             <CardHeader>
                 <div className="flex justify-between items-start">
                     <div>
@@ -565,7 +567,9 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail }: { entry: DiaryEntry
 export default function DiaryPage() {
     const [entries, setEntries] = useState<DiaryEntry[]>([]);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+    const [isDownloading, setIsDownloading] = useState(false);
     const entriesRef = useRef(entries);
+    const diaryContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         entriesRef.current = entries;
@@ -633,17 +637,62 @@ export default function DiaryPage() {
         setEntries(currentEntries);
     };
 
+    const handleDownloadPdf = async () => {
+        const container = diaryContainerRef.current;
+        if (!container) {
+            return;
+        }
+        setIsDownloading(true);
+
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const margin = 10;
+        let yPos = margin;
+
+        // Title Page
+        pdf.setFontSize(28);
+        pdf.text("My Diary Report", pdfWidth / 2, pdfHeight / 2, { align: 'center' });
+
+        const entryCards = Array.from(container.querySelectorAll('.diary-entry-card')) as HTMLElement[];
+
+        for (const card of entryCards) {
+            const canvas = await html2canvas(card, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            const imgWidth = pdfWidth - margin * 2;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            pdf.addPage();
+            yPos = margin;
+
+            if (yPos + imgHeight > pdfHeight - margin) {
+                yPos = margin; // Start on a new page if it doesn't fit
+            }
+
+            pdf.addImage(imgData, 'PNG', margin, yPos, imgWidth, imgHeight);
+            yPos += imgHeight + 10;
+        }
+
+        pdf.save('My-Diary.pdf');
+        setIsDownloading(false);
+    };
+
+
     return (
         <div className="p-4 md:p-6 space-y-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold font-headline">My Diary</h1>
                     <p className="text-muted-foreground">A daily log of your wellness journey.</p>
                 </div>
+                 <Button onClick={handleDownloadPdf} disabled={isDownloading || entries.length === 0} variant="outline">
+                    {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    Download PDF
+                </Button>
             </div>
 
             {entries.length > 0 ? (
-                <div className="space-y-6">
+                <div className="space-y-6" ref={diaryContainerRef}>
                     {entries.map(entry => (
                         <DiaryEntryCard key={entry.id} entry={entry} onSave={handleSaveEntry} currentUserEmail={currentUserEmail} />
                     ))}
@@ -659,3 +708,5 @@ export default function DiaryPage() {
         </div>
     )
 }
+
+    

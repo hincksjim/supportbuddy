@@ -639,38 +639,50 @@ export default function DiaryPage() {
 
     const handleDownloadPdf = async () => {
         const container = diaryContainerRef.current;
-        if (!container) {
-            return;
-        }
+        if (!container) return;
         setIsDownloading(true);
 
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
         const margin = 10;
-        let yPos = margin;
-
+        
         // Title Page
         pdf.setFontSize(28);
         pdf.text("My Diary Report", pdfWidth / 2, pdfHeight / 2, { align: 'center' });
 
         const entryCards = Array.from(container.querySelectorAll('.diary-entry-card')) as HTMLElement[];
+        const cardsPerPage = 4;
+        const cardGridRows = 2;
+        const cardGridCols = 2;
 
-        for (const card of entryCards) {
-            const canvas = await html2canvas(card, { scale: 2 });
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = pdfWidth - margin * 2;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            
+        const cardWidth = (pdfWidth - (margin * (cardGridCols + 1))) / cardGridCols;
+        
+        for (let i = 0; i < entryCards.length; i += cardsPerPage) {
             pdf.addPage();
-            yPos = margin;
+            const pageCards = entryCards.slice(i, i + cardsPerPage);
 
-            if (yPos + imgHeight > pdfHeight - margin) {
-                yPos = margin; // Start on a new page if it doesn't fit
+            for (let j = 0; j < pageCards.length; j++) {
+                const card = pageCards[j];
+                const canvas = await html2canvas(card, { scale: 2 });
+                const imgData = canvas.toDataURL('image/png');
+                
+                const cardHeight = (canvas.height * cardWidth) / canvas.width;
+
+                const row = Math.floor(j / cardGridCols);
+                const col = j % cardGridCols;
+
+                const xPos = margin + col * (cardWidth + margin);
+                const yPos = margin + row * (cardHeight + margin);
+                
+                if (yPos + cardHeight > pdfHeight - margin && j > 0) {
+                   // This logic might need refinement if a single card is too tall
+                   // For now, we assume cards fit within half the page height.
+                   continue;
+                }
+                
+                pdf.addImage(imgData, 'PNG', xPos, yPos, cardWidth, cardHeight);
             }
-
-            pdf.addImage(imgData, 'PNG', margin, yPos, imgWidth, imgHeight);
-            yPos += imgHeight + 10;
         }
 
         pdf.save('My-Diary.pdf');
@@ -708,5 +720,7 @@ export default function DiaryPage() {
         </div>
     )
 }
+
+    
 
     

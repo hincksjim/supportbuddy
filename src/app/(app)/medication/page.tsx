@@ -23,9 +23,11 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { PlusCircle, Loader2, Pill, Trash2, Download } from "lucide-react"
+import { PlusCircle, Loader2, Pill, Trash2, Download, Bot, AlertCircle } from "lucide-react"
 import jsPDF from "jspdf"
 import autoTable from 'jspdf-autotable'
+import { analyzeMedication } from "@/ai/flows/analyze-medication"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 
 // Data structure for a medication entry
@@ -36,9 +38,14 @@ export interface Medication {
   dose: string; // e.g., 'One tablet twice a day'
   issuedBy: string; // e.g., 'Dr. Smith'
   issuedDate: string; // ISO date string
+  summary?: string;
+  interactionWarning?: string;
+  sideEffects?: string;
+  disclaimer?: string;
+  isAnalyzing?: boolean;
 }
 
-function MedicationDialog({ onSave, existingMedication }: { onSave: (med: Medication) => void; existingMedication?: Medication | null; }) {
+function MedicationDialog({ onSave, existingMedication }: { onSave: (med: Medication, isNew: boolean) => void; existingMedication?: Medication | null; }) {
     const [name, setName] = useState('');
     const [strength, setStrength] = useState('');
     const [dose, setDose] = useState('');
@@ -46,6 +53,8 @@ function MedicationDialog({ onSave, existingMedication }: { onSave: (med: Medica
     const [issuedDate, setIssuedDate] = useState(new Date().toISOString().split('T')[0]);
     const [isSaving, setIsSaving] = useState(false);
     const [id, setId] = useState(new Date().toISOString());
+
+    const isNew = !existingMedication;
 
     const resetForm = () => {
         setId(new Date().toISOString());
@@ -78,8 +87,9 @@ function MedicationDialog({ onSave, existingMedication }: { onSave: (med: Medica
             dose,
             issuedBy,
             issuedDate: new Date(issuedDate).toISOString(),
+            isAnalyzing: isNew, // Only set analyzing flag for new meds
         };
-        onSave(medication);
+        onSave(medication, isNew);
         setIsSaving(false);
         document.getElementById(`close-med-dialog-${id}`)?.click();
     };
@@ -153,7 +163,7 @@ function MedicationDialog({ onSave, existingMedication }: { onSave: (med: Medica
     )
 }
 
-function MedicationCard({ medication, onSave, onDelete }: { medication: Medication; onSave: (med: Medication) => void; onDelete: (id: string) => void; }) {
+function MedicationCard({ medication, onSave, onDelete }: { medication: Medication; onSave: (med: Medication, isNew: boolean) => void; onDelete: (id: string) => void; }) {
     return (
         <Card>
             <CardHeader>
@@ -184,6 +194,40 @@ function MedicationCard({ medication, onSave, onDelete }: { medication: Medicati
                         <h4 className="font-semibold text-sm">Issued By</h4>
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{medication.issuedBy}</p>
                     </div>
+                )}
+
+                {/* AI Analysis Section */}
+                {medication.isAnalyzing ? (
+                     <div className="flex items-center gap-2 text-muted-foreground pt-4">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <p>Generating AI summary...</p>
+                    </div>
+                ) : (
+                    medication.summary && (
+                        <div className="space-y-4 pt-4 border-t mt-4">
+                            <h4 className="font-semibold text-sm flex items-center gap-2"><Bot className="w-4 h-4 text-primary"/> AI Summary</h4>
+                            <p className="text-sm text-muted-foreground">{medication.summary}</p>
+                            
+                            {medication.interactionWarning && (
+                                 <Alert variant="destructive">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertTitle>Potential Interaction</AlertTitle>
+                                    <AlertDescription>{medication.interactionWarning}</AlertDescription>
+                                </Alert>
+                            )}
+                            
+                            {medication.sideEffects && (
+                                <div className="space-y-1">
+                                    <h5 className="font-semibold text-xs">Common Side Effects</h5>
+                                    <p className="text-xs text-muted-foreground whitespace-pre-wrap">{medication.sideEffects}</p>
+                                </div>
+                            )}
+
+                             {medication.disclaimer && (
+                                <p className="text-xs text-muted-foreground/80 italic">{medication.disclaimer}</p>
+                            )}
+                        </div>
+                    )
                 )}
             </CardContent>
              <CardFooter className="flex justify-between">
@@ -219,7 +263,7 @@ export default function MedicationPage() {
             if (storedMeds) {
                 const parsedMeds: Medication[] = JSON.parse(storedMeds);
                 parsedMeds.sort((a, b) => new Date(b.issuedDate).getTime() - new Date(a.issuedDate).getTime());
-                setMedications(parsedMeds);
+                setMedications(parsedMeds.map(m => ({ ...m, isAnalyzing: false })));
             } else {
                 setMedications([]);
             }
@@ -228,10 +272,10 @@ export default function MedicationPage() {
         }
     }
     
-    const saveMedications = () => {
+    const saveMedications = (meds: Medication[]) => {
         if (!currentUserEmail) return;
         try {
-            localStorage.setItem(`medications_${currentUserEmail}`, JSON.stringify(medicationsRef.current));
+            localStorage.setItem(`medications_${currentUserEmail}`, JSON.stringify(meds));
         } catch (error) {
             console.error("Could not save medications to localStorage", error);
         }
@@ -244,32 +288,81 @@ export default function MedicationPage() {
         
         return () => {
             if (currentUserEmail) {
-                saveMedications();
+                saveMedications(medicationsRef.current);
             }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUserEmail]);
 
-    const handleSaveMedication = (medication: Medication) => {
+    const handleSaveMedication = (medication: Medication, isNew: boolean) => {
         if (!currentUserEmail) return;
         
-        const currentMeds = [...medications];
-        const existingIndex = currentMeds.findIndex(m => m.id === medication.id);
+        setMedications(prevMeds => {
+            const currentMeds = [...prevMeds];
+            const existingIndex = currentMeds.findIndex(m => m.id === medication.id);
 
-        if (existingIndex > -1) {
-            currentMeds[existingIndex] = medication;
-        } else {
-            currentMeds.push(medication);
+            if (existingIndex > -1) {
+                currentMeds[existingIndex] = medication;
+            } else {
+                currentMeds.unshift(medication);
+            }
+            
+            currentMeds.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            saveMedications(currentMeds);
+            return currentMeds;
+        });
+
+        if (isNew) {
+            triggerMedicationAnalysis(medication.id);
         }
-        
-        currentMeds.sort((a, b) => new Date(b.issuedDate).getTime() - new Date(a.issuedDate).getTime());
-        setMedications(currentMeds);
     };
+
+    const triggerMedicationAnalysis = async (medicationId: string) => {
+        const currentMeds = [...medicationsRef.current];
+        const medIndex = currentMeds.findIndex(m => m.id === medicationId);
+        if (medIndex === -1) return;
+
+        const medicationToAnalyze = currentMeds[medIndex];
+        const existingMedications = currentMeds
+            .filter(m => m.id !== medicationId)
+            .map(m => m.name);
+
+        try {
+            const result = await analyzeMedication({
+                medicationName: medicationToAnalyze.name,
+                existingMedications,
+            });
+
+            setMedications(prevMeds => {
+                const updatedMeds = prevMeds.map(m => {
+                    if (m.id === medicationId) {
+                        return {
+                            ...m,
+                            summary: result.summary,
+                            interactionWarning: result.interactionWarning,
+                            sideEffects: result.sideEffects,
+                            disclaimer: result.disclaimer,
+                            isAnalyzing: false,
+                        };
+                    }
+                    return m;
+                });
+                saveMedications(updatedMeds);
+                return updatedMeds;
+            });
+        } catch (error) {
+            console.error("Failed to analyze medication:", error);
+            // Update the UI to remove the loading state and show an error if desired
+             setMedications(prevMeds => prevMeds.map(m => m.id === medicationId ? { ...m, isAnalyzing: false } : m));
+        }
+    };
+
 
     const handleDeleteMedication = (id: string) => {
         if (!currentUserEmail) return;
         const updatedMeds = medications.filter(m => m.id !== id);
         setMedications(updatedMeds);
+        saveMedications(updatedMeds);
     }
 
     const handleDownloadPdf = async () => {

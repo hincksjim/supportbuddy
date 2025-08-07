@@ -70,8 +70,12 @@ const benefitsDecisionLogic = `
     "Rule": "Age Range 16-Pension Age, Employment Status Employed or Self-employed or Unemployed or On Benefits"
   },
   {
-    "Benefit": "Universal Credit (UC)", "Who its for": "A payment to help with your living costs. You may be able to get it if you’re on a low income, out of work or you cannot work. If you have a health condition, you may get an extra amount (the LCWRA element).", "URL": "https://www.gov.uk/universal-credit",
+    "Benefit": "Universal Credit (UC)", "Who its for": "A payment to help with your living costs. You may be able to get it if you’re on a low income, out of work or you cannot work.", "URL": "https://www.gov.uk/universal-credit",
     "Rule": "Age Range 16-Pension Age, Income/Savings Low income/savings < £16K or Health Impact (Cancer) any"
+  },
+  {
+    "Benefit": "Universal Credit (with LCWRA element)", "Who its for": "If you have a health condition that limits your ability to work, you can get an extra amount of Universal Credit. This is called the Limited Capability for Work and Work-Related Activity (LCWRA) element.", "URL": "https://www.understandinguniversalcredit.gov.uk/new-to-universal-credit/health-conditions-or-disabilities/",
+    "Rule": "Age Range 16-Pension Age, Health Impact (Cancer) any"
   },
   {
     "Benefit": "Attendance Allowance", "Who its for": "For people over State Pension age who have a disability and need someone to help look after them.", "URL": "https://www.gov.uk/attendance-allowance",

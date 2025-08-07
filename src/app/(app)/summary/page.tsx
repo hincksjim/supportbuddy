@@ -250,48 +250,51 @@ export default function SummaryPage() {
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
-        const margin = 15;
+        const margin = 10;
+        let currentY = margin;
+        
+        const addCanvasToPdf = async (canvas: HTMLCanvasElement, pdfInstance: jsPDF, yPosition: number) => {
+            const imgData = canvas.toDataURL('image/png', 1.0);
+            const imgProps = pdfInstance.getImageProperties(imgData);
+            const pdfImageWidth = pdfWidth - 2 * margin;
+            const pdfImageHeight = (imgProps.height * pdfImageWidth) / imgProps.width;
+            
+            let heightLeft = pdfImageHeight;
+            let position = yPosition;
 
-        // --- Process Charts ---
-        const chartCanvas = await html2canvas(chartsElement, { scale: 1.5, useCORS: true, logging: false });
-        const chartImgData = chartCanvas.toDataURL('image/png');
-        const chartImgProps = pdf.getImageProperties(chartImgData);
-        const chartPdfWidth = pdfWidth - 2 * margin;
-        const chartPdfHeight = (chartImgProps.height * chartPdfWidth) / chartImgProps.width;
+            // Initial add
+            if (yPosition + heightLeft > pdfHeight - margin) {
+                pdfInstance.addPage();
+                position = margin;
+            }
+            pdfInstance.addImage(imgData, 'PNG', margin, position, pdfImageWidth, pdfImageHeight);
+            heightLeft -= (pdfHeight - position - margin);
 
-        let chartHeightLeft = chartPdfHeight;
-        let chartPosition = margin;
-
-        pdf.addImage(chartImgData, 'PNG', margin, chartPosition, chartPdfWidth, chartPdfHeight);
-        chartHeightLeft -= (pdfHeight - 2 * margin);
-
-        while (chartHeightLeft > 0) {
-            pdf.addPage();
-            chartPosition = -chartHeightLeft + margin;
-            pdf.addImage(chartImgData, 'PNG', margin, chartPosition, chartPdfWidth, chartPdfHeight);
-            chartHeightLeft -= (pdfHeight - 2 * margin);
+            // Add more pages if content overflows
+            while (heightLeft > 0) {
+                pdfInstance.addPage();
+                position = - (pdfImageHeight - heightLeft);
+                pdfInstance.addImage(imgData, 'PNG', margin, position, pdfImageWidth, pdfImageHeight);
+                heightLeft -= (pdfHeight - margin);
+            }
+             return yPosition + pdfImageHeight;
         }
 
-        // --- Process Report ---
-        pdf.addPage();
-        const reportCanvas = await html2canvas(reportElement, { scale: 1.5, useCORS: true, logging: false });
-        const reportImgData = reportCanvas.toDataURL('image/png');
-        const reportImgProps = pdf.getImageProperties(reportImgData);
-        const reportPdfWidth = pdfWidth - 2 * margin;
-        const reportPdfHeight = (reportImgProps.height * reportPdfWidth) / reportImgProps.width;
 
-        let reportHeightLeft = reportPdfHeight;
-        let reportPosition = margin;
+        // 1. Process Charts
+        const chartCanvas = await html2canvas(chartsElement, { scale: 2, useCORS: true, logging: false });
+        let nextY = await addCanvasToPdf(chartCanvas, pdf, currentY);
 
-        pdf.addImage(reportImgData, 'PNG', margin, reportPosition, reportPdfWidth, reportPdfHeight);
-        reportHeightLeft -= (pdfHeight - 2 * margin);
-
-        while (reportHeightLeft > 0) {
+        // 2. Process Report
+        const reportCanvas = await html2canvas(reportElement, { scale: 2, useCORS: true, logging: false });
+        if (nextY + 10 > pdfHeight - margin) { // Add space before report
             pdf.addPage();
-            reportPosition = -reportHeightLeft + margin;
-            pdf.addImage(reportImgData, 'PNG', margin, reportPosition, reportPdfWidth, reportPdfHeight);
-            reportHeightLeft -= (pdfHeight - 2 * margin);
+            currentY = margin;
+        } else {
+            currentY = nextY + 10;
         }
+        await addCanvasToPdf(reportCanvas, pdf, currentY);
+
 
         pdf.save("Personal-Summary-Report.pdf");
 
@@ -328,115 +331,117 @@ export default function SummaryPage() {
       </div>
 
        <div className="space-y-8">
-         <Card ref={chartsRef}>
-            <CardHeader>
-                <div className="flex items-center justify-between">
-                     <div>
-                        <CardTitle>Wellness Trends</CardTitle>
-                        <CardDescription>A visual overview of your diary entries.</CardDescription>
+         <div ref={chartsRef}>
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle>Wellness Trends</CardTitle>
+                            <CardDescription>A visual overview of your diary entries.</CardDescription>
+                        </div>
+                        <Button onClick={handleRefreshCharts} disabled={isChartLoading} variant="outline" size="sm">
+                            {isChartLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                            Refresh Charts
+                        </Button>
                     </div>
-                     <Button onClick={handleRefreshCharts} disabled={isChartLoading} variant="outline" size="sm">
-                        {isChartLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                        Refresh Charts
-                    </Button>
-                </div>
-            </CardHeader>
-            <CardContent>
-                {diaryEntries.length > 1 ? (
-                    <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base">Overall Mood Trends</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <DiaryChart data={diaryEntries} chartType="mood" />
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base">Treatment Mood Trends</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <DiaryChart data={diaryEntries} chartType="treatment" />
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base">Diagnosis Mood Trends</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <DiaryChart data={diaryEntries} chartType="diagnosis" />
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base">Pain Trends</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <DiaryChart data={diaryEntries} chartType="pain" />
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base">Weight Trends</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <DiaryChart data={diaryEntries} chartType="weight" />
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base">Sleep Trends</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <DiaryChart data={diaryEntries} chartType="sleep" />
-                            </CardContent>
-                        </Card>
-                    </div>
-                ) : (
-                    <div className="text-center py-10 rounded-lg border-2 border-dashed">
-                        <h3 className="text-lg font-semibold">Not Enough Data for Charts</h3>
-                        <p className="text-muted-foreground mt-1">You need at least two diary entries to see your wellness trends.</p>
+                </CardHeader>
+                <CardContent>
+                    {diaryEntries.length > 1 ? (
+                        <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">Overall Mood Trends</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={diaryEntries} chartType="mood" />
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">Treatment Mood Trends</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={diaryEntries} chartType="treatment" />
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">Diagnosis Mood Trends</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={diaryEntries} chartType="diagnosis" />
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">Pain Trends</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={diaryEntries} chartType="pain" />
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">Weight Trends</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={diaryEntries} chartType="weight" />
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">Sleep Trends</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={diaryEntries} chartType="sleep" />
+                                </CardContent>
+                            </Card>
+                        </div>
+                    ) : (
+                        <div className="text-center py-10 rounded-lg border-2 border-dashed">
+                            <h3 className="text-lg font-semibold">Not Enough Data for Charts</h3>
+                            <p className="text-muted-foreground mt-1">You need at least two diary entries to see your wellness trends.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+         </div>
+      
+        <div ref={reportRef}>
+            <Card>
+                <CardHeader>
+                    <CardTitle>AI Generated Report</CardTitle>
+                    <CardDescription>This report is generated from your conversations, documents, and timeline.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                {isLoading && !report && (
+                    <div className="flex flex-col items-center justify-center py-20">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                    <p className="mt-4 text-muted-foreground">Generating your personal report...</p>
                     </div>
                 )}
-            </CardContent>
-         </Card>
-      
-        <Card ref={reportRef}>
-            <CardHeader>
-                <CardTitle>AI Generated Report</CardTitle>
-                <CardDescription>This report is generated from your conversations, documents, and timeline.</CardDescription>
-            </CardHeader>
-            <CardContent>
-            {isLoading && !report && (
-                <div className="flex flex-col items-center justify-center py-20">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="mt-4 text-muted-foreground">Generating your personal report...</p>
-                </div>
-            )}
-            {error && !isLoading && (
-                <Alert variant="destructive" className="my-4">
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            )}
-            {!isLoading && !error && !report && (
-                <div className="text-center py-20 rounded-lg border-2 border-dashed">
-                <h2 className="text-xl font-semibold">No report generated yet</h2>
-                <p className="text-muted-foreground mt-2">Have a chat or analyze a document, then click "Refresh Report".</p>
-                </div>
-            )}
-            {report && (
-                <div
-                    className="prose dark:prose-invert max-w-none text-foreground"
-                    dangerouslySetInnerHTML={{ __html: reportHtml as string }}
-                />
-            )}
-            </CardContent>
-        </Card>
+                {error && !isLoading && (
+                    <Alert variant="destructive" className="my-4">
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                )}
+                {!isLoading && !error && !report && (
+                    <div className="text-center py-20 rounded-lg border-2 border-dashed">
+                    <h2 className="text-xl font-semibold">No report generated yet</h2>
+                    <p className="text-muted-foreground mt-2">Have a chat or analyze a document, then click "Refresh Report".</p>
+                    </div>
+                )}
+                {report && (
+                    <div
+                        className="prose dark:prose-invert max-w-none text-foreground"
+                        dangerouslySetInnerHTML={{ __html: reportHtml as string }}
+                    />
+                )}
+                </CardContent>
+            </Card>
+        </div>
        </div>
     </div>
   )
 }
-
-    

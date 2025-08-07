@@ -297,28 +297,26 @@ export default function MedicationPage() {
     const handleSaveMedication = (medication: Medication, isNew: boolean) => {
         if (!currentUserEmail) return;
         
-        setMedications(prevMeds => {
-            const currentMeds = [...prevMeds];
-            const existingIndex = currentMeds.findIndex(m => m.id === medication.id);
+        let updatedMeds: Medication[];
+        const existingIndex = medications.findIndex(m => m.id === medication.id);
 
-            if (existingIndex > -1) {
-                currentMeds[existingIndex] = medication;
-            } else {
-                currentMeds.unshift(medication);
-            }
-            
-            currentMeds.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            saveMedications(currentMeds);
-            return currentMeds;
-        });
+        if (existingIndex > -1) {
+            updatedMeds = [...medications];
+            updatedMeds[existingIndex] = medication;
+        } else {
+            updatedMeds = [medication, ...medications];
+        }
+        
+        updatedMeds.sort((a, b) => new Date(b.issuedDate).getTime() - new Date(a.issuedDate).getTime());
+        setMedications(updatedMeds);
+        saveMedications(updatedMeds);
 
         if (isNew) {
-            triggerMedicationAnalysis(medication.id);
+            triggerMedicationAnalysis(medication.id, updatedMeds);
         }
     };
 
-    const triggerMedicationAnalysis = async (medicationId: string) => {
-        const currentMeds = [...medicationsRef.current];
+    const triggerMedicationAnalysis = async (medicationId: string, currentMeds: Medication[]) => {
         const medIndex = currentMeds.findIndex(m => m.id === medicationId);
         if (medIndex === -1) return;
 
@@ -353,7 +351,11 @@ export default function MedicationPage() {
         } catch (error) {
             console.error("Failed to analyze medication:", error);
             // Update the UI to remove the loading state and show an error if desired
-             setMedications(prevMeds => prevMeds.map(m => m.id === medicationId ? { ...m, isAnalyzing: false } : m));
+             setMedications(prevMeds => {
+                const updatedMeds = prevMeds.map(m => m.id === medicationId ? { ...m, isAnalyzing: false } : m)
+                saveMedications(updatedMeds);
+                return updatedMeds;
+             });
         }
     };
 
@@ -440,3 +442,5 @@ export default function MedicationPage() {
         </div>
     )
 }
+
+    

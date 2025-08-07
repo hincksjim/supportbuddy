@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useRef, useEffect, Suspense } from "react"
-import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX } from "lucide-react"
+import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX, PlusCircle } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { Button } from "@/components/ui/button"

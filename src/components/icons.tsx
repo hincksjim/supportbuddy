@@ -1,3 +1,4 @@
+
 import type { SVGProps } from "react"
 
 export function Logo(props: SVGProps<SVGSVGElement>) {
@@ -64,7 +65,7 @@ export function AvatarFemale(props: SVGProps<SVGSVGElement>) {
   )
 }
 
-// --- Detailed Avatars ---
+// --- Bauhaus-style Avatars ---
 
 export function AvatarFemale20s(props: SVGProps<SVGSVGElement>) {
     return (
@@ -73,13 +74,13 @@ export function AvatarFemale20s(props: SVGProps<SVGSVGElement>) {
                 <rect width="36" height="36" rx="72" fill="#FFFFFF"></rect>
             </mask>
             <g mask="url(#mask__beam)">
-                <rect width="36" height="36" fill="#f0d1b3"></rect>
-                <rect x="0" y="0" width="36" height="36" transform="translate(0 0) rotate(324 18 18) scale(1.2)" fill="#ffc8a0" rx="36"></rect>
-                <g transform="translate(-4 -1) rotate(4 18 18)">
+                <rect width="36" height="36" fill="#edd4c0"></rect>
+                <rect x="0" y="0" width="36" height="36" transform="translate(0 0) rotate(190 18 18) scale(1.1)" fill="#7a543d" rx="36"></rect>
+                <g transform="translate(-2 0) rotate(10 18 18)">
                     <path d="M15 19c2 1 4 1 6 0" stroke="#000000" fill="none" strokeLinecap="round"></path>
                     <rect x="13" y="14" width="3.5" height="3.5" rx="2" stroke="none" fill="#000000"></rect>
                     <rect x="20" y="14" width="3.5" height="3.5" rx="2" stroke="none" fill="#000000"></rect>
-                    <path d="M11,26 a1,0.5 0 0,0 14,0" fill="#000000"></path>
+                     <path d="M13 25 C14 26, 22 26, 23 25" stroke="#000000" fill="none" strokeWidth="1" strokeLinecap="round" />
                 </g>
             </g>
         </svg>
@@ -114,12 +115,12 @@ export function AvatarFemale40s(props: SVGProps<SVGSVGElement>) {
             </mask>
             <g mask="url(#mask__beam)">
                 <rect width="36" height="36" fill="#edd4c0"></rect>
-                <rect x="0" y="0" width="36" height="36" transform="translate(0 0) rotate(190 18 18) scale(1.1)" fill="#7a543d" rx="36"></rect>
-                <g transform="translate(-2 0) rotate(10 18 18)">
-                    <path d="M15 19c2 1 4 1 6 0" stroke="#000000" fill="none" strokeLinecap="round"></path>
+                <rect x="0" y="0" width="36" height="36" transform="translate(-4 -1) rotate(180 18 18) scale(1.2)" fill="#7a543d" rx="36"></rect>
+                <g transform="translate(3 -1) rotate(9 18 18)">
+                    <path d="M14 19c1.5 1 4.5 1 6 0" stroke="#000000" fill="none" strokeLinecap="round"></path>
                     <rect x="13" y="14" width="3.5" height="3.5" rx="2" stroke="none" fill="#000000"></rect>
                     <rect x="20" y="14" width="3.5" height="3.5" rx="2" stroke="none" fill="#000000"></rect>
-                     <path d="M13 25 C14 26, 22 26, 23 25" stroke="#000000" fill="none" strokeWidth="1" strokeLinecap="round" />
+                    <path d="M13,25 a1,0.5 0 0,0 10,0" fill="#000000"></path>
                 </g>
             </g>
         </svg>
@@ -224,3 +225,5 @@ export function AvatarMale60s(props: SVGProps<SVGSVGElement>) {
         </svg>
     );
 }
+
+    

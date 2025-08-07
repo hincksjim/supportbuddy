@@ -57,6 +57,7 @@ function SupportChatPageContent() {
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
   const [isHistoricChat, setIsHistoricChat] = useState(false);
   const [isTtsEnabled, setIsTtsEnabled] = useState(true);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   
   const router = useRouter()
   const searchParams = useSearchParams();
@@ -144,30 +145,46 @@ function SupportChatPageContent() {
     setIsSaving(true);
     try {
       const result = await generateConversationSummary({ conversationHistory: messages });
-      
-      const newSummaryId = new Date().toISOString();
+      const summaryId = currentConversationId || new Date().toISOString();
+      if (!currentConversationId) {
+        setCurrentConversationId(summaryId);
+      }
 
-      // Save the summary
+      // --- Save/Update Summary ---
       const summariesKey = `conversationSummaries_${currentUserEmail}`;
       const storedSummaries = localStorage.getItem(summariesKey);
       const summaries: ConversationSummary[] = storedSummaries ? JSON.parse(storedSummaries) : [];
+      
+      const existingSummaryIndex = summaries.findIndex(s => s.id === summaryId);
       const newSummary: ConversationSummary = {
-        id: newSummaryId,
+        id: summaryId,
         date: new Date().toISOString(),
         ...result,
       };
-      summaries.unshift(newSummary);
+
+      if (existingSummaryIndex > -1) {
+        summaries[existingSummaryIndex] = newSummary;
+      } else {
+        summaries.unshift(newSummary);
+      }
       localStorage.setItem(summariesKey, JSON.stringify(summaries));
 
-      // Save the conversation history with the same ID
+      // --- Save/Update Full Conversation ---
       const allConversationsKey = `allConversations_${currentUserEmail}`;
       const storedConversations = localStorage.getItem(allConversationsKey);
       const allConversations: StoredConversation[] = storedConversations ? JSON.parse(storedConversations) : [];
+      
+      const existingConversationIndex = allConversations.findIndex(c => c.id === summaryId);
       const newConversation: StoredConversation = {
-        id: newSummaryId,
+        id: summaryId,
         messages: messages
       };
-      allConversations.push(newConversation);
+
+      if (existingConversationIndex > -1) {
+          allConversations[existingConversationIndex] = newConversation;
+      } else {
+          allConversations.push(newConversation);
+      }
       localStorage.setItem(allConversationsKey, JSON.stringify(allConversations));
 
       toast({
@@ -244,6 +261,7 @@ function SupportChatPageContent() {
 
     if (conversationId) {
         setIsHistoricChat(true);
+        setCurrentConversationId(conversationId);
         const allConversationsStr = localStorage.getItem(`allConversations_${currentUserEmail}`);
         if (allConversationsStr) {
             try {
@@ -323,7 +341,10 @@ function SupportChatPageContent() {
   const handleNewChat = () => {
     if (currentUserEmail) {
         if (messages.length > 1) {
-             localStorage.setItem(`conversationHistory_${currentUserEmail}`, JSON.stringify(messages));
+             // Save current chat before starting a new one, if not already saved
+             if (!isHistoricChat) {
+                handleSaveSummary();
+             }
         }
         localStorage.removeItem(`conversationHistory_${currentUserEmail}`);
     }
@@ -357,10 +378,15 @@ function SupportChatPageContent() {
   return (
     <div className="relative flex h-full max-h-screen flex-col">
        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-            {isHistoricChat && (
+            {isHistoricChat ? (
                 <Button variant="outline" size="sm" onClick={handleNewChat}>
                     <Home className="mr-2 h-4 w-4" />
                     Current Chat
+                </Button>
+            ) : (
+                 <Button variant="outline" size="sm" onClick={handleNewChat}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    New Chat
                 </Button>
             )}
             <Button variant="outline" size="sm" onClick={toggleTts} title={isTtsEnabled ? "Disable Text-to-Speech" : "Enable Text-to-Speech"}>

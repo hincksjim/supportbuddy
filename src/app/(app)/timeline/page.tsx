@@ -38,11 +38,13 @@ export default function TimelinePage() {
   const [openAccordionItems, setOpenAccordionItems] = useState<string[]>([]);
   const timelineDataRef = useRef(timelineData);
   const timelineContainerRef = useRef<HTMLDivElement>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const originalOpenItemsRef = useRef<string[]>([]);
 
 
   useEffect(() => {
     timelineDataRef.current = timelineData;
-    if (timelineData && openAccordionItems.length === 0) {
+    if (timelineData && !isGeneratingPdf && openAccordionItems.length === 0) {
         // Automatically open stages that are not fully completed on initial load
         const activeStages = timelineData.timeline
             .filter(stage => stage.steps.some(step => step.status !== 'completed'))
@@ -147,70 +149,77 @@ export default function TimelinePage() {
       setTimelineData(newTimelineData);
       // Changes are saved on component unmount
   }
-  
-  const handleDownloadPdf = async () => {
-    const container = timelineContainerRef.current;
-    if (!container || !timelineData) {
-        return;
-    }
-    setIsDownloading(true);
 
-    const originalOpenItems = openAccordionItems;
-    // Force all accordion items to be open for capture
-    setOpenAccordionItems(timelineData.timeline.map(stage => stage.title));
-    
-    // Allow time for the DOM to update with all accordions open
-    setTimeout(async () => {
+  useEffect(() => {
+    if (isGeneratingPdf) {
+      const generate = async () => {
+        const container = timelineContainerRef.current;
+        if (!container || !timelineData) {
+          setIsGeneratingPdf(false);
+          setIsDownloading(false);
+          return;
+        }
+
         try {
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const margin = 10;
-            let yPos = margin;
+          const pdf = new jsPDF('p', 'mm', 'a4');
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          const margin = 10;
+          let yPos = margin;
 
-            // Add a title page
-            pdf.setFontSize(22);
-            pdf.text("My Treatment Timeline", pdfWidth / 2, pdfHeight / 2, { align: 'center' });
+          pdf.setFontSize(22);
+          pdf.text("My Treatment Timeline", pdfWidth / 2, pdfHeight / 2, { align: 'center' });
 
+          const stageElements = Array.from(container.querySelectorAll('.timeline-stage-card')) as HTMLElement[];
 
-            const stageElements = Array.from(container.querySelectorAll('.timeline-stage-card')) as HTMLElement[];
+          for (const element of stageElements) {
+            const canvas = await html2canvas(element, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = imgWidth / imgHeight;
 
-            for (const element of stageElements) {
-                const canvas = await html2canvas(element, { scale: 2 });
-                const imgData = canvas.toDataURL('image/png');
-                const imgWidth = canvas.width;
-                const imgHeight = canvas.height;
-                const ratio = imgWidth / imgHeight;
-
-                const finalImgWidth = pdfWidth - margin * 2;
-                const finalImgHeight = finalImgWidth / ratio;
-                
-                // Add a new page if the content doesn't fit
-                if (yPos + finalImgHeight > pdfHeight - margin) {
-                    pdf.addPage();
-                    yPos = margin;
-                } else if (yPos === margin) { // It's not the first content page
-                     pdf.addPage();
-                     yPos = margin;
-                }
-
-
-                pdf.addImage(imgData, 'PNG', margin, yPos, finalImgWidth, finalImgHeight);
-                yPos += finalImgHeight + 5; 
-            }
+            const finalImgWidth = pdfWidth - margin * 2;
+            const finalImgHeight = finalImgWidth / ratio;
             
-            pdf.save('My-Treatment-Timeline.pdf');
+            if (yPos === margin) { 
+                 pdf.addPage();
+                 yPos = margin;
+            } else if (yPos + finalImgHeight > pdfHeight - margin) {
+                pdf.addPage();
+                yPos = margin;
+            }
+
+            pdf.addImage(imgData, 'PNG', margin, yPos, finalImgWidth, finalImgHeight);
+            yPos += finalImgHeight + 5; 
+          }
+            
+          pdf.save('My-Treatment-Timeline.pdf');
 
         } catch (err) {
-            console.error("PDF generation failed:", err);
-            setError("Sorry, there was an error creating the PDF.");
+          console.error("PDF generation failed:", err);
+          setError("Sorry, there was an error creating the PDF.");
         } finally {
-            // Restore the original view
-            setOpenAccordionItems(originalOpenItems);
-            setIsDownloading(false);
+          setIsGeneratingPdf(false);
+          setIsDownloading(false);
+          setOpenAccordionItems(originalOpenItemsRef.current);
         }
-    }, 500); // 500ms delay to ensure DOM is updated
-};
+      };
+
+      // Allow a tick for the DOM to update with expanded accordions
+      const timer = setTimeout(generate, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isGeneratingPdf, timelineData]);
+
+  const startPdfGeneration = () => {
+    if (!timelineData) return;
+    setIsDownloading(true);
+    originalOpenItemsRef.current = openAccordionItems;
+    setOpenAccordionItems(timelineData.timeline.map(stage => stage.title));
+    setIsGeneratingPdf(true);
+  };
+
 
   return (
     <div className="p-4 md:p-6 space-y-8">
@@ -226,7 +235,7 @@ export default function TimelinePage() {
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
                 {timelineData ? 'Re-generate Timeline' : 'Generate Timeline'}
             </Button>
-             <Button onClick={handleDownloadPdf} disabled={isDownloading || !timelineData} variant="outline">
+             <Button onClick={startPdfGeneration} disabled={isDownloading || !timelineData} variant="outline">
                 {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                 Download PDF
             </Button>

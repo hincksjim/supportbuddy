@@ -17,12 +17,16 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { AvatarFemale, AvatarMale } from "@/components/icons"
+import { 
+    AvatarFemale, AvatarMale,
+    AvatarFemale20s, AvatarFemale30s, AvatarFemale40s, AvatarFemale60s,
+    AvatarMale20s, AvatarMale30s, AvatarMale40s, AvatarMale60s
+} from "@/components/icons"
 import { useToast } from "@/hooks/use-toast"
 import { textToSpeech } from "@/ai/flows/text-to-speech"
 
 interface UserData {
-  avatar?: 'male' | 'female';
+  avatar?: string;
   responseMood?: string;
   [key: string]: any;
 }
@@ -38,6 +42,17 @@ const voices = [
     { name: 'Aoede', gender: 'Female' },
     { name: 'Autonoe', gender: 'Female' },
     { name: 'Schedar', gender: 'Female' },
+]
+
+const avatars = [
+    { id: 'female-20s', Component: AvatarFemale20s, label: "Female, 20s" },
+    { id: 'female-30s', Component: AvatarFemale30s, label: "Female, 30s" },
+    { id: 'female-40s', Component: AvatarFemale40s, label: "Female, 40s" },
+    { id: 'female-60s', Component: AvatarFemale60s, label: "Female, 60s" },
+    { id: 'male-20s', Component: AvatarMale20s, label: "Male, 20s" },
+    { id: 'male-30s', Component: AvatarMale30s, label: "Male, 30s" },
+    { id: 'male-40s', Component: AvatarMale40s, label: "Male, 40s" },
+    { id: 'male-60s', Component: AvatarMale60s, label: "Male, 60s" },
 ]
 
 export default function SettingsPage() {
@@ -106,8 +121,8 @@ export default function SettingsPage() {
         }
     }
     
-    const handleAvatarChange = (avatar: 'male' | 'female') => {
-        setUserData(prev => ({...prev, avatar}));
+    const handleAvatarChange = (avatarId: string) => {
+        setUserData(prev => ({...prev, avatar: avatarId}));
     }
     
     const handleMoodChange = (mood: string) => {
@@ -186,25 +201,20 @@ export default function SettingsPage() {
                 <CardContent className="space-y-8">
                     <div className="space-y-4">
                         <Label className="font-medium">Avatar</Label>
-                        <div className="flex justify-around gap-4 max-w-md">
-                            <div
-                                className={cn(
-                                "cursor-pointer rounded-full p-2 transition-all duration-200",
-                                userData.avatar === "female" ? "bg-accent ring-2 ring-primary" : "hover:bg-accent/50"
-                                )}
-                                onClick={() => handleAvatarChange("female")}
-                            >
-                                <AvatarFemale className="h-24 w-24 text-foreground" />
-                            </div>
-                            <div
-                                className={cn(
-                                "cursor-pointer rounded-full p-2 transition-all duration-200",
-                                userData.avatar === "male" ? "bg-accent ring-2 ring-primary" : "hover:bg-accent/50"
-                                )}
-                                onClick={() => handleAvatarChange("male")}
-                            >
-                                <AvatarMale className="h-24 w-24 text-foreground" />
-                            </div>
+                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            {avatars.map(avatar => (
+                                <div
+                                    key={avatar.id}
+                                    className={cn(
+                                    "cursor-pointer rounded-lg p-2 transition-all duration-200 flex flex-col items-center gap-2",
+                                    userData.avatar === avatar.id ? "bg-accent ring-2 ring-primary" : "hover:bg-accent/50"
+                                    )}
+                                    onClick={() => handleAvatarChange(avatar.id)}
+                                >
+                                    <avatar.Component className="h-24 w-24 text-foreground" />
+                                    <Label className="text-sm">{avatar.label}</Label>
+                                </div>
+                            ))}
                         </div>
                     </div>
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">

@@ -13,7 +13,11 @@ import { aiConversationalSupport, AiConversationalSupportInput } from "@/ai/flow
 import { generateConversationSummary } from "@/ai/flows/generate-conversation-summary"
 import { textToSpeech } from "@/ai/flows/text-to-speech"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { AvatarFemale, AvatarMale, Logo } from "@/components/icons"
+import { 
+    AvatarFemale, AvatarMale,
+    AvatarFemale20s, AvatarFemale30s, AvatarFemale40s, AvatarFemale60s,
+    AvatarMale20s, AvatarMale30s, AvatarMale40s, AvatarMale60s
+} from "@/components/icons"
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -56,7 +60,7 @@ interface UserData {
   age?: string;
   gender?: string;
   postcode?: string;
-  avatar?: 'male' | 'female';
+  avatar?: string;
   dob?: string;
   employmentStatus?: string;
   income?: string;
@@ -65,14 +69,18 @@ interface UserData {
   responseMood?: string;
 }
 
-const voices = [
-    { name: 'Algenib', gender: 'Male' },
-    { name: 'Enceladus', gender: 'Male' },
-    { name: 'Antares', gender: 'Male' },
-    { name: 'Canopus', gender: 'Female' },
-    { name: 'Callirrhoe', gender: 'Female' },
-    { name: 'Sirius', gender: 'Female' },
-]
+const avatars: { [key: string]: React.ElementType } = {
+    'female-20s': AvatarFemale20s,
+    'female-30s': AvatarFemale30s,
+    'female-40s': AvatarFemale40s,
+    'female-60s': AvatarFemale60s,
+    'male-20s': AvatarMale20s,
+    'male-30s': AvatarMale30s,
+    'male-40s': AvatarMale40s,
+    'male-60s': AvatarMale60s,
+    'female': AvatarFemale,
+    'male': AvatarMale,
+};
 
 function SupportChatPageContent() {
   const [messages, setMessages] = useState<Message[]>([])
@@ -385,7 +393,7 @@ function SupportChatPageContent() {
     window.location.reload();
   }
 
-  const BuddyAvatarIcon = userData.avatar === "male" ? AvatarMale : AvatarFemale;
+  const BuddyAvatarIcon = avatars[userData.avatar || 'female-30s'] || AvatarFemale;
 
   const getPlaceholderText = () => {
     if (isHistoricChat) return "This is a past conversation. You cannot send new messages.";
@@ -484,7 +492,7 @@ function SupportChatPageContent() {
                     <div className="flex items-end gap-2">
                          <Avatar className="w-8 h-8 border bg-accent/50">
                             <AvatarFallback className="bg-transparent text-foreground">
-                                <BuddyAvatarIcon className="w-5 h-5" />
+                                <BuddyAvatarIcon className="w-8 h-8" />
                             </AvatarFallback>
                           </Avatar>
                         <div
@@ -525,7 +533,7 @@ function SupportChatPageContent() {
               <div className="flex items-start gap-4 justify-start">
                 <Avatar className="w-8 h-8 border bg-accent/50">
                    <AvatarFallback className="bg-transparent text-foreground">
-                        <BuddyAvatarIcon className="w-5 h-5" />
+                        <BuddyAvatarIcon className="w-8 h-8" />
                     </AvatarFallback>
                 </Avatar>
                 <div className="max-w-xl rounded-xl p-3 shadow-md bg-card flex items-center">

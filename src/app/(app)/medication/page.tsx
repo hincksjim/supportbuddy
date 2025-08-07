@@ -25,7 +25,6 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { PlusCircle, Loader2, Pill, Trash2, Download, Bot, AlertCircle, RefreshCw } from "lucide-react"
 import jsPDF from "jspdf"
-import autoTable from 'jspdf-autotable'
 import { analyzeMedication } from "@/ai/flows/analyze-medication"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
@@ -310,7 +309,7 @@ export default function MedicationPage() {
 
         if (existingIndex > -1) {
             updatedMeds = [...medications];
-            updatedMeds[existingIndex] = medication;
+            updatedMeds[existingIndex] = { ...updatedMeds[existingIndex], ...medication };
         } else {
             updatedMeds = [medication, ...medications];
         }
@@ -386,40 +385,92 @@ export default function MedicationPage() {
         if (medications.length === 0) return;
         setIsDownloading(true);
 
-        const doc = new jsPDF();
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const docWidth = doc.internal.pageSize.getWidth();
+        const margin = 15;
+        let yPos = margin;
+
+        const checkPageBreak = (heightNeeded: number) => {
+            if (yPos + heightNeeded > doc.internal.pageSize.getHeight() - margin) {
+                doc.addPage();
+                yPos = margin;
+            }
+        };
 
         doc.setFontSize(22);
-        doc.text("My Medication List", 105, 20, { align: 'center' });
+        doc.text("My Medication List", docWidth / 2, yPos, { align: 'center' });
+        yPos += 20;
 
-        const tableColumn = ["Medication Name", "Strength", "Dose Instructions", "Issued By", "Date Issued"];
-        const tableRows = medications.map(med => [
-            med.name,
-            med.strength,
-            med.dose,
-            med.issuedBy,
-            new Date(med.issuedDate).toLocaleDateString('en-GB')
-        ]);
+        medications.forEach(med => {
+            // Check for page break before each new medication entry
+            // This is a rough estimation of height.
+            let estimatedHeight = 50 + (med.interactionWarning ? 20 : 0) + (med.sideEffects ? 20 : 0);
+            checkPageBreak(estimatedHeight);
 
-        autoTable(doc, {
-            head: [tableColumn],
-            body: tableRows,
-            startY: 30,
-            theme: 'grid',
-            styles: {
-                halign: 'center'
-            },
-            headStyles: {
-                fillColor: [22, 163, 74],
-                textColor: [255, 255, 255],
-                fontStyle: 'bold'
-            },
-            columnStyles: {
-                0: { cellWidth: 35 },
-                1: { cellWidth: 25 },
-                2: { cellWidth: 'auto' },
-                3: { cellWidth: 30 },
-                4: { cellWidth: 30 },
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`${med.name} (${med.strength})`, margin, yPos);
+            yPos += 8;
+
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Issued by ${med.issuedBy} on ${new Date(med.issuedDate).toLocaleDateString('en-GB')}`, margin, yPos);
+            yPos += 8;
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('Dose:', margin, yPos);
+            doc.setFont('helvetica', 'normal');
+            const doseLines = doc.splitTextToSize(med.dose, docWidth - (margin * 2));
+            doc.text(doseLines, margin + 12, yPos);
+            yPos += (doseLines.length * 4) + 5;
+
+
+            if (med.summary) {
+                doc.setDrawColor(230, 230, 230);
+                doc.line(margin, yPos, docWidth - margin, yPos);
+                yPos += 8;
+
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text('AI Summary', margin, yPos);
+                yPos += 6;
+                
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                const summaryLines = doc.splitTextToSize(med.summary, docWidth - (margin * 2));
+                doc.text(summaryLines, margin, yPos);
+                yPos += (summaryLines.length * 4) + 5;
+                
+                if (med.interactionWarning) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(255, 0, 0); // Red
+                    doc.text('Potential Interaction:', margin, yPos);
+                    doc.setFont('helvetica', 'normal');
+                    const warningLines = doc.splitTextToSize(med.interactionWarning, docWidth - (margin * 2) - 35);
+                    doc.text(warningLines, margin + 35, yPos);
+                    yPos += (warningLines.length * 4) + 5;
+                    doc.setTextColor(0, 0, 0); // Reset color
+                }
+                
+                if (med.sideEffects) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Common Side Effects:', margin, yPos);
+                    doc.setFont('helvetica', 'normal');
+                    const effectsLines = doc.splitTextToSize(med.sideEffects.replace(/•/g, '\n•'), docWidth - (margin * 2));
+                    doc.text(effectsLines, margin, yPos + 4);
+                    yPos += (effectsLines.length * 4) + 8;
+                }
+
+                 if (med.disclaimer) {
+                    doc.setFont('helvetica', 'italic');
+                    doc.setFontSize(8);
+                    const disclaimerLines = doc.splitTextToSize(med.disclaimer, docWidth - (margin * 2));
+                    doc.text(disclaimerLines, margin, yPos);
+                    yPos += (disclaimerLines.length * 3) + 5;
+                }
             }
+            
+            yPos += 10; // Space between medications
         });
 
         doc.save('My-Medications.pdf');
@@ -466,3 +517,5 @@ export default function MedicationPage() {
         </div>
     )
 }
+
+    

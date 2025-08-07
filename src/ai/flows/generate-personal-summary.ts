@@ -225,7 +225,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 {{/if}}
 
 ### **Wellness & Diary Insights**
-*(Summarize key trends or significant one-off events from the 'diaryData'. Mention patterns in mood, pain, sleep, or weight. Also, highlight any significant worries or positive notes mentioned by the user. Cite the diary entry date.)*
+*(Review the last 5 diary entries from 'diaryData'. For each entry, create a bullet point. Start the line with the date, then provide a brief summary of the key information for that day, such as mood, pain, worries, or positive points. Ensure each day is on a new line.)*
 
 ### **Timeline & Milestones**
 **Completed Milestones:**

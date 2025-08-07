@@ -326,6 +326,7 @@ function SupportChatPageContent() {
         localStorage.removeItem(`conversationHistory_${currentUserEmail}`);
     }
     router.push("/support-chat");
+    window.location.reload();
   }
 
   const BuddyAvatarIcon = userData.avatar === "male" ? AvatarMale : AvatarFemale;
@@ -481,5 +482,3 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
-
-    

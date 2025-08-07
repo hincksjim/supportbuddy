@@ -32,16 +32,16 @@ interface UserData {
 }
 
 const voices = [
-    { name: 'Algenib', gender: 'Male' },
     { name: 'Enceladus', gender: 'Male' },
     { name: 'Achernar', gender: 'Male' },
     { name: 'Gacrux', gender: 'Male' },
     { name: 'Umbriel', gender: 'Male' },
-    { name: 'Callirrhoe', gender: 'Female' },
+    { name: 'Algenib', gender: 'Male' },
     { name: 'Leda', gender: 'Female' },
     { name: 'Aoede', gender: 'Female' },
     { name: 'Autonoe', gender: 'Female' },
     { name: 'Schedar', gender: 'Female' },
+    { name: 'Callirrhoe', gender: 'Female' },
 ]
 
 const avatars = [
@@ -120,6 +120,19 @@ export default function SettingsPage() {
             toast({ title: "Error", description: "Could not play voice sample.", variant: "destructive" });
         }
     }
+    
+    const filteredVoices = React.useMemo(() => {
+        const selectedAvatarId = userData.avatar || 'female-30s';
+        const isMale = selectedAvatarId.startsWith('male');
+        return voices.filter(v => isMale ? v.gender === 'Male' : v.gender === 'Female');
+    }, [userData.avatar]);
+
+    useEffect(() => {
+        // If the selected voice is not in the filtered list, update it to the first available voice
+        if (!filteredVoices.some(v => v.name === selectedVoice)) {
+            setSelectedVoice(filteredVoices[0]?.name || '');
+        }
+    }, [filteredVoices, selectedVoice]);
     
     const handleAvatarChange = (avatarId: string) => {
         setUserData(prev => ({...prev, avatar: avatarId}));
@@ -226,8 +239,8 @@ export default function SettingsPage() {
                                         <SelectValue placeholder="Select a voice" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {voices.map(v => (
-                                            <SelectItem key={v.name} value={v.name}>{v.name} ({v.gender})</SelectItem>
+                                        {filteredVoices.map(v => (
+                                            <SelectItem key={v.name} value={v.name}>{v.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>

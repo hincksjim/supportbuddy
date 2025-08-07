@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Zap, Check, Pencil, Save } from "lucide-react"
+import { Loader2, Zap, Check, Pencil, Save, Download } from "lucide-react"
 import {
   Accordion,
   AccordionContent,
@@ -16,6 +16,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import jsPDF from "jspdf"
+import html2canvas from "html2canvas"
 
 import { generateTreatmentTimeline, GenerateTreatmentTimelineOutput } from "@/ai/flows/generate-treatment-timeline"
 
@@ -29,11 +31,14 @@ type TimelineData = GenerateTreatmentTimelineOutput;
 export default function TimelinePage() {
   const [timelineData, setTimelineData] = useState<TimelineData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
   const [conversationHistory, setConversationHistory] = useState<Message[]>([])
   const [error, setError] = useState<string | null>(null)
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [openAccordionItems, setOpenAccordionItems] = useState<string[]>([]);
   const timelineDataRef = useRef(timelineData);
+  const timelineCardRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
     timelineDataRef.current = timelineData;
@@ -137,6 +142,46 @@ export default function TimelinePage() {
       // Changes are saved on component unmount
   }
   
+  const handleDownloadPdf = async () => {
+    const card = timelineCardRef.current;
+    if (!card) return;
+    setIsDownloading(true);
+
+    try {
+        const canvas = await html2canvas(card, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+        
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const ratio = canvasWidth / canvasHeight;
+        const imgWidth = pdfWidth - 20;
+        const imgHeight = imgWidth / ratio;
+
+        let heightLeft = imgHeight;
+        let position = 10;
+        
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= (pdfHeight - 20);
+
+        while (heightLeft > 0) {
+            position = -imgHeight + heightLeft;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+            heightLeft -= (pdfHeight - 20);
+        }
+
+        pdf.save('My-Treatment-Timeline.pdf');
+    } catch (err) {
+        console.error("PDF generation failed:", err);
+        setError("Sorry, there was an error creating the PDF.");
+    } finally {
+        setIsDownloading(false);
+    }
+}
+
   return (
     <div className="p-4 md:p-6 space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -146,13 +191,19 @@ export default function TimelinePage() {
             A general guide to your journey. Mark steps complete and add notes.
           </p>
         </div>
-        <Button onClick={handleGenerateTimeline} disabled={isLoading || conversationHistory.length < 2}>
-          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
-          {timelineData ? 'Re-generate Timeline' : 'Generate Timeline'}
-        </Button>
+         <div className="flex items-center gap-2">
+            <Button onClick={handleGenerateTimeline} disabled={isLoading || conversationHistory.length < 2}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
+                {timelineData ? 'Re-generate Timeline' : 'Generate Timeline'}
+            </Button>
+             <Button onClick={handleDownloadPdf} disabled={isDownloading || !timelineData} variant="outline">
+                {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                Download PDF
+            </Button>
+         </div>
       </div>
 
-      <Card>
+      <Card ref={timelineCardRef}>
         <CardContent className="pt-6">
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-20">

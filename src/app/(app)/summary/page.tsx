@@ -1,11 +1,15 @@
+
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, RefreshCw } from "lucide-react"
+import { Loader2, RefreshCw, Download } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { marked } from "marked"
+import jsPDF from "jspdf"
+import html2canvas from "html2canvas"
+
 
 import { generatePersonalSummary, SourceDocument, SourceConversation } from "@/ai/flows/generate-personal-summary"
 import type { GenerateTreatmentTimelineOutput } from "@/ai/flows/generate-treatment-timeline"
@@ -59,6 +63,7 @@ export default function SummaryPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isChartLoading, setIsChartLoading] = useState(false);
   const [error, setError] = useState<string | null>(null)
+  const reportRef = useRef<HTMLDivElement>(null)
   
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   
@@ -229,6 +234,48 @@ export default function SummaryPage() {
     setTimeout(() => setIsChartLoading(false), 300);
   }
 
+  const handleDownloadPdf = () => {
+    const input = reportRef.current;
+    if (!input) {
+      console.error("Report element not found");
+      return;
+    }
+    setIsLoading(true);
+    html2canvas(input, {
+        scale: 2, // Increase scale for better quality
+        useCORS: true, 
+        logging: false 
+    }).then(canvas => {
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+      const ratio = canvasWidth / canvasHeight;
+      const width = pdfWidth - 20; // with some margin
+      const height = width / ratio;
+
+      let position = 0;
+      let heightLeft = (height * pdfWidth) / width;
+      
+      pdf.addImage(imgData, 'PNG', 10, position + 10, width, height);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - ((height * pdfWidth) / width) ;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, position + 10, width, height);
+        heightLeft -= pdfHeight;
+      }
+      pdf.save("Personal-Summary-Report.pdf");
+      setIsLoading(false);
+    }).catch(err => {
+        console.error("Could not generate PDF", err);
+        setIsLoading(false);
+    });
+  };
+
   const reportHtml = report ? marked(report) : "";
 
   return (
@@ -244,6 +291,10 @@ export default function SummaryPage() {
             <Button onClick={() => handleGenerateReport(false)} disabled={isLoading}>
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Refresh Report
+            </Button>
+            <Button onClick={handleDownloadPdf} disabled={isLoading || !report} variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Download PDF
             </Button>
         </div>
       </div>
@@ -350,6 +401,7 @@ export default function SummaryPage() {
           )}
           {report && (
              <div 
+                ref={reportRef}
                 className="prose dark:prose-invert max-w-none text-foreground"
                 dangerouslySetInnerHTML={{ __html: reportHtml as string }}
             />

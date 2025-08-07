@@ -23,7 +23,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { PlusCircle, Loader2, Pill, Trash2, Download, Bot, AlertCircle } from "lucide-react"
+import { PlusCircle, Loader2, Pill, Trash2, Download, Bot, AlertCircle, RefreshCw } from "lucide-react"
 import jsPDF from "jspdf"
 import autoTable from 'jspdf-autotable'
 import { analyzeMedication } from "@/ai/flows/analyze-medication"
@@ -163,7 +163,7 @@ function MedicationDialog({ onSave, existingMedication }: { onSave: (med: Medica
     )
 }
 
-function MedicationCard({ medication, onSave, onDelete }: { medication: Medication; onSave: (med: Medication, isNew: boolean) => void; onDelete: (id: string) => void; }) {
+function MedicationCard({ medication, onSave, onDelete, onRecheck, isAnalyzingAny }: { medication: Medication; onSave: (med: Medication, isNew: boolean) => void; onDelete: (id: string) => void; onRecheck: (id: string) => void; isAnalyzingAny: boolean; }) {
     return (
         <Card>
             <CardHeader>
@@ -205,7 +205,13 @@ function MedicationCard({ medication, onSave, onDelete }: { medication: Medicati
                 ) : (
                     medication.summary && (
                         <div className="space-y-4 pt-4 border-t mt-4">
-                            <h4 className="font-semibold text-sm flex items-center gap-2"><Bot className="w-4 h-4 text-primary"/> AI Summary</h4>
+                            <div className="flex justify-between items-center">
+                                <h4 className="font-semibold text-sm flex items-center gap-2"><Bot className="w-4 h-4 text-primary"/> AI Summary</h4>
+                                <Button variant="ghost" size="sm" onClick={() => onRecheck(medication.id)} disabled={isAnalyzingAny}>
+                                    <RefreshCw className="w-4 h-4 mr-2" />
+                                    Re-check
+                                </Button>
+                            </div>
                             <p className="text-sm text-muted-foreground">{medication.summary}</p>
                             
                             {medication.interactionWarning && (
@@ -312,11 +318,12 @@ export default function MedicationPage() {
         saveMedications(updatedMeds);
 
         if (isNew) {
-            triggerMedicationAnalysis(medication.id, updatedMeds);
+            triggerMedicationAnalysis(medication.id);
         }
     };
 
-    const triggerMedicationAnalysis = async (medicationId: string, currentMeds: Medication[]) => {
+    const triggerMedicationAnalysis = async (medicationId: string) => {
+        const currentMeds = medicationsRef.current;
         const medIndex = currentMeds.findIndex(m => m.id === medicationId);
         if (medIndex === -1) return;
 
@@ -359,6 +366,14 @@ export default function MedicationPage() {
         }
     };
 
+    const handleRecheckAnalysis = (medicationId: string) => {
+        setMedications(prevMeds => 
+            prevMeds.map(m => m.id === medicationId ? { ...m, isAnalyzing: true } : m)
+        );
+        // The state update is async, so we pass the *next* state to the trigger function.
+        // It's safer to just call the trigger which will use the ref to get the latest state.
+        triggerMedicationAnalysis(medicationId);
+    };
 
     const handleDeleteMedication = (id: string) => {
         if (!currentUserEmail) return;
@@ -412,6 +427,8 @@ export default function MedicationPage() {
         setIsDownloading(false);
     }
 
+    const isAnyMedAnalyzing = medications.some(m => m.isAnalyzing);
+
     return (
         <div className="p-4 md:p-6 space-y-8">
             <div className="flex items-center justify-between">
@@ -428,7 +445,14 @@ export default function MedicationPage() {
             {medications.length > 0 ? (
                 <div className="space-y-6 w-full">
                     {medications.map(med => (
-                        <MedicationCard key={med.id} medication={med} onSave={handleSaveMedication} onDelete={handleDeleteMedication} />
+                        <MedicationCard 
+                            key={med.id} 
+                            medication={med} 
+                            onSave={handleSaveMedication} 
+                            onDelete={handleDeleteMedication}
+                            onRecheck={handleRecheckAnalysis}
+                            isAnalyzingAny={isAnyMedAnalyzing}
+                        />
                     ))}
                 </div>
             ) : (
@@ -442,5 +466,7 @@ export default function MedicationPage() {
         </div>
     )
 }
+
+    
 
     

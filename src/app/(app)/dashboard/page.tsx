@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -11,6 +12,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,7 +27,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { MessageSquare, FileText, Mic, PlusCircle, Loader2, StopCircle, X } from "lucide-react"
+import { MessageSquare, FileText, Mic, PlusCircle, Loader2, StopCircle, X, Bookmark } from "lucide-react"
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
 import { useToast } from "@/hooks/use-toast"
 import { summarizeVoiceNote } from "@/ai/flows/summarize-voice-note"
@@ -57,10 +59,19 @@ interface VoiceNote {
   date: string;
 }
 
+interface SavedMessage {
+    id: string;
+    type: 'savedMessage'; // To distinguish from other activity types
+    title: string;
+    content: string;
+    date: string;
+}
+
 type ActivityItem = 
   | { type: 'conversation', data: ConversationSummary }
   | { type: 'analysis', data: AnalysisResult }
-  | { type: 'voiceNote', data: VoiceNote };
+  | { type: 'voiceNote', data: VoiceNote }
+  | { type: 'savedMessage', data: SavedMessage };
 
 
 function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; children: React.ReactNode }) {
@@ -381,6 +392,36 @@ function VoiceNoteCard({ note, onDelete }: { note: VoiceNote, onDelete: (id: str
     );
 }
 
+function SavedMessageCard({ message, onDelete }: { message: SavedMessage, onDelete: (id: string, type: ActivityItem['type']) => void }) {
+    return (
+        <Card className="flex flex-col h-full relative group">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    <Bookmark className="w-5 h-5 text-primary" />
+                    {message.title}
+                </CardTitle>
+                <CardDescription>Saved on {new Date(message.date).toLocaleDateString()}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1">
+                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{message.content}</p>
+            </CardContent>
+             <Button 
+                variant="destructive" 
+                size="icon" 
+                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onDelete(message.id, 'savedMessage');
+                }}
+            >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Delete</span>
+            </Button>
+        </Card>
+    );
+}
+
 export default function DashboardPage() {
     const [activity, setActivity] = useState<ActivityItem[]>([]);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
@@ -398,8 +439,14 @@ export default function DashboardPage() {
         try {
             const storedSummaries = localStorage.getItem(`conversationSummaries_${currentUserEmail}`);
             if (storedSummaries) {
-                const summaries: ConversationSummary[] = JSON.parse(storedSummaries);
-                allActivity.push(...summaries.map(s => ({ type: 'conversation' as const, data: s })));
+                const summaries: (ConversationSummary | SavedMessage)[] = JSON.parse(storedSummaries);
+                summaries.forEach(s => {
+                    if ('type' in s && s.type === 'savedMessage') {
+                         allActivity.push({ type: 'savedMessage', data: s });
+                    } else if (!('type' in s)) {
+                        allActivity.push({ type: 'conversation', data: s as ConversationSummary });
+                    }
+                });
             }
 
             const storedAnalyses = localStorage.getItem(`analysisResults_${currentUserEmail}`);
@@ -442,10 +489,10 @@ export default function DashboardPage() {
     const handleDelete = (id: string, type: ActivityItem['type']) => {
         if (!currentUserEmail) return;
 
-        if (type === 'conversation') {
+        if (type === 'conversation' || type === 'savedMessage') {
             const key = `conversationSummaries_${currentUserEmail}`;
             const stored = localStorage.getItem(key);
-            const items: ConversationSummary[] = stored ? JSON.parse(stored) : [];
+            const items: (ConversationSummary | SavedMessage)[] = stored ? JSON.parse(stored) : [];
             const updatedItems = items.filter(item => item.id !== id);
             localStorage.setItem(key, JSON.stringify(updatedItems));
         } else if (type === 'analysis') {
@@ -490,6 +537,9 @@ export default function DashboardPage() {
                             if (item.type === 'voiceNote') {
                                 return <VoiceNoteCard key={`note-${item.data.id}`} note={item.data} onDelete={handleDelete} />;
                             }
+                            if (item.type === 'savedMessage') {
+                                return <SavedMessageCard key={`saved-${item.data.id}`} message={item.data} onDelete={handleDelete} />;
+                            }
                             return null;
                         })}
                     </div>
@@ -512,3 +562,5 @@ export default function DashboardPage() {
         </div>
     )
 }
+
+    

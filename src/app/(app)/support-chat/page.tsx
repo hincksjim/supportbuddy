@@ -22,10 +22,12 @@ interface Message {
   content: string
 }
 
-interface SavedMessage {
-    id: string;
-    content: string;
-    date: string;
+interface SavedMessageActivity {
+  id: string;
+  type: 'savedMessage'; // To distinguish from other activity types
+  title: string;
+  content: string;
+  date: string;
 }
 
 interface ConversationSummary {
@@ -396,21 +398,25 @@ function SupportChatPageContent() {
   const handleSaveMessage = (message: Message) => {
     if (!currentUserEmail) return;
 
-    const savedMessage: SavedMessage = {
+    const savedMessage: SavedMessageActivity = {
         id: new Date().toISOString(),
+        type: 'savedMessage',
+        title: "Saved Message",
         content: message.content,
         date: new Date().toISOString()
     };
     
-    const key = `savedMessages_${currentUserEmail}`;
+    // For now, we'll store this in the conversation summaries key as a generic activity list
+    // A better approach would be a unified activity key, but this works for now.
+    const key = `conversationSummaries_${currentUserEmail}`;
     const stored = localStorage.getItem(key);
-    const items: SavedMessage[] = stored ? JSON.parse(stored) : [];
+    const items = stored ? JSON.parse(stored) : [];
     items.unshift(savedMessage); // Add to the top of the list
     localStorage.setItem(key, JSON.stringify(items));
     
     toast({
         title: "Message Saved",
-        description: "You can view it in your 'Saved Items' page.",
+        description: "You can view it in your 'Activity' page.",
     });
   };
 
@@ -564,3 +570,5 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
+
+    

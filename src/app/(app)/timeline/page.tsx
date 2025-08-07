@@ -42,13 +42,19 @@ export default function TimelinePage() {
 
   useEffect(() => {
     timelineDataRef.current = timelineData;
-    if (timelineData) {
-        // Automatically open stages that are not fully completed
+    if (timelineData && openAccordionItems.length === 0) {
+        // Automatically open stages that are not fully completed on initial load
         const activeStages = timelineData.timeline
             .filter(stage => stage.steps.some(step => step.status !== 'completed'))
             .map(stage => stage.title);
-        setOpenAccordionItems(activeStages);
+        if(activeStages.length > 0) {
+          setOpenAccordionItems(activeStages);
+        } else if (timelineData.timeline.length > 0) {
+          // if all are completed, open the first one
+          setOpenAccordionItems([timelineData.timeline[0].title]);
+        }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timelineData]);
 
   useEffect(() => {
@@ -144,48 +150,69 @@ export default function TimelinePage() {
   
   const handleDownloadPdf = async () => {
     const input = timelineCardRef.current;
-    if (!input) {
+    if (!input || !timelineData) {
         return;
     }
     setIsDownloading(true);
-    try {
-        const canvas = await html2canvas(input, {
-            scale: 2,
-            windowWidth: input.scrollWidth,
-            windowHeight: input.scrollHeight,
-        });
 
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-        const ratio = imgWidth / imgHeight;
-        const widthInPdf = pdfWidth - 20;
-        const heightInPdf = widthInPdf / ratio;
+    // Save the original state of open accordion items
+    const originalOpenItems = openAccordionItems;
+    // Set all items to be open
+    setOpenAccordionItems(timelineData.timeline.map(stage => stage.title));
 
-        let position = 10;
-        let heightLeft = heightInPdf;
+    // Wait for the DOM to update with all accordions open
+    setTimeout(async () => {
+        try {
+            const canvas = await html2canvas(input, {
+                scale: 2,
+                // Ensure it captures the full scroll height
+                windowHeight: input.scrollHeight,
+                windowWidth: input.scrollWidth, 
+            });
 
-        pdf.addImage(imgData, 'PNG', 10, position, widthInPdf, heightInPdf);
-        heightLeft -= (pdfHeight - 20);
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
 
-        while (heightLeft > 0) {
-            position -= (pdfHeight - 20);
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 10, position, widthInPdf, heightInPdf);
-            heightLeft -= (pdfHeight - 20);
+            const imgProps= pdf.getImageProperties(imgData);
+            const imgWidth = imgProps.width;
+            const imgHeight = imgProps.height;
+
+            const ratio = imgWidth / imgHeight;
+            let finalImgHeight = pdfHeight - 20; // with margin
+            let finalImgWidth = finalImgHeight * ratio;
+
+            if (finalImgWidth > pdfWidth) {
+                finalImgWidth = pdfWidth - 20; // with margin
+                finalImgHeight = finalImgWidth / ratio;
+            }
+
+            let heightLeft = imgHeight;
+            let position = 0;
+            const pageMargin = 10;
+
+            pdf.addImage(imgData, 'PNG', pageMargin, position + pageMargin, finalImgWidth, finalImgHeight);
+            heightLeft -= imgHeight;
+
+            while (heightLeft > 0) {
+                position -= (pdfHeight - (pageMargin * 2));
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', pageMargin, position + pageMargin, finalImgWidth, finalImgHeight);
+                heightLeft -= imgHeight;
+            }
+            
+            pdf.save('My-Treatment-Timeline.pdf');
+
+        } catch (err) {
+            console.error("PDF generation failed:", err);
+            setError("Sorry, there was an error creating the PDF.");
+        } finally {
+            // Restore the original state of open accordion items
+            setOpenAccordionItems(originalOpenItems);
+            setIsDownloading(false);
         }
-        
-        pdf.save('My-Treatment-Timeline.pdf');
-
-    } catch (err) {
-        console.error("PDF generation failed:", err);
-        setError("Sorry, there was an error creating the PDF.");
-    } finally {
-        setIsDownloading(false);
-    }
+    }, 500); // A small delay to allow for re-rendering
 };
 
   return (
@@ -209,7 +236,7 @@ export default function TimelinePage() {
          </div>
       </div>
 
-      <Card ref={timelineCardRef}>
+      <Card>
         <CardContent className="pt-6">
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-20">
@@ -229,7 +256,7 @@ export default function TimelinePage() {
             </div>
           )}
           {timelineData && (
-            <div className="space-y-6">
+            <div className="space-y-6" ref={timelineCardRef}>
                  <Alert>
                     <AlertTitle>Disclaimer</AlertTitle>
                     <AlertDescription>{timelineData.disclaimer}</AlertDescription>

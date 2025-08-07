@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
@@ -32,6 +33,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import Image from "next/image"
+import jsPDF from "jspdf"
+import html2canvas from "html2canvas"
 
 // Main data structure for the entire page
 interface GoodbyeData {
@@ -123,8 +126,27 @@ function TextSection({ title, description, value, onChange, disabled = false }: 
   )
 }
 
+function SectionHeader({ title, onDownload }: { title: string; onDownload: () => void; }) {
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    const handleDownload = async () => {
+        setIsDownloading(true);
+        await onDownload();
+        setIsDownloading(false);
+    }
+    return (
+        <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">{title}</h2>
+            <Button onClick={handleDownload} variant="outline" disabled={isDownloading}>
+                {isDownloading ? <Loader2 className="mr-2 animate-spin" /> : <Download className="mr-2" />}
+                Download Section
+            </Button>
+        </div>
+    )
+}
+
 // Component for Messages to Loved Ones
-function MessagesTab({ data, setData, disabled }: { data: MessageToLovedOne[], setData: (d: MessageToLovedOne[]) => void, disabled: boolean }) {
+function MessagesTab({ data, setData, disabled, onDownload }: { data: MessageToLovedOne[], setData: (d: MessageToLovedOne[]) => void, disabled: boolean, onDownload: () => void }) {
     const addMessage = () => {
         const newMessage = { id: new Date().toISOString(), recipient: "", message: "" };
         setData([...data, newMessage]);
@@ -138,6 +160,7 @@ function MessagesTab({ data, setData, disabled }: { data: MessageToLovedOne[], s
 
     return (
         <div className="space-y-4">
+             <SectionHeader title="Messages to Loved Ones" onDownload={onDownload} />
             {data.map(msg => (
                 <Card key={msg.id}>
                     <CardContent className="pt-6 space-y-4">
@@ -222,7 +245,7 @@ function ViewWillDialog({ will, children }: { will: LatestWill; children: React.
 }
 
 // Component for Will tab
-function WillTab({ data, setData, disabled }: { data: GoodbyeData['will'], setData: (d: GoodbyeData['will']) => void, disabled: boolean }) {
+function WillTab({ data, setData, disabled, onDownload }: { data: GoodbyeData['will'], setData: (d: GoodbyeData['will']) => void, disabled: boolean, onDownload: () => void }) {
     const { toast } = useToast();
     const [isUploading, setIsUploading] = useState(false);
     const [hasWill, setHasWill] = useState(!!data.latestWill);
@@ -261,6 +284,7 @@ function WillTab({ data, setData, disabled }: { data: GoodbyeData['will'], setDa
 
     return (
         <div className="space-y-6">
+            <SectionHeader title="Will & Last Wishes" onDownload={onDownload} />
              <Card>
                 <CardHeader>
                      <div className="flex items-center space-x-2">
@@ -341,7 +365,7 @@ function WillTab({ data, setData, disabled }: { data: GoodbyeData['will'], setDa
 
 
 // Component for Memory Vault
-function MemoryVaultTab({ data, setData, disabled }: { data: VaultItem[], setData: (d: VaultItem[]) => void, disabled: boolean }) {
+function MemoryVaultTab({ data, setData, disabled, onDownload }: { data: VaultItem[], setData: (d: VaultItem[]) => void, disabled: boolean, onDownload: () => void }) {
     const { toast } = useToast();
     const [isUploading, setIsUploading] = useState(false);
 
@@ -384,6 +408,7 @@ function MemoryVaultTab({ data, setData, disabled }: { data: VaultItem[], setDat
 
     return (
         <div className="space-y-6">
+             <SectionHeader title="Memory Vault" onDownload={onDownload} />
              <Card>
                 <CardHeader>
                     <CardTitle>Upload a new file</CardTitle>
@@ -458,6 +483,17 @@ export default function GoodbyePage() {
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const dataRef = useRef(data);
+  const { toast } = useToast();
+
+  const contentRefs = {
+      messages: useRef<HTMLDivElement>(null),
+      advice: useRef<HTMLDivElement>(null),
+      instructions: useRef<HTMLDivElement>(null),
+      wishes: useRef<HTMLDivElement>(null),
+      legacy: useRef<HTMLDivElement>(null),
+      will: useRef<HTMLDivElement>(null),
+      vault: useRef<HTMLDivElement>(null),
+  };
 
   useEffect(() => {
       dataRef.current = data;
@@ -487,10 +523,12 @@ export default function GoodbyePage() {
     if (!currentUserEmail) return;
     try {
         localStorage.setItem(`goodbyeData_${currentUserEmail}`, JSON.stringify(dataRef.current));
+        toast({ title: "Progress Saved", description: "Your information has been saved locally." });
     } catch(e) {
         console.error("Could not save data", e);
+        toast({ title: "Error Saving", description: "Could not save your data.", variant: "destructive" });
     }
-  }, [currentUserEmail]);
+  }, [currentUserEmail, toast]);
 
   useEffect(() => {
     loadData();
@@ -525,6 +563,47 @@ export default function GoodbyePage() {
   const handleWillChange = (willData: GoodbyeData['will']) => {
       setData(prev => ({ ...prev, will: willData }));
   }
+
+  const handleDownloadPdf = async (section: keyof typeof contentRefs, title: string) => {
+        const contentRef = contentRefs[section];
+        if (!contentRef.current) return;
+
+        try {
+            const canvas = await html2canvas(contentRef.current, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = imgWidth / imgHeight;
+            let finalImgWidth = pdfWidth - 20;
+            let finalImgHeight = finalImgWidth / ratio;
+            
+            if (finalImgHeight > pdfHeight - 20) {
+                 finalImgHeight = pdfHeight - 20;
+                 finalImgWidth = finalImgHeight * ratio;
+            }
+            
+            let y = 10;
+            const totalPages = Math.ceil(imgHeight / (pdfHeight * 2 / (finalImgWidth / imgWidth)));
+            const pageCanvas = document.createElement('canvas');
+            const pageCtx = pageCanvas.getContext('2d');
+            pageCanvas.width = imgWidth;
+            pageCanvas.height = imgHeight / totalPages;
+
+            for (let i = 0; i < totalPages; i++) {
+                if (i > 0) pdf.addPage();
+                pageCtx?.drawImage(canvas, 0, i * (imgHeight/totalPages), imgWidth, imgHeight/totalPages, 0, 0, pageCanvas.width, pageCanvas.height)
+                pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 10, y, finalImgWidth, finalImgHeight / totalPages);
+            }
+
+            pdf.save(`Just-In-Case-${title}.pdf`);
+        } catch (error) {
+            console.error("Failed to generate PDF", error);
+            toast({ title: "PDF Generation Failed", variant: "destructive" });
+        }
+    };
 
   if (isLoading) {
       return (
@@ -563,47 +642,53 @@ export default function GoodbyePage() {
                 <TabsTrigger value="vault"><Vault className="mr-2"/>Memory Vault</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="messages" className="pt-4">
-                <MessagesTab data={data.messages} setData={handleMessageChange} disabled={isLoading}/>
+            <TabsContent value="messages" className="pt-4" ref={contentRefs.messages}>
+                <MessagesTab data={data.messages} setData={handleMessageChange} disabled={isLoading} onDownload={() => handleDownloadPdf('messages', 'Messages')}/>
             </TabsContent>
             
-            <TabsContent value="advice" className="pt-4 space-y-4">
+            <TabsContent value="advice" className="pt-4 space-y-4" ref={contentRefs.advice}>
+                 <SectionHeader title="Life Advice" onDownload={() => handleDownloadPdf('advice', 'Life-Advice')} />
                 <TextSection title="Life Lessons & Advice" description="Wisdom you want to pass on to others." value={data.lifeAdvice.lessons} onChange={(v) => handleFieldChange('lifeAdvice', 'lessons', v)} disabled={isLoading} />
                 <TextSection title="Life Stories & Heritage" description="Share stories about your life, background, and heritage." value={data.lifeAdvice.stories} onChange={(v) => handleFieldChange('lifeAdvice', 'stories', v)} disabled={isLoading}/>
                 <TextSection title="How I Want To Be Remembered" description="The values, memories, or accomplishments you want people to remember." value={data.lifeAdvice.legacy} onChange={(v) => handleFieldChange('lifeAdvice', 'legacy', v)} disabled={isLoading}/>
                 <TextSection title="Regrets or Warnings" description="Things you might regret or want others to avoid." value={data.lifeAdvice.regrets} onChange={(v) => handleFieldChange('lifeAdvice', 'regrets', v)} disabled={isLoading}/>
             </TabsContent>
 
-            <TabsContent value="instructions" className="pt-4 space-y-4">
+            <TabsContent value="instructions" className="pt-4 space-y-4" ref={contentRefs.instructions}>
+                 <SectionHeader title="Practical Instructions" onDownload={() => handleDownloadPdf('instructions', 'Practical-Instructions')} />
                 <TextSection title="Location of Important Documents" description="Where to find things like your will, birth certificate, property deeds, etc. (Do not upload them here unless encrypted)." value={data.practicalInstructions.documentsLocation} onChange={(v) => handleFieldChange('practicalInstructions', 'documentsLocation', v)} disabled={isLoading}/>
                 <TextSection title="Password Access" description="Instructions on how to access your password manager (e.g., LastPass, Bitwarden) or a notebook with key passwords." value={data.practicalInstructions.passwordAccess} onChange={(v) => handleFieldChange('practicalInstructions', 'passwordAccess', v)} disabled={isLoading}/>
                 <TextSection title="Care Instructions" description="How to take care of the house, car, pets, plants, or business." value={data.practicalInstructions.homeCare} onChange={(v) => handleFieldChange('practicalInstructions', 'homeCare', v)} disabled={isLoading}/>
                 <TextSection title="Subscriptions to Cancel" description="List of services to cancel (e.g., Netflix, gym memberships, magazines) and people/services to notify." value={data.practicalInstructions.subscriptions} onChange={(v) => handleFieldChange('practicalInstructions', 'subscriptions', v)} disabled={isLoading}/>
             </TabsContent>
             
-            <TabsContent value="wishes" className="pt-4 space-y-4">
+            <TabsContent value="wishes" className="pt-4 space-y-4" ref={contentRefs.wishes}>
+                <SectionHeader title="End of Life Wishes" onDownload={() => handleDownloadPdf('wishes', 'End-of-Life-Wishes')} />
                 <TextSection title="Funeral & Memorial Wishes" description="Preferences for your funeral, memorial service, or cremation." value={data.endOfLifeWishes.funeral} onChange={(v) => handleFieldChange('endOfLifeWishes', 'funeral', v)} disabled={isLoading}/>
                 <TextSection title="Memorial Media" description="Music, poems, readings, or photos you'd like to be used." value={data.endOfLifeWishes.memorialMedia} onChange={(v) => handleFieldChange('endOfLifeWishes', 'memorialMedia', v)} disabled={isLoading}/>
                 <TextSection title="People to Inform" description="A list of people you want to be informed of your passing." value={data.endOfLifeWishes.peopleToInform} onChange={(v) => handleFieldChange('endOfLifeWishes', 'peopleToInform', v)} disabled={isLoading}/>
                 <TextSection title="Organ Donation & Health Legacy" description="Your wishes regarding organ donation or any health legacy desires." value={data.endOfLifeWishes.organDonation} onChange={(v) => handleFieldChange('endOfLifeWishes', 'organDonation', v)} disabled={isLoading}/>
             </TabsContent>
 
-            <TabsContent value="legacy" className="pt-4 space-y-4">
+            <TabsContent value="legacy" className="pt-4 space-y-4" ref={contentRefs.legacy}>
+                <SectionHeader title="Digital Legacy" onDownload={() => handleDownloadPdf('legacy', 'Digital-Legacy')} />
                 <TextSection title="Social Media Accounts" description="What to do with your accounts on Facebook, X (Twitter), Instagram, etc. (e.g., memorialize, delete)." value={data.digitalLegacy.socialMedia} onChange={(v) => handleFieldChange('digitalLegacy', 'socialMedia', v)} disabled={isLoading}/>
                 <TextSection title="Photos & Videos" description="Instructions for what to do with your digital photos and videos." value={data.digitalLegacy.photosAndVideos} onChange={(v) => handleFieldChange('digitalLegacy', 'photosAndVideos', v)} disabled={isLoading}/>
                 <TextSection title="Other Digital Content" description="What to do with any other digital content you want shared or deleted (e.g., blogs, websites, files)." value={data.digitalLegacy.digitalContent} onChange={(v) => handleFieldChange('digitalLegacy', 'digitalContent', v)} disabled={isLoading}/>
                 <TextSection title="Online Accounts" description="Instructions for other online accounts (e.g., gaming, forums, email)." value={data.digitalLegacy.onlineAccounts} onChange={(v) => handleFieldChange('digitalLegacy', 'onlineAccounts', v)} disabled={isLoading}/>
             </TabsContent>
 
-            <TabsContent value="will" className="pt-4 space-y-4">
-                <WillTab data={data.will} setData={handleWillChange} disabled={isLoading} />
+            <TabsContent value="will" className="pt-4 space-y-4" ref={contentRefs.will}>
+                <WillTab data={data.will} setData={handleWillChange} disabled={isLoading} onDownload={() => handleDownloadPdf('will', 'Will')} />
             </TabsContent>
 
-            <TabsContent value="vault" className="pt-4">
-                <MemoryVaultTab data={data.memoryVault} setData={handleVaultChange} disabled={isLoading} />
+            <TabsContent value="vault" className="pt-4" ref={contentRefs.vault}>
+                <MemoryVaultTab data={data.memoryVault} setData={handleVaultChange} disabled={isLoading} onDownload={() => handleDownloadPdf('vault', 'Memory-Vault')} />
             </TabsContent>
 
         </Tabs>
     </div>
   )
 }
+
+    

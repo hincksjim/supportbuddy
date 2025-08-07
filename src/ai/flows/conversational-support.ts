@@ -64,7 +64,7 @@ const benefitsDecisionLogic = `
     "Existing Benefits":"SSP ended",
     "Income/Savings":"Low income/savings < £16K",
     "Health Impact (Cancer)":"Ongoing illness (cancer)",
-    "Additional or Replacement Benefits":"ESA, PIP, UC with health-related element, Blue Badge"
+    "Additional or Replacement Benefits":"ESA, PIP, Universal Credit (UC) with LCWRA element, Blue Badge"
   },
   {
     "Age Range":"16-Pension Age",
@@ -72,7 +72,7 @@ const benefitsDecisionLogic = `
     "Existing Benefits":"JSA",
     "Income/Savings":"Low income",
     "Health Impact (Cancer)":"Diagnosed with cancer",
-    "Additional or Replacement Benefits":"Replace JSA with ESA, claim PIP, UC with LCWRA"
+    "Additional or Replacement Benefits":"Replace JSA with ESA, claim PIP, Universal Credit (UC) with LCWRA"
   },
     {
     "Age Range":"16-Pension Age",
@@ -88,7 +88,7 @@ const benefitsDecisionLogic = `
     "Existing Benefits":"None",
     "Income/Savings":"Income affected",
     "Health Impact (Cancer)":"Cancer limits work",
-    "Additional or Replacement Benefits":"UC with health element, PIP, ESA (New Style), Council Tax Support"
+    "Additional or Replacement Benefits":"Universal Credit (UC) with LCWRA element, PIP, ESA (New Style), Council Tax Support"
   },
   {
     "Age Range":"16-Pension Age",
@@ -96,7 +96,7 @@ const benefitsDecisionLogic = `
     "Existing Benefits":"ESA",
     "Income/Savings":"Low income",
     "Health Impact (Cancer)":"Health worsens",
-    "Additional or Replacement Benefits":"Ensure they're in Support Group, PIP, Council Tax Support"
+    "Additional or Replacement Benefits":"Ensure they're in Support Group, PIP, Council Tax Support, Universal Credit (UC) with LCWRA element"
   },
   {
     "Age Range":"Pension Age+",
@@ -128,7 +128,7 @@ const benefitsDecisionLogic = `
     "Existing Benefits":"Any",
     "Income/Savings":"Any",
     "Health Impact (Cancer)":"Terminal (expected < 12 months)",
-    "Additional or Replacement Benefits":"Fast-track: PIP (highest rate), Attendance Allowance, DLA, UC/ESA with no work requirements"
+    "Additional or Replacement Benefits":"Fast-track: PIP (highest rate), Attendance Allowance, DLA, Universal Credit (UC) with LCWRA element, ESA with no work requirements"
   }
 ]
 `;

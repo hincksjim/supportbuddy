@@ -19,8 +19,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Loader2, RefreshCw, CheckCircle2, XCircle, MinusCircle, Info } from "lucide-react"
+import { Loader2, RefreshCw, CheckCircle2, XCircle, MinusCircle, Info, ExternalLink } from "lucide-react"
 import { generateBenefitsMatrix, GenerateBenefitsMatrixOutput } from "@/ai/flows/generate-benefits-matrix"
+import Link from "next/link"
 
 interface UserData {
     age?: string;
@@ -188,13 +189,19 @@ export default function BenefitsCheckerPage() {
                                                                     <span className="text-xs">{text}</span>
                                                                 </div>
                                                             </PopoverTrigger>
-                                                            <PopoverContent className="w-80">
+                                                            <PopoverContent className="w-80 space-y-4">
                                                                 <div className="space-y-2">
                                                                     <h4 className="font-medium leading-none">{benefitInfo.name}</h4>
                                                                     <p className="text-sm text-muted-foreground">
                                                                        {benefitInfo.requirements}
                                                                     </p>
                                                                 </div>
+                                                                <Button asChild size="sm" className="w-full">
+                                                                    <Link href={benefitInfo.url} target="_blank" rel="noopener noreferrer">
+                                                                        <ExternalLink className="mr-2 h-4 w-4" />
+                                                                        Learn More & Apply
+                                                                    </Link>
+                                                                </Button>
                                                             </PopoverContent>
                                                         </Popover>
                                                     </TableCell>

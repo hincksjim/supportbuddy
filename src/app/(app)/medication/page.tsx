@@ -197,21 +197,21 @@ function MedicationCard({ medication, onSave, onDelete, onRecheck, isAnalyzingAn
                 )}
 
                 {/* AI Analysis Section */}
-                {medication.isAnalyzing ? (
-                     <div className="flex items-center gap-2 text-muted-foreground pt-4">
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        <p>Generating AI summary...</p>
+                <div className="space-y-4 pt-4 border-t mt-4">
+                     <div className="flex justify-between items-center">
+                        <h4 className="font-semibold text-sm flex items-center gap-2"><Bot className="w-4 h-4 text-primary"/> AI Summary</h4>
+                        <Button variant="ghost" size="sm" onClick={() => onRecheck(medication.id)} disabled={isAnalyzingAny}>
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            {medication.summary ? 'Re-check' : 'Check'}
+                        </Button>
                     </div>
-                ) : (
-                    medication.summary && (
-                        <div className="space-y-4 pt-4 border-t mt-4">
-                            <div className="flex justify-between items-center">
-                                <h4 className="font-semibold text-sm flex items-center gap-2"><Bot className="w-4 h-4 text-primary"/> AI Summary</h4>
-                                <Button variant="ghost" size="sm" onClick={() => onRecheck(medication.id)} disabled={isAnalyzingAny}>
-                                    <RefreshCw className="w-4 h-4 mr-2" />
-                                    Re-check
-                                </Button>
-                            </div>
+                    {medication.isAnalyzing ? (
+                         <div className="flex items-center gap-2 text-muted-foreground">
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            <p>Generating AI summary...</p>
+                        </div>
+                    ) : medication.summary ? (
+                        <>
                             <p className="text-sm text-muted-foreground">{medication.summary}</p>
                             
                             {medication.interactionWarning && (
@@ -232,9 +232,11 @@ function MedicationCard({ medication, onSave, onDelete, onRecheck, isAnalyzingAn
                              {medication.disclaimer && (
                                 <p className="text-xs text-muted-foreground/80 italic">{medication.disclaimer}</p>
                             )}
-                        </div>
-                    )
-                )}
+                        </>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">Click 'Check' to get an AI summary and interaction check for this medication.</p>
+                    )}
+                </div>
             </CardContent>
              <CardFooter className="flex justify-between">
                  <MedicationDialog onSave={onSave} existingMedication={medication} />
@@ -370,8 +372,6 @@ export default function MedicationPage() {
         setMedications(prevMeds => 
             prevMeds.map(m => m.id === medicationId ? { ...m, isAnalyzing: true } : m)
         );
-        // The state update is async, so we pass the *next* state to the trigger function.
-        // It's safer to just call the trigger which will use the ref to get the latest state.
         triggerMedicationAnalysis(medicationId);
     };
 
@@ -466,7 +466,3 @@ export default function MedicationPage() {
         </div>
     )
 }
-
-    
-
-    

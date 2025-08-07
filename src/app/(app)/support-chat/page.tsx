@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useRef, useEffect, Suspense } from "react"
-import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff, Save, Home } from "lucide-react"
+import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -56,6 +56,7 @@ function SupportChatPageContent() {
   const [userData, setUserData] = useState<UserData>({});
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
   const [isHistoricChat, setIsHistoricChat] = useState(false);
+  const [isTtsEnabled, setIsTtsEnabled] = useState(true);
   
   const router = useRouter()
   const searchParams = useSearchParams();
@@ -69,6 +70,7 @@ function SupportChatPageContent() {
   }, [messages]);
   
   const speakMessage = async (text: string) => {
+    if (!isTtsEnabled) return;
     try {
       const result = await textToSpeech(text);
       if (result.audioDataUri) {
@@ -226,6 +228,9 @@ function SupportChatPageContent() {
       if (storedData) {
         setUserData(JSON.parse(storedData));
       }
+      const ttsSetting = localStorage.getItem('ttsEnabled');
+      setIsTtsEnabled(ttsSetting !== 'false');
+
     } else {
       router.push("/login");
     }
@@ -331,6 +336,21 @@ function SupportChatPageContent() {
     return "Press the mic to speak, or type here...";
   }
 
+  const toggleTts = () => {
+      const newTtsState = !isTtsEnabled;
+      setIsTtsEnabled(newTtsState);
+      localStorage.setItem('ttsEnabled', String(newTtsState));
+      toast({
+          title: `Text-to-Speech ${newTtsState ? 'Enabled' : 'Disabled'}`,
+      });
+      // If turning off, stop any current playback
+      if (!newTtsState && audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.src = "";
+          setAudioDataUri(null);
+      }
+  }
+
   return (
     <div className="relative flex h-full max-h-screen flex-col">
        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
@@ -340,6 +360,10 @@ function SupportChatPageContent() {
                     Current Chat
                 </Button>
             )}
+            <Button variant="outline" size="sm" onClick={toggleTts} title={isTtsEnabled ? "Disable Text-to-Speech" : "Enable Text-to-Speech"}>
+                {isTtsEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                <span className="sr-only">Toggle Text-to-Speech</span>
+            </Button>
             <Button variant="outline" size="sm" onClick={handleSaveSummary} disabled={isSaving || isHistoricChat}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save
@@ -457,3 +481,5 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
+
+    

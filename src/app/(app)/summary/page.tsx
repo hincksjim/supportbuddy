@@ -64,6 +64,7 @@ export default function SummaryPage() {
   const [isChartLoading, setIsChartLoading] = useState(false);
   const [error, setError] = useState<string | null>(null)
   const reportRef = useRef<HTMLDivElement>(null)
+  const printableRef = useRef<HTMLDivElement>(null)
   
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   
@@ -235,14 +236,14 @@ export default function SummaryPage() {
   }
 
   const handleDownloadPdf = () => {
-    const input = reportRef.current;
+    const input = printableRef.current;
     if (!input) {
-      console.error("Report element not found");
+      console.error("Printable element not found");
       return;
     }
     setIsLoading(true);
     html2canvas(input, {
-        scale: 2, // Increase scale for better quality
+        scale: 2,
         useCORS: true, 
         logging: false 
     }).then(canvas => {
@@ -250,24 +251,27 @@ export default function SummaryPage() {
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
+      
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
-      const ratio = canvasWidth / canvasHeight;
-      const width = pdfWidth - 20; // with some margin
-      const height = width / ratio;
+      const canvasRatio = canvasWidth / canvasHeight;
 
-      let position = 0;
-      let heightLeft = (height * pdfWidth) / width;
+      const imgWidth = pdfWidth - 20; // with some margin
+      const imgHeight = imgWidth / canvasRatio;
       
-      pdf.addImage(imgData, 'PNG', 10, position + 10, width, height);
-      heightLeft -= pdfHeight;
+      let heightLeft = imgHeight;
+      let position = 10; // top margin
 
-      while (heightLeft >= 0) {
-        position = heightLeft - ((height * pdfWidth) / width) ;
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= (pdfHeight - 20);
+
+      while (heightLeft > 0) {
+        position = -heightLeft + 10;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 10, position + 10, width, height);
-        heightLeft -= pdfHeight;
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= (pdfHeight - 20);
       }
+      
       pdf.save("Personal-Summary-Report.pdf");
       setIsLoading(false);
     }).catch(err => {
@@ -299,7 +303,7 @@ export default function SummaryPage() {
         </div>
       </div>
 
-       
+       <div ref={printableRef} className="space-y-8">
          <Card>
             <CardHeader>
                 <div className="flex items-center justify-between">
@@ -374,40 +378,40 @@ export default function SummaryPage() {
             </CardContent>
          </Card>
       
-
-      <Card>
-        <CardHeader>
-            <CardTitle>AI Generated Report</CardTitle>
-            <CardDescription>This report is generated from your conversations, documents, and timeline.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading && !report && (
-            <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <p className="mt-4 text-muted-foreground">Generating your personal report...</p>
-            </div>
-          )}
-          {error && !isLoading && (
-            <Alert variant="destructive" className="my-4">
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          {!isLoading && !error && !report && (
-             <div className="text-center py-20 rounded-lg border-2 border-dashed">
-              <h2 className="text-xl font-semibold">No report generated yet</h2>
-              <p className="text-muted-foreground mt-2">Have a chat or analyze a document, then click "Refresh Report".</p>
-            </div>
-          )}
-          {report && (
-             <div 
-                ref={reportRef}
-                className="prose dark:prose-invert max-w-none text-foreground"
-                dangerouslySetInnerHTML={{ __html: reportHtml as string }}
-            />
-          )}
-        </CardContent>
-      </Card>
+        <Card>
+            <CardHeader>
+                <CardTitle>AI Generated Report</CardTitle>
+                <CardDescription>This report is generated from your conversations, documents, and timeline.</CardDescription>
+            </CardHeader>
+            <CardContent>
+            {isLoading && !report && (
+                <div className="flex flex-col items-center justify-center py-20">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="mt-4 text-muted-foreground">Generating your personal report...</p>
+                </div>
+            )}
+            {error && !isLoading && (
+                <Alert variant="destructive" className="my-4">
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            )}
+            {!isLoading && !error && !report && (
+                <div className="text-center py-20 rounded-lg border-2 border-dashed">
+                <h2 className="text-xl font-semibold">No report generated yet</h2>
+                <p className="text-muted-foreground mt-2">Have a chat or analyze a document, then click "Refresh Report".</p>
+                </div>
+            )}
+            {report && (
+                <div
+                    ref={reportRef}
+                    className="prose dark:prose-invert max-w-none text-foreground"
+                    dangerouslySetInnerHTML={{ __html: reportHtml as string }}
+                />
+            )}
+            </CardContent>
+        </Card>
+       </div>
     </div>
   )
 }

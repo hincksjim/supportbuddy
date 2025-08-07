@@ -30,10 +30,14 @@ interface UserData {
 const voices = [
     { name: 'Algenib', gender: 'Male' },
     { name: 'Enceladus', gender: 'Male' },
-    { name: 'Antares', gender: 'Male' },
-    { name: 'Canopus', gender: 'Female' },
+    { name: 'Achernar', gender: 'Male' },
+    { name: 'Gacrux', gender: 'Male' },
+    { name: 'Umbriel', gender: 'Male' },
     { name: 'Callirrhoe', gender: 'Female' },
-    { name: 'Sirius', gender: 'Female' },
+    { name: 'Leda', gender: 'Female' },
+    { name: 'Aoede', gender: 'Female' },
+    { name: 'Autonoe', gender: 'Female' },
+    { name: 'Schedar', gender: 'Female' },
 ]
 
 export default function SettingsPage() {

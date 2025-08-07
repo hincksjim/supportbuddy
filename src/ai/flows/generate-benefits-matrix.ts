@@ -25,7 +25,7 @@ const BenefitInfoSchema = z.object({
     isCurrent: z.boolean().describe("Whether the user is already receiving this benefit."),
     reason: z.string().describe("A brief, one-sentence explanation for the eligibility status."),
     requirements: z.string().describe("A slightly more detailed, user-friendly explanation of the key requirements or purpose of the benefit (2-3 sentences)."),
-    url: z.string().url().describe("The official government URL for more information and to apply for the benefit.")
+    url: z.string().describe("The official government URL for more information and to apply for the benefit.")
 });
 
 const ScenarioSchema = z.object({

@@ -23,7 +23,10 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { PlusCircle, Loader2, Pill, Trash2 } from "lucide-react"
+import { PlusCircle, Loader2, Pill, Trash2, Download } from "lucide-react"
+import jsPDF from "jspdf"
+import html2canvas from "html2canvas"
+
 
 // Data structure for a medication entry
 export interface Medication {
@@ -197,7 +200,9 @@ function MedicationCard({ medication, onSave, onDelete }: { medication: Medicati
 export default function MedicationPage() {
     const [medications, setMedications] = useState<Medication[]>([]);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+    const [isDownloading, setIsDownloading] = useState(false);
     const medicationsRef = useRef(medications);
+    const medicationListRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         medicationsRef.current = medications;
@@ -268,6 +273,30 @@ export default function MedicationPage() {
         setMedications(updatedMeds);
     }
 
+    const handleDownloadPdf = async () => {
+        const listEl = medicationListRef.current;
+        if (!listEl) return;
+        setIsDownloading(true);
+
+        const canvas = await html2canvas(listEl, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+        
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        const ratio = imgWidth / imgHeight;
+        const pdfImgWidth = pdfWidth - 20; // with margin
+        const pdfImgHeight = pdfImgWidth / ratio;
+
+        pdf.setFontSize(22);
+        pdf.text("My Medication List", pdfWidth / 2, 20, { align: 'center' });
+        pdf.addImage(imgData, 'PNG', 10, 30, pdfImgWidth, pdfImgHeight);
+        pdf.save('My-Medications.pdf');
+        
+        setIsDownloading(false);
+    }
+
     return (
         <div className="p-4 md:p-6 space-y-8">
             <div className="flex items-center justify-between">
@@ -275,10 +304,14 @@ export default function MedicationPage() {
                     <h1 className="text-3xl font-bold font-headline">My Medications</h1>
                     <p className="text-muted-foreground">A list of your current and past prescriptions.</p>
                 </div>
+                 <Button onClick={handleDownloadPdf} disabled={isDownloading || medications.length === 0} variant="outline">
+                    {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    Download PDF
+                </Button>
             </div>
 
             {medications.length > 0 ? (
-                <div className="space-y-6 w-full">
+                <div className="space-y-6 w-full" ref={medicationListRef}>
                     {medications.map(med => (
                         <MedicationCard key={med.id} medication={med} onSave={handleSaveMedication} onDelete={handleDeleteMedication} />
                     ))}

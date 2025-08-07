@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import { Sun, Moon, Laptop, Bot, Save, Play, Loader2 } from "lucide-react"
 import { useTheme } from "next-themes"
 

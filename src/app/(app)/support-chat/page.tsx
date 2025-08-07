@@ -307,10 +307,12 @@ function SupportChatPageContent() {
 
   useEffect(() => {
     if (scrollAreaRef.current) {
-      const scrollElement = scrollAreaRef.current.children[0] as HTMLDivElement;
-      if(scrollElement) {
-        scrollElement.scrollTop = scrollElement.scrollHeight;
-      }
+        setTimeout(() => {
+            const scrollElement = scrollAreaRef.current?.children[0] as HTMLDivElement;
+            if(scrollElement) {
+                scrollElement.scrollTop = scrollElement.scrollHeight;
+            }
+        }, 100);
     }
   }, [messages]);
   
@@ -482,3 +484,5 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
+
+    

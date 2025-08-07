@@ -1,4 +1,3 @@
-
 import type { SVGProps } from "react"
 
 export function Logo(props: SVGProps<SVGSVGElement>) {
@@ -65,132 +64,261 @@ export function AvatarFemale(props: SVGProps<SVGSVGElement>) {
   )
 }
 
-// --- Figma-Inspired Avatars ---
+// --- Professional Cartoon Avatars ---
 
 export function AvatarFemale20s(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-      <circle cx="50" cy="50" r="50" fill="#FFE5D9" />
-      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#4B0082" />
-      <path d="M25,45 C25,20 75,20 75,45 C75,70 60,80 50,90 C40,80 25,70 25,45" fill="#1E1E1E"/>
-      <rect x="25" y="65" width="50" height="25" fill="#FFE5D9" />
-      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#FFE5D9" />
-      <circle cx="43" cy="45" r="3" fill="black" />
-      <circle cx="57" cy="45" r="3" fill="black" />
-      <path d="M48 55 Q 50 60, 52 55" stroke="black" strokeWidth="2" fill="none" />
+    return (
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      {/* <!-- Background --> */}
+      <circle cx="50" cy="50" r="50" fill="#E0F7FA"/>
+      {/* <!-- Skin --> */}
+      <circle cx="50" cy="55" r="28" fill="#FFDAB9"/>
+      {/* <!-- Hair --> */}
+      <path d="M22 60 C 20 30, 80 30, 78 60 C 90 40, 90 90, 70 95 C 70 95, 30 95, 30 95 C 10 90, 10 40, 22 60 Z" fill="#A52A2A"/>
+      <path d="M25 45 C 20 25, 50 20, 50 35 L 30 45 Z" fill="#8B0000"/>
+      <path d="M75 45 C 80 25, 50 20, 50 35 L 70 45 Z" fill="#8B0000"/>
+      {/* <!-- Eyes --> */}
+      <ellipse cx="42" cy="50" rx="4" ry="6" fill="white"/>
+      <ellipse cx="58" cy="50" rx="4" ry="6" fill="white"/>
+      <circle cx="42" cy="51" r="2.5" fill="#2E8B57"/>
+      <circle cx="58" cy="51" r="2.5" fill="#2E8B57"/>
+      <circle cx="43" cy="50" r="1" fill="black"/>
+      <circle cx="59" cy="50" r="1" fill="black"/>
+      {/* <!-- Eyebrows --> */}
+      <path d="M38 43 Q 42 41, 46 43" stroke="black" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      <path d="M54 43 Q 58 41, 62 43" stroke="black" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      {/* <!-- Nose --> */}
+      <path d="M48 58 C 50 60, 52 60, 52 58" stroke="#D2691E" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      {/* <!-- Mouth --> */}
+      <path d="M45 65 Q 50 68, 55 65" stroke="#C71585" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      {/* <!-- Body --> */}
+      <path d="M30 83 H 70 V 100 H 30 Z" fill="#4682B4"/>
+      <path d="M50 83 C 40 83, 35 75, 50 75 C 65 75, 60 83, 50 83" fill="#FFDAB9"/>
     </svg>
-  )
+    )
 }
 
 export function AvatarFemale30s(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-      <circle cx="50" cy="50" r="50" fill="#D2B48C" />
-      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#000080" />
-      <path d="M30 30 Q 50 10, 70 30 T 70 50 Q 50 70, 30 50 T 30 30" fill="#A52A2A"/>
-      <rect x="25" y="65" width="50" height="25" fill="#D2B48C" />
-      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#D2B48C" />
-      <circle cx="43" cy="45" r="3" fill="black" />
-      <circle cx="57" cy="45" r="3" fill="black" />
-      <path d="M45 55 H 55" stroke="black" strokeWidth="2" fill="none" />
+    return (
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      {/* <!-- Background --> */}
+      <circle cx="50" cy="50" r="50" fill="#FFF0F5"/>
+      {/* <!-- Skin --> */}
+      <circle cx="50" cy="55" r="28" fill="#FFE4C4"/>
+      {/* <!-- Hair --> */}
+      <path d="M25 35 C 10 45, 15 80, 30 90 L 70 90 C 85 80, 90 45, 75 35 C 60 20, 40 20, 25 35 Z" fill="#FFD700"/>
+      <path d="M20 50 C 30 30, 70 30, 80 50 L 75 95 L 25 95 Z" fill="#FFD700" />
+      <path d="M50 32 C 40 25, 60 25, 50 32" stroke="#DAA520" strokeWidth="2" fill="none" />
+      {/* <!-- Eyes --> */}
+      <ellipse cx="42" cy="50" rx="4" ry="6" fill="white"/>
+      <ellipse cx="58" cy="50" rx="4" ry="6" fill="white"/>
+      <circle cx="42" cy="51" r="2.5" fill="#4682B4"/>
+      <circle cx="58" cy="51" r="2.5" fill="#4682B4"/>
+      <circle cx="43" cy="50" r="1" fill="black"/>
+      <circle cx="59" cy="50" r="1" fill="black"/>
+      {/* <!-- Eyebrows --> */}
+      <path d="M38 44 Q 42 42, 46 44" stroke="black" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      <path d="M54 44 Q 58 42, 62 44" stroke="black" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      {/* <!-- Nose --> */}
+      <path d="M48 58 L 52 58" stroke="#D2691E" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      {/* <!-- Mouth --> */}
+      <path d="M45 65 Q 50 67, 55 65" stroke="#DB7093" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      {/* <!-- Body --> */}
+      <path d="M30 83 H 70 V 100 H 30 Z" fill="#9370DB"/>
+      <path d="M50 83 C 40 83, 35 75, 50 75 C 65 75, 60 83, 50 83" fill="#FFE4C4"/>
     </svg>
-  )
+    )
 }
 
 export function AvatarFemale40s(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-      <circle cx="50" cy="50" r="50" fill="#F0E68C"/>
-      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#800080"/>
-      <path d="M25 35 C 25 20, 40 15, 50 25 C 60 15, 75 20, 75 35 C 75 55, 65 60, 50 55 C 35 60, 25 55, 25 35" fill="#DAA520"/>
-      <rect x="25" y="65" width="50" height="25" fill="#F0E68C"/>
-      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#F0E68C" />
-      <circle cx="43" cy="45" r="3" fill="black" />
-      <circle cx="57" cy="45" r="3" fill="black" />
-      <path d="M48 55 Q 50 50, 52 55" stroke="black" strokeWidth="2" fill="none" />
+    return (
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      {/* <!-- Background --> */}
+      <circle cx="50" cy="50" r="50" fill="#F0FFF0"/>
+      {/* <!-- Skin --> */}
+      <circle cx="50" cy="55" r="28" fill="#F5DEB3"/>
+      {/* <!-- Hair --> */}
+      <path d="M25 35 C 20 25, 80 25, 75 35 C 90 45, 85 80, 70 90 L 30 90 C 15 80, 10 45, 25 35 Z" fill="#696969"/>
+      <circle cx="50" cy="30" r="20" fill="#696969"/>
+      {/* <!-- Eyes --> */}
+      <ellipse cx="42" cy="50" rx="4" ry="5" fill="white"/>
+      <ellipse cx="58" cy="50" rx="4"ry="5" fill="white"/>
+      <circle cx="42" cy="50.5" r="2.5" fill="#8B4513"/>
+      <circle cx="58" cy="50.5" r="2.5" fill="#8B4513"/>
+      <circle cx="43" cy="50" r="1" fill="black"/>
+      <circle cx="59" cy="50" r="1" fill="black"/>
+      {/* <!-- Eyebrows --> */}
+      <path d="M38 44 Q 42 43, 46 44" stroke="black" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      <path d="M54 44 Q 58 43, 62 44" stroke="black" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      {/* <!-- Nose --> */}
+      <path d="M48 58 C 50 60, 52 60, 52 58" stroke="#A0522D" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      {/* <!-- Mouth --> */}
+      <path d="M45 65 H 55" stroke="#C71585" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      {/* <!-- Body --> */}
+      <path d="M30 83 H 70 V 100 H 30 Z" fill="#8B008B"/>
+      <path d="M50 83 C 40 83, 35 75, 50 75 C 65 75, 60 83, 50 83" fill="#F5DEB3"/>
     </svg>
-  )
+    )
 }
 
 export function AvatarFemale60s(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-      <circle cx="50" cy="50" r="50" fill="#E6E6FA"/>
-      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#4B0082"/>
-      <path d="M 30 40 C 30 20, 70 20, 70 40 C 70 60, 50 65, 50 65 C 50 65, 30 60, 30 40" fill="#D3D3D3"/>
-      <rect x="25" y="65" width="50" height="25" fill="#E6E6FA"/>
-      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#E6E6FA" />
-      <ellipse cx="43" cy="45" rx="3" ry="1.5" fill="black" />
-      <ellipse cx="57" cy="45" rx="3" ry="1.5" fill="black" />
-      <path d="M45 55 H 55" stroke="black" strokeWidth="2" fill="none" />
-      <path d="M40 40 C 42 38, 46 38, 48 40" stroke="#A9A9A9" strokeWidth="2" fill="none" />
-      <path d="M52 40 C 54 38, 58 38, 60 40" stroke="#A9A9A9" strokeWidth="2" fill="none" />
+    return (
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      {/* <!-- Background --> */}
+      <circle cx="50" cy="50" r="50" fill="#FAFAD2"/>
+      {/* <!-- Skin --> */}
+      <circle cx="50" cy="55" r="28" fill="#FFF5EE"/>
+      {/* <!-- Hair --> */}
+      <path d="M25 35 C 20 25, 80 25, 75 35 C 90 45, 85 70, 75 80 L 25 80 C 15 70, 10 45, 25 35 Z" fill="#DCDCDC"/>
+      <circle cx="35" cy="35" r="10" fill="#DCDCDC"/>
+      <circle cx="65" cy="35" r="10" fill="#DCDCDC"/>
+      {/* <!-- Eyes --> */}
+      <ellipse cx="42" cy="50" rx="3.5" ry="4.5" fill="white"/>
+      <ellipse cx="58" cy="50" rx="3.5" ry="4.5" fill="white"/>
+      <circle cx="42" cy="50.5" r="2" fill="#B0C4DE"/>
+      <circle cx="58" cy="50.5" r="2" fill="#B0C4DE"/>
+      <circle cx="42.5" cy="50" r="0.8" fill="black"/>
+      <circle cx="58.5" cy="50" r="0.8" fill="black"/>
+      {/* <!-- Eyebrows --> */}
+      <path d="M38 44 Q 42 43, 46 44" stroke="#A9A9A9" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      <path d="M54 44 Q 58 43, 62 44" stroke="#A9A9A9" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      {/* <!-- Nose --> */}
+      <path d="M48 58 L 52 58" stroke="#D2B48C" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      {/* <!-- Mouth --> */}
+      <path d="M45 65 Q 50 66, 55 65" stroke="#DB7093" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      {/* <!-- Body --> */}
+      <path d="M30 83 H 70 V 100 H 30 Z" fill="#5F9EA0"/>
+      <path d="M50 83 C 40 83, 35 75, 50 75 C 65 75, 60 83, 50 83" fill="#FFF5EE"/>
     </svg>
-  )
+    )
 }
 
+// --- Male Avatars ---
+
 export function AvatarMale20s(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-      <circle cx="50" cy="50" r="50" fill="#ADD8E6"/>
-      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#006400"/>
-      <path d="M 35 25 C 25 25, 25 40, 35 40 L 65 40 C 75 40, 75 25, 65 25 Z" fill="#8B4513"/>
-      <rect x="25" y="65" width="50" height="25" fill="#ADD8E6"/>
-      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#ADD8E6" />
-      <circle cx="43" cy="45" r="3" fill="black" />
-      <circle cx="57" cy="45" r="3" fill="black" />
-      <path d="M48 55 Q 50 60, 52 55" stroke="black" strokeWidth="2" fill="none" />
+    return (
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      {/* <!-- Background --> */}
+      <circle cx="50" cy="50" r="50" fill="#E6F7FF"/>
+      {/* <!-- Skin --> */}
+      <circle cx="50" cy="55" r="28" fill="#FFDAB9"/>
+      {/* <!-- Hair --> */}
+      <path d="M25 30 C 20 20, 80 20, 75 30 C 75 30, 75 55, 75 55 L 25 55 Z" fill="#2F4F4F"/>
+      {/* <!-- Eyes --> */}
+      <ellipse cx="42" cy="50" rx="4" ry="6" fill="white"/>
+      <ellipse cx="58" cy="50" rx="4" ry="6" fill="white"/>
+      <circle cx="42" cy="51" r="2.5" fill="#4169E1"/>
+      <circle cx="58" cy="51" r="2.5" fill="#4169E1"/>
+      <circle cx="43" cy="50" r="1" fill="black"/>
+      <circle cx="59" cy="50" r="1" fill="black"/>
+      {/* <!-- Eyebrows --> */}
+      <path d="M38 44 H 46" stroke="black" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <path d="M54 44 H 62" stroke="black" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      {/* <!-- Nose --> */}
+      <path d="M50 58 L 48 62 L 52 62 Z" fill="#D2691E" strokeLinecap="round"/>
+      {/* <!-- Mouth --> */}
+      <path d="M45 68 Q 50 70, 55 68" stroke="#A52A2A" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      {/* <!-- Body --> */}
+      <path d="M30 83 H 70 V 100 H 30 Z" fill="#3CB371"/>
+      <path d="M50 83 C 40 83, 35 75, 50 75 C 65 75, 60 83, 50 83" fill="#FFDAB9"/>
     </svg>
-  )
+    )
 }
 
 export function AvatarMale30s(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-      <circle cx="50" cy="50" r="50" fill="#90EE90"/>
-      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#FF4500"/>
-      <path d="M30,35 C30,25 40,20 50,25 C60,20 70,25 70,35 L 70 40 L 30 40 Z" fill="#2F4F4F"/>
-      <rect x="25" y="65" width="50" height="25" fill="#90EE90"/>
-      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#90EE90" />
-      <circle cx="43" cy="45" r="3" fill="black" />
-      <circle cx="57" cy="45" r="3" fill="black" />
-      <path d="M45 55 H 55" stroke="black" strokeWidth="2" fill="none" />
-      <path d="M40 60 H 60" stroke="#A9A9A9" strokeWidth="3" fill="none" />
+    return (
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      {/* <!-- Background --> */}
+      <circle cx="50" cy="50" r="50" fill="#F5F5DC"/>
+      {/* <!-- Skin --> */}
+      <circle cx="50" cy="55" r="28" fill="#DEB887"/>
+      {/* <!-- Hair --> */}
+      <path d="M30 30 C 20 35, 25 55, 30 55 L 70 55 C 75 55, 80 35, 70 30 C 60 20, 40 20, 30 30 Z" fill="#8B4513"/>
+      {/* <!-- Beard --> */}
+      <path d="M38 68 C 35 80, 65 80, 62 68 L 55 65 H 45 Z" fill="#8B4513"/>
+      {/* <!-- Eyes --> */}
+      <ellipse cx="42" cy="50" rx="4" ry="6" fill="white"/>
+      <ellipse cx="58" cy="50" rx="4" ry="6" fill="white"/>
+      <circle cx="42" cy="51" r="2.5" fill="#006400"/>
+      <circle cx="58" cy="51" r="2.5" fill="#006400"/>
+      <circle cx="43" cy="50" r="1" fill="black"/>
+      <circle cx="59" cy="50" r="1" fill="black"/>
+      {/* <!-- Eyebrows --> */}
+      <path d="M38 44 H 46" stroke="black" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <path d="M54 44 H 62" stroke="black" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      {/* <!-- Nose --> */}
+      <path d="M50 58 L 48 62 L 52 62 Z" fill="#A0522D" strokeLinecap="round"/>
+      {/* <!-- Mouth --> */}
+      <path d="M45 68 H 55" stroke="#FFE4E1" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      {/* <!-- Body --> */}
+      <path d="M30 83 H 70 V 100 H 30 Z" fill="#B22222"/>
+      <path d="M50 83 C 40 83, 35 75, 50 75 C 65 75, 60 83, 50 83" fill="#DEB887"/>
     </svg>
-  )
+    )
 }
 
 export function AvatarMale40s(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-      <circle cx="50" cy="50" r="50" fill="#FFA07A"/>
-      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#B22222"/>
-      <path d="M35 30 C 25 30, 25 45, 40 45 L 60 45 C 75 45, 75 30, 65 30 L 35 30" fill="#696969"/>
-      <path d="M 50 25 C 40 25, 40 15, 50 15 C 60 15, 60 25, 50 25" fill="#696969"/>
-      <rect x="25" y="65" width="50" height="25" fill="#FFA07A"/>
-      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#FFA07A" />
-      <circle cx="43" cy="45" r="3" fill="black" />
-      <circle cx="57" cy="45" r="3" fill="black" />
-      <path d="M48 55 Q 50 50, 52 55" stroke="black" strokeWidth="2" fill="none" />
-      <path d="M45 59 H 55" stroke="#A9A9A9" strokeWidth="2" fill="none" />
+    return (
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      {/* <!-- Background --> */}
+      <circle cx="50" cy="50" r="50" fill="#E6E6FA"/>
+      {/* <!-- Skin --> */}
+      <circle cx="50" cy="55" r="28" fill="#CD853F"/>
+      {/* <!-- Hair (receding) --> */}
+      <path d="M30 40 C 25 30, 40 25, 50 25 C 60 25, 75 30, 70 40 L 75 55 L 25 55 Z" fill="#696969"/>
+      <path d="M50 25 C 40 25, 35 35, 50 35 C 65 35, 60 25, 50 25" fill="#CD853F"/>
+      {/* <!-- Mustache --> */}
+      <path d="M40 65 C 45 68, 55 68, 60 65" stroke="#696969" strokeWidth="3" fill="none" strokeLinecap="round"/>
+      {/* <!-- Eyes --> */}
+      <ellipse cx="42" cy="50" rx="4" ry="5.5" fill="white"/>
+      <ellipse cx="58" cy="50" rx="4" ry="5.5" fill="white"/>
+      <circle cx="42" cy="50.5" r="2.5" fill="#A52A2A"/>
+      <circle cx="58" cy="50.5" r="2.5" fill="#A52A2A"/>
+      <circle cx="43" cy="50" r="1" fill="black"/>
+      <circle cx="59" cy="50" r="1" fill="black"/>
+      {/* <!-- Eyebrows --> */}
+      <path d="M38 44 H 46" stroke="black" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <path d="M54 44 H 62" stroke="black" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      {/* <!-- Nose --> */}
+      <path d="M50 58 L 48 62 L 52 62 Z" fill="#8B4513" strokeLinecap="round"/>
+      {/* <!-- Mouth --> */}
+      <path d="M45 70 Q 50 68, 55 70" stroke="#FFE4E1" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      {/* <!-- Body --> */}
+      <path d="M30 83 H 70 V 100 H 30 Z" fill="#2E8B57"/>
+      <path d="M50 83 C 40 83, 35 75, 50 75 C 65 75, 60 83, 50 83" fill="#CD853F"/>
     </svg>
-  )
+    )
 }
 
 export function AvatarMale60s(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-      <circle cx="50" cy="50" r="50" fill="#F5DEB3"/>
-      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#2F4F4F"/>
-      <path d="M40 30 C 30 30, 30 45, 40 45 L 60 45 C 70 45, 70 30, 60 30 Z" fill="#D3D3D3"/>
-      <rect x="25" y="65" width="50" height="25" fill="#F5DEB3"/>
-      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#F5DEB3" />
-      <ellipse cx="43" cy="45" rx="3" ry="1.5" fill="black" />
-      <ellipse cx="57" cy="45" rx="3" ry="1.5" fill="black" />
-      <path d="M45 55 H 55" stroke="black" strokeWidth="2" fill="none" />
-      <path d="M40 40 C 42 38, 46 38, 48 40" stroke="#A9A9A9" strokeWidth="2" fill="none" />
-      <path d="M52 40 C 54 38, 58 38, 60 40" stroke="#A9A9A9" strokeWidth="2" fill="none" />
-      <path d="M40 60 H 60" stroke="#A9A9A9" strokeWidth="3" fill="none" />
+    return (
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      {/* <!-- Background --> */}
+      <circle cx="50" cy="50" r="50" fill="#FFFACD"/>
+      {/* <!-- Skin --> */}
+      <circle cx="50" cy="55" r="28" fill="#FFEBCD"/>
+      {/* <!-- Hair (balding) --> */}
+      <path d="M30 45 C 25 35, 40 30, 50 30 C 60 30, 75 35, 70 45 L 75 55 L 25 55 Z" fill="#DCDCDC"/>
+      <path d="M50 30 C 40 30, 30 45, 50 45 C 70 45, 60 30, 50 30" fill="#FFEBCD"/>
+      {/* <!-- Mustache --> */}
+      <path d="M40 65 C 45 69, 55 69, 60 65" stroke="#DCDCDC" strokeWidth="3" fill="none" strokeLinecap="round"/>
+      {/* <!-- Eyes --> */}
+      <ellipse cx="42" cy="50" rx="3.5" ry="5" fill="white"/>
+      <ellipse cx="58" cy="50" rx="3.5" ry="5" fill="white"/>
+      <circle cx="42" cy="50.5" r="2" fill="#708090"/>
+      <circle cx="58" cy="50.5" r="2" fill="#708090"/>
+      <circle cx="42.5" cy="50" r="0.8" fill="black"/>
+      <circle cx="58.5" cy="50" r="0.8" fill="black"/>
+      {/* <!-- Eyebrows --> */}
+      <path d="M38 44 H 46" stroke="#A9A9A9" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <path d="M54 44 H 62" stroke="#A9A9A9" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      {/* <!-- Nose --> */}
+      <path d="M50 58 L 48 62 L 52 62 Z" fill="#D2B48C" strokeLinecap="round"/>
+      {/* <!-- Mouth --> */}
+      <path d="M45 70 H 55" stroke="#F08080" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      {/* <!-- Body --> */}
+      <path d="M30 83 H 70 V 100 H 30 Z" fill="#483D8B"/>
+      <path d="M50 83 C 40 83, 35 75, 50 75 C 65 75, 60 83, 50 83" fill="#FFEBCD"/>
     </svg>
-  )
+    )
 }

@@ -110,6 +110,8 @@ ${benefitsDecisionLogic}
 **CRITICAL Pension Age Rule:**
 The UK State Pension age is not a fixed number (like 65). It varies based on date of birth and is gradually increasing. You MUST use the user's Age ({{{age}}}) to make a reasonable determination of whether they are of working age or pension age. For example, a 64-year-old is of working age. Someone who is 68 is of pension age. Use your knowledge of current UK pension ages to determine which category the user falls into. Do not classify someone as "Pension Age+" if their age is below the current state pension threshold.
 
+**Employment Status Mapping**: For the purpose of applying the rules, consider the status 'unemployed-on-benefits' to be the same as 'On Benefits'.
+
 **Task:**
 Create a response for the following three scenarios. For each scenario, determine the potential benefits based on the JSON ruleset and the Pension Age Rule provided.
 

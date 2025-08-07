@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Zap, Check, Pencil, Save, Download } from "lucide-react"
+import { Loader2, Zap, Check, Download } from "lucide-react"
 import {
   Accordion,
   AccordionContent,
@@ -156,8 +156,10 @@ export default function TimelinePage() {
     setIsDownloading(true);
 
     const originalOpenItems = openAccordionItems;
+    // Force all accordion items to be open for capture
     setOpenAccordionItems(timelineData.timeline.map(stage => stage.title));
     
+    // Allow time for the DOM to update with all accordions open
     setTimeout(async () => {
         try {
             const pdf = new jsPDF('p', 'mm', 'a4');
@@ -165,6 +167,11 @@ export default function TimelinePage() {
             const pdfHeight = pdf.internal.pageSize.getHeight();
             const margin = 10;
             let yPos = margin;
+
+            // Add a title page
+            pdf.setFontSize(22);
+            pdf.text("My Treatment Timeline", pdfWidth / 2, pdfHeight / 2, { align: 'center' });
+
 
             const stageElements = Array.from(container.querySelectorAll('.timeline-stage-card')) as HTMLElement[];
 
@@ -177,11 +184,16 @@ export default function TimelinePage() {
 
                 const finalImgWidth = pdfWidth - margin * 2;
                 const finalImgHeight = finalImgWidth / ratio;
-
+                
+                // Add a new page if the content doesn't fit
                 if (yPos + finalImgHeight > pdfHeight - margin) {
                     pdf.addPage();
                     yPos = margin;
+                } else if (yPos === margin) { // It's not the first content page
+                     pdf.addPage();
+                     yPos = margin;
                 }
+
 
                 pdf.addImage(imgData, 'PNG', margin, yPos, finalImgWidth, finalImgHeight);
                 yPos += finalImgHeight + 5; 
@@ -193,10 +205,11 @@ export default function TimelinePage() {
             console.error("PDF generation failed:", err);
             setError("Sorry, there was an error creating the PDF.");
         } finally {
+            // Restore the original view
             setOpenAccordionItems(originalOpenItems);
             setIsDownloading(false);
         }
-    }, 500);
+    }, 500); // 500ms delay to ensure DOM is updated
 };
 
   return (
@@ -220,8 +233,8 @@ export default function TimelinePage() {
          </div>
       </div>
 
-      <Card ref={timelineContainerRef}>
-        <CardContent className="pt-6">
+      <Card>
+        <CardContent className="pt-6" ref={timelineContainerRef}>
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -249,14 +262,14 @@ export default function TimelinePage() {
                     {timelineData.timeline.map((stage, stageIndex) => {
                         const isCompleted = stage.steps.every(step => step.status === 'completed');
                         return (
-                            <AccordionItem value={stage.title} key={stageIndex} className={cn("timeline-stage-card border-b-0", isCompleted && "bg-muted/40 rounded-lg")}>
-                                <AccordionTrigger className={cn("text-lg font-semibold px-4", isCompleted && "text-muted-foreground hover:no-underline")}>
+                            <AccordionItem value={stage.title} key={stageIndex} className={cn("border-b-0 mb-4 rounded-lg bg-card shadow-sm border timeline-stage-card", isCompleted && "bg-muted/40")}>
+                                <AccordionTrigger className={cn("text-lg font-semibold px-4 py-4 rounded-t-lg", isCompleted && "text-muted-foreground hover:no-underline")}>
                                    <div className="flex items-center gap-3">
                                      {isCompleted && <Check className="w-5 h-5 text-green-600" />}
                                      {stage.title}
                                    </div>
                                 </AccordionTrigger>
-                                <AccordionContent className="space-y-4 px-4">
+                                <AccordionContent className="space-y-4 px-4 pb-4">
                                     <p className="text-muted-foreground">{stage.description}</p>
                                     {stage.steps.map((step, stepIndex) => (
                                         <div key={step.id} className="p-4 border rounded-lg space-y-3 bg-background">

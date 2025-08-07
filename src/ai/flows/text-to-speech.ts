@@ -65,34 +65,27 @@ const textToSpeechFlow = ai.defineFlow(
     outputSchema: TextToSpeechOutputSchema,
   },
   async ({ text, voice }) => {
-    try {
-      const {media} = await ai.generate({
-        model: 'googleai/gemini-2.5-flash-preview-tts',
-        config: {
-          responseModalities: ['AUDIO'],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: {voiceName: voice || 'Algenib'},
-            },
+    const {media} = await ai.generate({
+      model: 'googleai/gemini-2.5-flash-preview-tts',
+      config: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {voiceName: voice || 'Algenib'},
           },
         },
-        prompt: text,
-      });
-      if (!media) {
-        throw new Error('no media returned');
-      }
-      const audioBuffer = Buffer.from(
-        media.url.substring(media.url.indexOf(',') + 1),
-        'base64'
-      );
-      return {
-        audioDataUri: 'data:audio/wav;base64,' + (await toWav(audioBuffer)),
-      };
-    } catch (error) {
-        console.error("TTS Generation Error:", error);
-        // Return an empty audio URI to prevent the app from crashing on the client.
-        // The client will see no audio and proceed gracefully.
-        return { audioDataUri: "" };
+      },
+      prompt: text,
+    });
+    if (!media) {
+      throw new Error('no media returned');
     }
+    const audioBuffer = Buffer.from(
+      media.url.substring(media.url.indexOf(',') + 1),
+      'base64'
+    );
+    return {
+      audioDataUri: 'data:audio/wav;base64,' + (await toWav(audioBuffer)),
+    };
   }
 );

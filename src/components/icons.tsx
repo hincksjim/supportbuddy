@@ -65,165 +65,132 @@ export function AvatarFemale(props: SVGProps<SVGSVGElement>) {
   )
 }
 
-// --- Bauhaus-style Avatars ---
+// --- Figma-Inspired Avatars ---
 
 export function AvatarFemale20s(props: SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 36 36" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-            <mask id="mask__beam" maskUnits="userSpaceOnUse" x="0" y="0" width="36" height="36">
-                <rect width="36" height="36" rx="72" fill="#FFFFFF"></rect>
-            </mask>
-            <g mask="url(#mask__beam)">
-                <rect width="36" height="36" fill="#edd4c0"></rect>
-                <rect x="0" y="0" width="36" height="36" transform="translate(0 0) rotate(190 18 18) scale(1.1)" fill="#7a543d" rx="36"></rect>
-                <g transform="translate(-2 0) rotate(10 18 18)">
-                    <path d="M15 19c2 1 4 1 6 0" stroke="#000000" fill="none" strokeLinecap="round"></path>
-                    <rect x="13" y="14" width="3.5" height="3.5" rx="2" stroke="none" fill="#000000"></rect>
-                    <rect x="20" y="14" width="3.5" height="3.5" rx="2" stroke="none" fill="#000000"></rect>
-                     <path d="M13 25 C14 26, 22 26, 23 25" stroke="#000000" fill="none" strokeWidth="1" strokeLinecap="round" />
-                </g>
-            </g>
-        </svg>
-    );
+  return (
+    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
+      <circle cx="50" cy="50" r="50" fill="#FFE5D9" />
+      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#4B0082" />
+      <path d="M25,45 C25,20 75,20 75,45 C75,70 60,80 50,90 C40,80 25,70 25,45" fill="#1E1E1E"/>
+      <rect x="25" y="65" width="50" height="25" fill="#FFE5D9" />
+      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#FFE5D9" />
+      <circle cx="43" cy="45" r="3" fill="black" />
+      <circle cx="57" cy="45" r="3" fill="black" />
+      <path d="M48 55 Q 50 60, 52 55" stroke="black" strokeWidth="2" fill="none" />
+    </svg>
+  )
 }
 
 export function AvatarFemale30s(props: SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 36 36" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-            <mask id="mask__beam" maskUnits="userSpaceOnUse" x="0" y="0" width="36" height="36">
-                <rect width="36" height="36" rx="72" fill="#FFFFFF"></rect>
-            </mask>
-            <g mask="url(#mask__beam)">
-                <rect width="36" height="36" fill="#f0d1b3"></rect>
-                <rect x="0" y="0" width="36" height="36" transform="translate(3 3) rotate(315 18 18) scale(1.1)" fill="#4c2f19" rx="6"></rect>
-                <g transform="translate(1.5 -1) rotate(-5 18 18)">
-                    <path d="M15 20c2 1 4 1 6 0" stroke="#000000" fill="none" strokeLinecap="round"></path>
-                    <rect x="13" y="14" width="3.5" height="3.5" rx="2" stroke="none" fill="#000000"></rect>
-                    <rect x="20" y="14" width="3.5" height="3.5" rx="2" stroke="none" fill="#000000"></rect>
-                    <path d="M11,28 a1,0.4 0 0,0 14,0" fill="#000000"></path>
-                </g>
-            </g>
-        </svg>
-    );
+  return (
+    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
+      <circle cx="50" cy="50" r="50" fill="#D2B48C" />
+      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#000080" />
+      <path d="M30 30 Q 50 10, 70 30 T 70 50 Q 50 70, 30 50 T 30 30" fill="#A52A2A"/>
+      <rect x="25" y="65" width="50" height="25" fill="#D2B48C" />
+      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#D2B48C" />
+      <circle cx="43" cy="45" r="3" fill="black" />
+      <circle cx="57" cy="45" r="3" fill="black" />
+      <path d="M45 55 H 55" stroke="black" strokeWidth="2" fill="none" />
+    </svg>
+  )
 }
 
 export function AvatarFemale40s(props: SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 36 36" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-            <mask id="mask__beam" maskUnits="userSpaceOnUse" x="0" y="0" width="36" height="36">
-                <rect width="36" height="36" rx="72" fill="#FFFFFF"></rect>
-            </mask>
-            <g mask="url(#mask__beam)">
-                <rect width="36" height="36" fill="#edd4c0"></rect>
-                <rect x="0" y="0" width="36" height="36" transform="translate(-4 -1) rotate(180 18 18) scale(1.2)" fill="#7a543d" rx="36"></rect>
-                <g transform="translate(3 -1) rotate(9 18 18)">
-                    <path d="M14 19c1.5 1 4.5 1 6 0" stroke="#000000" fill="none" strokeLinecap="round"></path>
-                    <rect x="13" y="14" width="3.5" height="3.5" rx="2" stroke="none" fill="#000000"></rect>
-                    <rect x="20" y="14" width="3.5" height="3.5" rx="2" stroke="none" fill="#000000"></rect>
-                    <path d="M13,25 a1,0.5 0 0,0 10,0" fill="#000000"></path>
-                </g>
-            </g>
-        </svg>
-    );
+  return (
+    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
+      <circle cx="50" cy="50" r="50" fill="#F0E68C"/>
+      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#800080"/>
+      <path d="M25 35 C 25 20, 40 15, 50 25 C 60 15, 75 20, 75 35 C 75 55, 65 60, 50 55 C 35 60, 25 55, 25 35" fill="#DAA520"/>
+      <rect x="25" y="65" width="50" height="25" fill="#F0E68C"/>
+      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#F0E68C" />
+      <circle cx="43" cy="45" r="3" fill="black" />
+      <circle cx="57" cy="45" r="3" fill="black" />
+      <path d="M48 55 Q 50 50, 52 55" stroke="black" strokeWidth="2" fill="none" />
+    </svg>
+  )
 }
 
 export function AvatarFemale60s(props: SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 36 36" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-            <mask id="mask__beam" maskUnits="userSpaceOnUse" x="0" y="0" width="36" height="36">
-                <rect width="36" height="36" rx="72" fill="#FFFFFF"></rect>
-            </mask>
-            <g mask="url(#mask__beam)">
-                <rect width="36" height="36" fill="#f0e2d8"></rect>
-                <rect x="0" y="0" width="36" height="36" transform="translate(0 0) rotate(324 18 18) scale(1.2)" fill="#d4d4d4" rx="36"></rect>
-                <g transform="translate(0 2) rotate(4 18 18)">
-                    <path d="M15 19c2 1 4 1 6 0" stroke="#000000" fill="none" strokeLinecap="round"></path>
-                    <path d="M13.5,14.5 a0.5,0.5 0 1,0 0,1 a0.5,0.5 0 1,0 0,-1" fill="#000000"></path>
-                    <path d="M21.5,14.5 a0.5,0.5 0 1,0 0,1 a0.5,0.5 0 1,0 0,-1" fill="#000000"></path>
-                    <path d="M12 24 C14 26, 22 26, 24 24" stroke="#000000" fill="none" strokeWidth="1" strokeLinecap="round" />
-                </g>
-            </g>
-        </svg>
-    );
+  return (
+    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
+      <circle cx="50" cy="50" r="50" fill="#E6E6FA"/>
+      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#4B0082"/>
+      <path d="M 30 40 C 30 20, 70 20, 70 40 C 70 60, 50 65, 50 65 C 50 65, 30 60, 30 40" fill="#D3D3D3"/>
+      <rect x="25" y="65" width="50" height="25" fill="#E6E6FA"/>
+      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#E6E6FA" />
+      <ellipse cx="43" cy="45" rx="3" ry="1.5" fill="black" />
+      <ellipse cx="57" cy="45" rx="3" ry="1.5" fill="black" />
+      <path d="M45 55 H 55" stroke="black" strokeWidth="2" fill="none" />
+      <path d="M40 40 C 42 38, 46 38, 48 40" stroke="#A9A9A9" strokeWidth="2" fill="none" />
+      <path d="M52 40 C 54 38, 58 38, 60 40" stroke="#A9A9A9" strokeWidth="2" fill="none" />
+    </svg>
+  )
 }
 
 export function AvatarMale20s(props: SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 36 36" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-            <mask id="mask__beam" maskUnits="userSpaceOnUse" x="0" y="0" width="36" height="36">
-                <rect width="36" height="36" rx="72" fill="#FFFFFF"></rect>
-            </mask>
-            <g mask="url(#mask__beam)">
-                <rect width="36" height="36" fill="#f0d1b3"></rect>
-                <rect x="0" y="0" width="36" height="36" transform="translate(0 0) rotate(0 18 18) scale(1)" fill="#4c2f19" rx="36"></rect>
-                <g transform="translate(0 0) rotate(0 18 18)">
-                    <path d="M13 20c1.5 2 4.5 2 6 0" stroke="#000000" fill="none" strokeLinecap="round"></path>
-                    <rect x="13" y="14" width="3.5" height="3.5" rx="1" stroke="none" fill="#000000"></rect>
-                    <rect x="20" y="14" width="3.5" height="3.5" rx="1" stroke="none" fill="#000000"></rect>
-                </g>
-            </g>
-        </svg>
-    );
+  return (
+    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
+      <circle cx="50" cy="50" r="50" fill="#ADD8E6"/>
+      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#006400"/>
+      <path d="M 35 25 C 25 25, 25 40, 35 40 L 65 40 C 75 40, 75 25, 65 25 Z" fill="#8B4513"/>
+      <rect x="25" y="65" width="50" height="25" fill="#ADD8E6"/>
+      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#ADD8E6" />
+      <circle cx="43" cy="45" r="3" fill="black" />
+      <circle cx="57" cy="45" r="3" fill="black" />
+      <path d="M48 55 Q 50 60, 52 55" stroke="black" strokeWidth="2" fill="none" />
+    </svg>
+  )
 }
 
 export function AvatarMale30s(props: SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 36 36" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-            <mask id="mask__beam" maskUnits="userSpaceOnUse" x="0" y="0" width="36" height="36">
-                <rect width="36" height="36" rx="72" fill="#FFFFFF"></rect>
-            </mask>
-            <g mask="url(#mask__beam)">
-                <rect width="36" height="36" fill="#f0d1b3"></rect>
-                <rect x="0" y="0" width="36" height="36" transform="translate(0 0) rotate(0 18 18) scale(1)" fill="#7a543d" rx="12"></rect>
-                <g transform="translate(0 2) rotate(0 18 18)">
-                    <path d="M13 20c1.5 2 4.5 2 6 0" stroke="#000000" fill="none" strokeLinecap="round"></path>
-                    <rect x="13" y="14" width="3.5" height="3.5" rx="1" stroke="none" fill="#000000"></rect>
-                    <rect x="20" y="14" width="3.5" height="3.5" rx="1" stroke="none" fill="#000000"></rect>
-                    <path d="M11 25 C 13 24, 23 24, 25 25" stroke="#000000" fill="none" strokeWidth="1" strokeLinecap="round" />
-                </g>
-            </g>
-        </svg>
-    );
+  return (
+    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
+      <circle cx="50" cy="50" r="50" fill="#90EE90"/>
+      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#FF4500"/>
+      <path d="M30,35 C30,25 40,20 50,25 C60,20 70,25 70,35 L 70 40 L 30 40 Z" fill="#2F4F4F"/>
+      <rect x="25" y="65" width="50" height="25" fill="#90EE90"/>
+      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#90EE90" />
+      <circle cx="43" cy="45" r="3" fill="black" />
+      <circle cx="57" cy="45" r="3" fill="black" />
+      <path d="M45 55 H 55" stroke="black" strokeWidth="2" fill="none" />
+      <path d="M40 60 H 60" stroke="#A9A9A9" strokeWidth="3" fill="none" />
+    </svg>
+  )
 }
 
-
 export function AvatarMale40s(props: SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 36 36" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-            <mask id="mask__beam" maskUnits="userSpaceOnUse" x="0" y="0" width="36" height="36">
-                <rect width="36" height="36" rx="72" fill="#FFFFFF"></rect>
-            </mask>
-            <g mask="url(#mask__beam)">
-                <rect width="36" height="36" fill="#edd4c0"></rect>
-                <rect x="0" y="0" width="36" height="36" transform="translate(0 0) rotate(0 18 18) scale(1)" fill="#4c2f19" rx="0"></rect>
-                <g transform="translate(0 3) rotate(0 18 18)">
-                    <path d="M15 19c2 1 4 1 6 0" stroke="#000000" fill="none" strokeLinecap="round"></path>
-                    <rect x="13" y="14" width="3.5" height="3.5" rx="2" stroke="none" fill="#000000"></rect>
-                    <rect x="20" y="14" width="3.5" height="3.5" rx="2" stroke="none" fill="#000000"></rect>
-                </g>
-            </g>
-        </svg>
-    );
+  return (
+    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
+      <circle cx="50" cy="50" r="50" fill="#FFA07A"/>
+      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#B22222"/>
+      <path d="M35 30 C 25 30, 25 45, 40 45 L 60 45 C 75 45, 75 30, 65 30 L 35 30" fill="#696969"/>
+      <path d="M 50 25 C 40 25, 40 15, 50 15 C 60 15, 60 25, 50 25" fill="#696969"/>
+      <rect x="25" y="65" width="50" height="25" fill="#FFA07A"/>
+      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#FFA07A" />
+      <circle cx="43" cy="45" r="3" fill="black" />
+      <circle cx="57" cy="45" r="3" fill="black" />
+      <path d="M48 55 Q 50 50, 52 55" stroke="black" strokeWidth="2" fill="none" />
+      <path d="M45 59 H 55" stroke="#A9A9A9" strokeWidth="2" fill="none" />
+    </svg>
+  )
 }
 
 export function AvatarMale60s(props: SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 36 36" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
-            <mask id="mask__beam" maskUnits="userSpaceOnUse" x="0" y="0" width="36" height="36">
-                <rect width="36" height="36" rx="72" fill="#FFFFFF"></rect>
-            </mask>
-            <g mask="url(#mask__beam)">
-                <rect width="36" height="36" fill="#f0e2d8"></rect>
-                <g transform="translate(0 0) rotate(0 18 18)">
-                    <path d="M0 36 C0 28, 36 28, 36 36" fill="#d4d4d4"></path>
-                    <path d="M15 19c2 1 4 1 6 0" stroke="#000000" fill="none" strokeLinecap="round"></path>
-                    <path d="M13.5,14.5 a0.5,0.5 0 1,0 0,1 a0.5,0.5 0 1,0 0,-1" fill="#000000"></path>
-                    <path d="M21.5,14.5 a0.5,0.5 0 1,0 0,1 a0.5,0.5 0 1,0 0,-1" fill="#000000"></path>
-                    <path d="M12 26 C14 25, 22 25, 24 26" stroke="#000000" fill="none" strokeWidth="1" strokeLinecap="round" />
-                </g>
-            </g>
-        </svg>
-    );
+  return (
+    <svg viewBox="0 0 100 100" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" {...props}>
+      <circle cx="50" cy="50" r="50" fill="#F5DEB3"/>
+      <path d="M25 75 C30 70, 70 70, 75 75 L75 100 L25 100 Z" fill="#2F4F4F"/>
+      <path d="M40 30 C 30 30, 30 45, 40 45 L 60 45 C 70 45, 70 30, 60 30 Z" fill="#D3D3D3"/>
+      <rect x="25" y="65" width="50" height="25" fill="#F5DEB3"/>
+      <ellipse cx="50" cy="50" rx="20" ry="25" fill="#F5DEB3" />
+      <ellipse cx="43" cy="45" rx="3" ry="1.5" fill="black" />
+      <ellipse cx="57" cy="45" rx="3" ry="1.5" fill="black" />
+      <path d="M45 55 H 55" stroke="black" strokeWidth="2" fill="none" />
+      <path d="M40 40 C 42 38, 46 38, 48 40" stroke="#A9A9A9" strokeWidth="2" fill="none" />
+      <path d="M52 40 C 54 38, 58 38, 60 40" stroke="#A9A9A9" strokeWidth="2" fill="none" />
+      <path d="M40 60 H 60" stroke="#A9A9A9" strokeWidth="3" fill="none" />
+    </svg>
+  )
 }
-
-    

@@ -143,48 +143,50 @@ export default function TimelinePage() {
   }
   
   const handleDownloadPdf = async () => {
-    const card = timelineCardRef.current;
-    if (!card) return;
+    const input = timelineCardRef.current;
+    if (!input) {
+        return;
+    }
     setIsDownloading(true);
-
     try {
-        const canvas = await html2canvas(card, { scale: 2 });
+        const canvas = await html2canvas(input, {
+            scale: 2,
+            windowWidth: input.scrollWidth,
+            windowHeight: input.scrollHeight,
+        });
+
         const imgData = canvas.toDataURL('image/png');
-        
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        const ratio = imgWidth / imgHeight;
+        const widthInPdf = pdfWidth - 20;
+        const heightInPdf = widthInPdf / ratio;
 
-        const canvasWidth = canvas.width;
-        const canvasHeight = canvas.height;
-        
-        const ratio = canvasWidth / canvasHeight;
-        const imgWidth = pdfWidth - 20; // 10mm margin on each side
-        const imgHeight = imgWidth / ratio;
+        let position = 10;
+        let heightLeft = heightInPdf;
 
-        let heightLeft = imgHeight;
-        let position = 10; // Top margin
+        pdf.addImage(imgData, 'PNG', 10, position, widthInPdf, heightInPdf);
+        heightLeft -= (pdfHeight - 20);
 
-        // Add the first page
-        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-        heightLeft -= (pdfHeight - 20); // Subtract visible height
-
-        // Add new pages if content is taller than one page
         while (heightLeft > 0) {
-            position -= (pdfHeight - 20); // Move position up by one page height
+            position -= (pdfHeight - 20);
             pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+            pdf.addImage(imgData, 'PNG', 10, position, widthInPdf, heightInPdf);
             heightLeft -= (pdfHeight - 20);
         }
-
+        
         pdf.save('My-Treatment-Timeline.pdf');
+
     } catch (err) {
         console.error("PDF generation failed:", err);
         setError("Sorry, there was an error creating the PDF.");
     } finally {
         setIsDownloading(false);
     }
-}
+};
 
   return (
     <div className="p-4 md:p-6 space-y-8">

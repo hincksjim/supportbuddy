@@ -73,11 +73,8 @@ const benefitsDecisionLogic = `
   },
   {
     "Age Range":"16-64",
-    "Employment Status":"On Benefits",
-    "Existing Benefits":"Universal Credit (UC)",
-    "Income/Savings":"Low income",
-    "Health Impact (Cancer)":"New cancer diagnosis",
-    "Additional or Replacement Benefits":"Add Limited Capability for Work (LCWRA) element, Personal Independence Payment (PIP)"
+    "Health Impact (Cancer)":"Any",
+    "Additional or Replacement Benefits":"Universal Credit (with LCWRA element)"
   },
   {
     "Age Range":"16-64",

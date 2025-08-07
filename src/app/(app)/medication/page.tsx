@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { PlusCircle, Loader2, Pill, Trash2, Download } from "lucide-react"
 import jsPDF from "jspdf"
-import html2canvas from "html2canvas"
+import autoTable from 'jspdf-autotable'
 
 
 // Data structure for a medication entry
@@ -202,7 +202,6 @@ export default function MedicationPage() {
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
     const medicationsRef = useRef(medications);
-    const medicationListRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         medicationsRef.current = medications;
@@ -274,25 +273,46 @@ export default function MedicationPage() {
     }
 
     const handleDownloadPdf = async () => {
-        const listEl = medicationListRef.current;
-        if (!listEl) return;
+        if (medications.length === 0) return;
         setIsDownloading(true);
 
-        const canvas = await html2canvas(listEl, { scale: 2 });
-        const imgData = canvas.toDataURL('image/png');
-        
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-        const ratio = imgWidth / imgHeight;
-        const pdfImgWidth = pdfWidth - 20; // with margin
-        const pdfImgHeight = pdfImgWidth / ratio;
+        const doc = new jsPDF();
 
-        pdf.setFontSize(22);
-        pdf.text("My Medication List", pdfWidth / 2, 20, { align: 'center' });
-        pdf.addImage(imgData, 'PNG', 10, 30, pdfImgWidth, pdfImgHeight);
-        pdf.save('My-Medications.pdf');
+        doc.setFontSize(22);
+        doc.text("My Medication List", 105, 20, { align: 'center' });
+
+        const tableColumn = ["Medication Name", "Strength", "Dose Instructions", "Issued By", "Date Issued"];
+        const tableRows = medications.map(med => [
+            med.name,
+            med.strength,
+            med.dose,
+            med.issuedBy,
+            new Date(med.issuedDate).toLocaleDateString('en-GB')
+        ]);
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 30,
+            theme: 'grid',
+            styles: {
+                halign: 'center'
+            },
+            headStyles: {
+                fillColor: [22, 163, 74],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold'
+            },
+            columnStyles: {
+                0: { cellWidth: 35 },
+                1: { cellWidth: 25 },
+                2: { cellWidth: 'auto' },
+                3: { cellWidth: 30 },
+                4: { cellWidth: 30 },
+            }
+        });
+
+        doc.save('My-Medications.pdf');
         
         setIsDownloading(false);
     }
@@ -311,7 +331,7 @@ export default function MedicationPage() {
             </div>
 
             {medications.length > 0 ? (
-                <div className="space-y-6 w-full" ref={medicationListRef}>
+                <div className="space-y-6 w-full">
                     {medications.map(med => (
                         <MedicationCard key={med.id} medication={med} onSave={handleSaveMedication} onDelete={handleDeleteMedication} />
                     ))}

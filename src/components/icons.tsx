@@ -24,49 +24,41 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
 
 export function AvatarMale(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="1em"
-      height="1em"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 14c-2.76 0-5-1.12-5-2.5S9.24 9 12 9s5 1.12 5 2.5-2.24 2.5-5 2.5z" />
-      <path d="M12 14v4" />
-      <path d="M10 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
-      <path d="M14 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
-      <path d="M9 10.5s.5-1.5 3-1.5 3 1.5 3 1.5" />
-    </svg>
+   <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="1em"
+    height="1em"
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    {...props}>
+    <path d="M20 21a8 8 0 0 0-16 0" />
+    <circle cx="12" cy="7" r="4" />
+    <path d="M12 11v2" />
+   </svg>
   )
 }
 
 export function AvatarFemale(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="1em"
-      height="1em"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
+     xmlns="http://www.w3.org/2000/svg"
+     width="1em"
+     height="1em"
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="currentColor"
+     strokeWidth="2"
+     strokeLinecap="round"
+     strokeLinejoin="round"
+     {...props}
     >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 14c-2.76 0-5-1.12-5-2.5S9.24 9 12 9s5 1.12 5 2.5-2.24 2.5-5 2.5z" />
-      <path d="M12 14v4" />
-      <path d="M10 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
-      <path d="M14 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
-      <path d="M9 10s.5-2 3-2 3 2 3 2" />
-      <path d="M10 18s.5-2 2-2 2 2 2 2" />
+        <path d="M18 21a6 6 0 0 0-12 0" />
+        <circle cx="12" cy="7" r="4" />
+        <path d="M12 11v2" />
     </svg>
   )
 }

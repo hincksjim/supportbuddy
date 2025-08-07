@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useRef, useEffect, Suspense } from "react"
-import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX, PlusCircle, Download, Bookmark } from "lucide-react"
+import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX, PlusCircle, Download, Bookmark, ChevronDown } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { AvatarFemale, AvatarMale, Logo } from "@/components/icons"
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
 import { useToast } from "@/hooks/use-toast"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface Message {
   role: "user" | "assistant"
@@ -55,6 +63,15 @@ interface UserData {
   benefits?: string[];
 }
 
+const voices = [
+    { name: 'Algenib', gender: 'Male' },
+    { name: 'Enceladus', gender: 'Male' },
+    { name: 'Antares', gender: 'Male' },
+    { name: 'Canopus', gender: 'Female' },
+    { name: 'Callirrhoe', gender: 'Female' },
+    { name: 'Sirius', gender: 'Female' },
+]
+
 function SupportChatPageContent() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
@@ -65,6 +82,7 @@ function SupportChatPageContent() {
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
   const [isHistoricChat, setIsHistoricChat] = useState(false);
   const [isTtsEnabled, setIsTtsEnabled] = useState(true);
+  const [selectedVoice, setSelectedVoice] = useState('Algenib');
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   
   const router = useRouter()
@@ -81,7 +99,7 @@ function SupportChatPageContent() {
   const speakMessage = async (text: string) => {
     if (!isTtsEnabled) return;
     try {
-      const result = await textToSpeech(text);
+      const result = await textToSpeech({ text, voice: selectedVoice });
       if (result.audioDataUri) {
         setAudioDataUri(result.audioDataUri);
       }
@@ -255,6 +273,10 @@ function SupportChatPageContent() {
       }
       const ttsSetting = localStorage.getItem('ttsEnabled');
       setIsTtsEnabled(ttsSetting !== 'false');
+      const voiceSetting = localStorage.getItem('ttsVoice');
+      if (voiceSetting) {
+          setSelectedVoice(voiceSetting);
+      }
 
     } else {
       router.push("/login");
@@ -383,6 +405,12 @@ function SupportChatPageContent() {
       }
   }
 
+  const handleVoiceChange = (voice: string) => {
+      setSelectedVoice(voice);
+      localStorage.setItem('ttsVoice', voice);
+      toast({ title: `Voice changed to ${voice}` });
+  }
+
   const handleDownloadMessage = (content: string) => {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -438,6 +466,23 @@ function SupportChatPageContent() {
                 {isTtsEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
                 <span className="sr-only">Toggle Text-to-Speech</span>
             </Button>
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" disabled={!isTtsEnabled}>
+                        Voice
+                        <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    <DropdownMenuLabel>Select a Voice</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {voices.map((voice) => (
+                        <DropdownMenuItem key={voice.name} onSelect={() => handleVoiceChange(voice.name)} disabled={selectedVoice === voice.name}>
+                            {voice.name} ({voice.gender})
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
             <Button variant="outline" size="sm" onClick={handleSaveSummary} disabled={isSaving || isHistoricChat}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save
@@ -570,5 +615,3 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
-
-    

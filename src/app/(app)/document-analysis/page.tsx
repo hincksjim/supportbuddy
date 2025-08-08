@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -30,7 +31,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { analyzeMedicalDocument } from "@/ai/flows/analyze-medical-document"
 
-interface AnalysisResult {
+export interface AnalysisResult {
   id: string
   title: string
   question: string
@@ -335,3 +336,5 @@ export default function DocumentAnalysisPage() {
     </div>
   )
 }
+
+    

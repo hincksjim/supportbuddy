@@ -29,6 +29,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
+import type { GenerateTreatmentTimelineOutput } from "@/ai/flows/generate-treatment-timeline"
+import type { DiaryEntry } from "@/app/(app)/diary/page"
+import type { Medication } from "@/app/(app)/medication/page"
+import type { AnalysisResult } from "@/app/(app)/document-analysis/page"
+
 
 interface Message {
   role: "user" | "assistant"
@@ -82,6 +87,14 @@ const avatars: { [key: string]: React.ElementType } = {
     'male': AvatarMale,
 };
 
+// Define a type for all the contextual data we will load
+interface AppContextData {
+    timelineData: GenerateTreatmentTimelineOutput | null;
+    diaryData: DiaryEntry[];
+    medicationData: Medication[];
+    sourceDocuments: AnalysisResult[];
+}
+
 function SupportChatPageContent() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
@@ -89,6 +102,12 @@ function SupportChatPageContent() {
   const [isSaving, setIsSaving] = useState(false)
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [userData, setUserData] = useState<UserData>({});
+  const [appContextData, setAppContextData] = useState<AppContextData>({
+      timelineData: null,
+      diaryData: [],
+      medicationData: [],
+      sourceDocuments: [],
+  });
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
   const [isHistoricChat, setIsHistoricChat] = useState(false);
   const [isTtsEnabled, setIsTtsEnabled] = useState(true);
@@ -105,6 +124,27 @@ function SupportChatPageContent() {
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+
+  // Function to load all necessary context from localStorage
+  const loadAppContext = () => {
+    if (!currentUserEmail) return;
+    try {
+        const storedTimeline = localStorage.getItem(`treatmentTimeline_${currentUserEmail}`);
+        const storedDiary = localStorage.getItem(`diaryEntries_${currentUserEmail}`);
+        const storedMeds = localStorage.getItem(`medications_${currentUserEmail}`);
+        const storedDocs = localStorage.getItem(`analysisResults_${currentUserEmail}`);
+
+        setAppContextData({
+            timelineData: storedTimeline ? JSON.parse(storedTimeline) : null,
+            diaryData: storedDiary ? JSON.parse(storedDiary) : [],
+            medicationData: storedMeds ? JSON.parse(storedMeds) : [],
+            sourceDocuments: storedDocs ? JSON.parse(storedDocs) : [],
+        });
+    } catch (e) {
+        console.error("Failed to load app context data:", e);
+        toast({ title: "Error Loading Data", description: "Could not load all your saved context.", variant: "destructive" });
+    }
+  };
   
   const speakMessage = async (text: string) => {
     if (!isTtsEnabled) return;
@@ -140,7 +180,18 @@ function SupportChatPageContent() {
         existingBenefits: userData.benefits || [],
         responseMood: userData.responseMood || 'standard',
         conversationHistory: messages,
-        question: finalInput 
+        question: finalInput,
+        
+        // Pass all the contextual data
+        timelineData: appContextData.timelineData,
+        diaryData: appContextData.diaryData,
+        medicationData: appContextData.medicationData,
+        sourceDocuments: appContextData.sourceDocuments.map(d => ({
+            id: d.id,
+            title: d.title,
+            date: d.date,
+            analysis: d.analysis,
+        })),
       };
 
       if (userData.income) {
@@ -297,6 +348,9 @@ function SupportChatPageContent() {
   
   useEffect(() => {
     if (!currentUserEmail) return;
+    
+    // Load all context data when user is identified
+    loadAppContext();
 
     const conversationId = searchParams.get("id");
 
@@ -603,3 +657,5 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
+
+    

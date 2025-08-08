@@ -13,6 +13,61 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { lookupPostcode } from '@/services/postcode-lookup';
 
+// Schemas for external data sources
+const SourceDocumentSchema = z.object({
+    id: z.string(),
+    title: z.string(),
+    date: z.string(),
+    analysis: z.string(),
+});
+
+const DiaryEntrySchema = z.object({
+  id: z.string(),
+  date: z.string(),
+  mood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
+  diagnosisMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
+  treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
+  painScore: z.number().nullable(),
+  weight: z.string(),
+  sleep: z.string(),
+  food: z.string(),
+  worriedAbout: z.string(),
+  positiveAbout: z.string(),
+  notes: z.string(),
+  medsTaken: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    time: z.string(),
+    quantity: z.number(),
+    isPrescribed: z.boolean(),
+  })),
+});
+
+const MedicationSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  strength: z.string(),
+  dose: z.string(),
+  issuedBy: z.string(),
+  issuedDate: z.string(),
+});
+
+const TimelineStepSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  target: z.string(),
+  status: z.enum(['pending', 'completed']),
+  notes: z.string(),
+});
+
+const TimelineStageSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  steps: z.array(TimelineStepSchema),
+});
+
+
 const AiConversationalSupportInputSchema = z.object({
   userName: z.string().describe("The user's first name."),
   age: z.string().describe("The user's age."),
@@ -29,6 +84,15 @@ const AiConversationalSupportInputSchema = z.object({
     content: z.string(),
   })).describe("The history of the conversation so far."),
   question: z.string().describe('The user question about their condition or treatment options.'),
+  
+  // New context fields
+  sourceDocuments: z.array(SourceDocumentSchema).optional().describe('An array of previously analyzed documents.'),
+  diaryData: z.array(DiaryEntrySchema).optional().describe('An array of the user\'s diary entries.'),
+  medicationData: z.array(MedicationSchema).optional().describe('An array of the user\'s prescribed medications.'),
+  timelineData: z.object({
+      disclaimer: z.string(),
+      timeline: z.array(TimelineStageSchema)
+  }).nullable().optional().describe('The user\'s current treatment timeline data.'),
 });
 export type AiConversationalSupportInput = z.infer<typeof AiConversationalSupportInputSchema>;
 
@@ -41,93 +105,7 @@ export async function aiConversationalSupport(input: AiConversationalSupportInpu
   return aiConversationalSupportFlow(input);
 }
 
-const benefitsDecisionLogic = JSON.stringify([
-  {
-    "Age Range":"Under 16",
-    "Employment Status":"N/A",
-    "Existing Benefits":"Any",
-    "Income/Savings":"N/A",
-    "Health Impact (Cancer)":"Has cancer",
-    "Additional or Replacement Benefits":"Disability Living Allowance (DLA), Carer's Allowance (for parent), NHS travel/prescription support"
-  },
-  {
-    "Age Range":"16-Pension Age",
-    "Employment Status":"Employed",
-    "Existing Benefits":"None or any",
-    "Income/Savings":"Any",
-    "Health Impact (Cancer)":"Cannot work (cancer)",
-    "Additional or Replacement Benefits":"Statutory Sick Pay (SSP), Personal Independence Payment (PIP), New Style Employment and Support Allowance (ESA), Universal Credit (with LCWRA element)"
-  },
-  {
-    "Age Range":"16-Pension Age",
-    "Employment Status":"Employed",
-    "Existing Benefits":"SSP ended",
-    "Income/Savings":"Low income/savings < £16K",
-    "Health Impact (Cancer)":"Ongoing illness (cancer)",
-    "Additional or Replacement Benefits":"New Style ESA, PIP, Universal Credit (with LCWRA element), Blue Badge"
-  },
-  {
-    "Age Range":"16-Pension Age",
-    "Employment Status":"Unemployed",
-    "Existing Benefits":"JSA",
-    "Income/Savings":"Low income",
-    "Health Impact (Cancer)":"Diagnosed with cancer",
-    "Additional or Replacement Benefits":"Replace JSA with New Style ESA, claim PIP, Universal Credit (with LCWRA element)"
-  },
-  {
-    "Age Range":"16-Pension Age",
-    "Health Impact (Cancer)":"Any",
-    "Additional or Replacement Benefits":"Universal Credit (with LCWRA element)"
-  },
-  {
-    "Age Range":"16-Pension Age",
-    "Employment Status":"Self-employed",
-    "Existing Benefits":"None",
-    "Income/Savings":"Income affected",
-    "Health Impact (Cancer)":"Cancer limits work",
-    "Additional or Replacement Benefits":"Universal Credit (UC) with LCWRA element, PIP, ESA (New Style), Council Tax Support"
-  },
-  {
-    "Age Range":"16-Pension Age",
-    "Employment Status":"On Benefits",
-    "Existing Benefits":"Universal Credit (UC)",
-    "Income/Savings":"Low income",
-    "Health Impact (Cancer)":"Health worsens",
-    "Additional or Replacement Benefits":"Add Limited Capability for Work (LCWRA) element, PIP, Council Tax Support"
-  },
-  {
-    "Age Range":"Pension Age+",
-    "Employment Status":"Retired or any",
-    "Existing Benefits":"State Pension",
-    "Income/Savings":"Low income",
-    "Health Impact (Cancer)":"Diagnosed with cancer",
-    "Additional or Replacement Benefits":"Attendance Allowance, Pension Credit with Severe Disability Premium, Blue Badge, Free NHS travel/prescriptions"
-  },
-  {
-    "Age Range":"Pension Age+",
-    "Employment Status":"Retired or any",
-    "Existing Benefits":"Pension Credit",
-    "Income/Savings":"Low income",
-    "Health Impact (Cancer)":"Cancer diagnosis",
-    "Additional or Replacement Benefits":"Attendance Allowance, Carer's Allowance (for spouse if caring), Housing Benefit/Council Tax Support"
-  },
-  {
-    "Age Range":"Any",
-    "Employment Status":"Any",
-    "Existing Benefits":"Caring for someone with cancer",
-    "Income/Savings":"Any",
-    "Health Impact (Cancer)":"Caring 35+ hours/week",
-    "Additional or Replacement Benefits":"Carer's Allowance, Council Tax discount for carers"
-  },
-  {
-    "Age Range":"Terminal",
-    "Employment Status":"Any",
-    "Existing Benefits":"Any",
-    "Income/Savings":"Any",
-    "Health Impact (Cancer)":"Terminal (expected < 12 months)",
-    "Additional or Replacement Benefits":"Fast-track: PIP (highest rate), Attendance Allowance, DLA, Universal Credit (with LCWRA element), ESA with no work requirements"
-  }
-]);
+const benefitsDecisionLogic = "[{\"Age Range\":\"Under 16\",\"Employment Status\":\"N/A\",\"Existing Benefits\":\"Any\",\"Income/Savings\":\"N/A\",\"Health Impact (Cancer)\":\"Has cancer\",\"Additional or Replacement Benefits\":\"Disability Living Allowance (DLA), Carer's Allowance (for parent), NHS travel/prescription support\"},{\"Age Range\":\"16-Pension Age\",\"Employment Status\":\"Employed\",\"Existing Benefits\":\"None or any\",\"Income/Savings\":\"Any\",\"Health Impact (Cancer)\":\"Cannot work (cancer)\",\"Additional or Replacement Benefits\":\"Statutory Sick Pay (SSP), Personal Independence Payment (PIP), New Style Employment and Support Allowance (ESA), Universal Credit (with LCWRA element)\"},{\"Age Range\":\"16-Pension Age\",\"Employment Status\":\"Employed\",\"Existing Benefits\":\"SSP ended\",\"Income/Savings\":\"Low income/savings < £16K\",\"Health Impact (Cancer)\":\"Ongoing illness (cancer)\",\"Additional or Replacement Benefits\":\"New Style ESA, PIP, Universal Credit (with LCWRA element), Blue Badge\"},{\"Age Range\":\"16-Pension Age\",\"Employment Status\":\"Unemployed\",\"Existing Benefits\":\"JSA\",\"Income/Savings\":\"Low income\",\"Health Impact (Cancer)\":\"Diagnosed with cancer\",\"Additional or Replacement Benefits\":\"Replace JSA with New Style ESA, claim PIP, Universal Credit (with LCWRA element)\"},{\"Age Range\":\"16-Pension Age\",\"Health Impact (Cancer)\":\"Any\",\"Additional or Replacement Benefits\":\"Universal Credit (with LCWRA element)\"},{\"Age Range\":\"16-Pension Age\",\"Employment Status\":\"Self-employed\",\"Existing Benefits\":\"None\",\"Income/Savings\":\"Income affected\",\"Health Impact (Cancer)\":\"Cancer limits work\",\"Additional or Replacement Benefits\":\"Universal Credit (UC) with LCWRA element, PIP, ESA (New Style), Council Tax Support\"},{\"Age Range\":\"16-Pension Age\",\"Employment Status\":\"On Benefits\",\"Existing Benefits\":\"Universal Credit (UC)\",\"Income/Savings\":\"Low income\",\"Health Impact (Cancer)\":\"Health worsens\",\"Additional or Replacement Benefits\":\"Add Limited Capability for Work (LCWRA) element, PIP, Council Tax Support\"},{\"Age Range\":\"Pension Age+\",\"Employment Status\":\"Retired or any\",\"Existing Benefits\":\"State Pension\",\"Income/Savings\":\"Low income\",\"Health Impact (Cancer)\":\"Diagnosed with cancer\",\"Additional or Replacement Benefits\":\"Attendance Allowance, Pension Credit with Severe Disability Premium, Blue Badge, Free NHS travel/prescriptions\"},{\"Age Range\":\"Pension Age+\",\"Employment Status\":\"Retired or any\",\"Existing Benefits\":\"Pension Credit\",\"Income/Savings\":\"Low income\",\"Health Impact (Cancer)\":\"Cancer diagnosis\",\"Additional or Replacement Benefits\":\"Attendance Allowance, Carer's Allowance (for spouse if caring), Housing Benefit/Council Tax Support\"},{\"Age Range\":\"Any\",\"Employment Status\":\"Any\",\"Existing Benefits\":\"Caring for someone with cancer\",\"Income/Savings\":\"Any\",\"Health Impact (Cancer)\":\"Caring 35+ hours/week\",\"Additional or Replacement Benefits\":\"Carer's Allowance, Council Tax discount for carers\"},{\"Age Range\":\"Terminal\",\"Employment Status\":\"Any\",\"Existing Benefits\":\"Any\",\"Income/Savings\":\"Any\",\"Health Impact (Cancer)\":\"Terminal (expected < 12 months)\",\"Additional or Replacement Benefits\":\"Fast-track: PIP (highest rate), Attendance Allowance, DLA, Universal Credit (with LCWRA element), ESA with no work requirements\"}]";
 
 
 const prompt = ai.definePrompt({
@@ -137,7 +115,9 @@ const prompt = ai.definePrompt({
   tools: [lookupPostcode],
   prompt: `You are a caring, friendly, and very supportive cancer specialist, almost like a best friend. Your role is to create a safe space for users to disclose their fears and worries. You are here to support all elements of their care, including their mental, physical, and financial well-being, much like a Marie Curie nurse. Be empathetic, warm, and understanding in all your responses.
 
-  **User Information:**
+  **CONTEXT IS EVERYTHING:** Before answering the user's current question, you **MUST** first review all the context provided below. This information is your knowledge base about the user. Synthesize details from their profile, documents, timeline, diary, and medications to provide a truly personalized and informed response. Reference specific details you find to show you are paying attention (e.g., "I saw in your diary you were feeling...").
+
+  **User's Full Profile & Context:**
   - Name: {{{userName}}}
   - Age: {{{age}}}
   - Gender: {{{gender}}}
@@ -148,6 +128,40 @@ const prompt = ai.definePrompt({
   - Savings: {{{savings}}}
   - Existing Benefits: {{#each existingBenefits}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
 
+  **Analyzed Documents (Key Source of Medical Facts):**
+  {{#each sourceDocuments}}
+  - Document Title: "{{title}}" - Analysis: {{{analysis}}}
+  {{else}}
+  - No documents analyzed yet.
+  {{/each}}
+
+  **Treatment Timeline (For Understanding the Journey):**
+  {{#if timelineData.timeline}}
+    {{#each timelineData.timeline}}
+    - Stage: {{title}}
+      {{#each steps}}
+      - Step: {{title}} (Status: {{status}}) - Notes: {{{notes}}}
+      {{/each}}
+    {{/each}}
+  {{else}}
+  - No timeline created yet.
+  {{/if}}
+
+  **Diary Entries (For Recent Feelings and Symptoms):**
+  {{#each diaryData}}
+  - Date: {{date}} - Mood: {{mood}}, Pain: {{painScore}}, Worried: "{{worriedAbout}}", Positive: "{{positiveAbout}}", Notes: "{{notes}}"
+  {{else}}
+  - No diary entries yet.
+  {{/each}}
+
+  **Current Medications:**
+  {{#each medicationData}}
+  - {{name}} ({{strength}}), Dose: "{{dose}}"
+  {{else}}
+  - No medications listed yet.
+  {{/each}}
+
+
   **Response Mood:**
   Based on the user's preference, adjust your tone:
   - 'standard': Your default caring, friendly, and supportive tone.
@@ -156,19 +170,14 @@ const prompt = ai.definePrompt({
   Current Mood Setting: **{{{responseMood}}}**
 
   **Core Principles:**
-  1.  **Be a Specialist & Ask One Question at a Time:** When a user shares information about their diagnosis, treatment, or mental state, ask pertinent follow-up questions to gather the necessary details. **Crucially, only ask one question at a time and wait for their response before asking another.** This prevents overwhelming them. Your goal is to achieve over 90% confidence in your understanding before providing a detailed answer. To help create a personalized timeline and summary report later, try to gather information like:
-      *   The type and stage of cancer.
-      *   Key dates (e.g., diagnosis date, scan dates, appointment dates).
-      *   Key medical details (e.g., tumor size, specific biomarkers).
-      *   Names of key medical staff (e.g., consultant, specialist nurse) and their contact details if offered.
-      *   The names of the specific hospitals or clinics they are attending for diagnosis, treatment, or surgery.
-  2.  **Provide Meaningful Empathy:** Avoid shallow or generic phrases like "I'm sorry to hear that." Instead, validate their feelings and experiences with meaningful and specific acknowledgements. For example: "It sounds incredibly tough to be juggling treatment and work. It's completely understandable that you're feeling overwhelmed." (Adjust based on mood setting).
-  3.  **Explain Simply:** All of your explanations should be clear and easy for a 12th-grade student (a senior in high school) to understand. Avoid jargon where possible.
-  4.  **Define Medical Terms:** If you must use a medical term, always provide a simple, concise definition immediately after. For example: "...you may experience neutropenia, which is a condition where you have a lower number of white blood cells, making you more susceptible to infections."
-  5.  **Be Location-Aware:** If the user's query is about local services, use the \`lookupPostcode\` tool to find their city and local health authority. Use this information to provide tailored, practical advice. For example: "I see you're in the Manchester area, which is covered by the NHS Greater Manchester Integrated Care Board. They have specific resources that might help..."
-  6. **Act as a Benefits Advisor**: If the user's conversation touches on financial worries, work changes, or their ability to cope, you MUST use the following JSON ruleset to determine if they might be eligible for additional financial support. Proactively suggest benefits they might be entitled to, explaining what they are in simple terms.
-    **CRITICAL Pension Age Rule**: The UK State Pension age is not fixed at 65. It varies based on date of birth. You MUST use the user's Date of Birth ({{{dob}}}) to determine if they have reached the state pension age according to UK government guidelines. The pension age is gradually increasing and is currently between 66 and 68. **Do not apply "Pension Age+" rules to someone who is, for example, 64, as they are not yet eligible for pension-age benefits like Pension Credit or Attendance Allowance.** Use your knowledge to accurately assess this.
-    **Employment Status Mapping**: For the purpose of applying the rules, consider the status 'unemployed-on-benefits' to be the same as 'On Benefits'.
+  1.  **Be a Specialist & Ask One Question at a Time:** When a user shares information, ask pertinent follow-up questions to gather the necessary details. **Crucially, only ask one question at a time and wait for their response before asking another.**
+  2.  **Provide Meaningful Empathy:** Avoid shallow or generic phrases. Instead, validate their feelings and experiences with meaningful acknowledgements.
+  3.  **Explain Simply:** All explanations should be clear and easy for a 12th-grade student to understand.
+  4.  **Define Medical Terms:** If you must use a medical term, always provide a simple definition.
+  5.  **Be Location-Aware:** If the user's query is about local services, use the \`lookupPostcode\` tool to find their city and local health authority.
+  6. **Act as a Benefits Advisor**: If the conversation touches on financial worries, you MUST use the following JSON ruleset to determine if they might be eligible for additional financial support. Proactively suggest benefits they might be entitled to.
+    **CRITICAL Pension Age Rule**: The UK State Pension age varies. Use the user's Date of Birth ({{{dob}}}) to determine if they have reached the state pension age. Do not apply "Pension Age+" rules to someone under the current pension age.
+    **Employment Status Mapping**: Consider 'unemployed-on-benefits' the same as 'On Benefits'.
 
   **Benefits Decision Logic (JSON Ruleset):**
   \`\`\`json
@@ -183,7 +192,7 @@ const prompt = ai.definePrompt({
 
   **Current User Question:** {{{question}}}
 
-  Please provide a detailed, supportive, and easy-to-understand answer based on the principles above. Remember to only ask one clarifying question if you need more information. If relevant, include any potential benefits suggestions based on the rules provided.`,
+  Please provide a detailed, supportive, and easy-to-understand answer based on all the context and principles above. Remember to only ask one clarifying question if you need more information.`,
 });
 
 const aiConversationalSupportFlow = ai.defineFlow(
@@ -197,3 +206,5 @@ const aiConversationalSupportFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

@@ -13,7 +13,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { lookupPostcode } from '@/services/postcode-lookup';
 import { generateBenefitsSuggestion } from '@/ai/flows/generate-benefits-suggestion';
-import { BenefitSuggestion, SourceConversation, SourceDocument } from './types';
+import { SourceConversation, SourceDocument } from './types';
 
 
 const TimelineStepSchema = z.object({
@@ -285,5 +285,3 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

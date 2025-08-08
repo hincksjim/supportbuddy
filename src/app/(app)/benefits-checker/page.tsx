@@ -36,6 +36,8 @@ export default function BenefitsCheckerPage() {
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
     const [userData, setUserData] = useState<UserData>({});
 
+    const getStorageKey = (email: string) => `benefitsMatrix_${email}`;
+
     const loadUserData = () => {
         const email = localStorage.getItem("currentUserEmail");
         if (email) {
@@ -48,13 +50,13 @@ export default function BenefitsCheckerPage() {
                 if (formattedStatus === 'Unemployed on benefits') formattedStatus = 'On Benefits';
                 
                 setUserData({ ...parsedData, employmentStatus: formattedStatus });
-                return { ...parsedData, employmentStatus: formattedStatus };
+                return { email, userData: { ...parsedData, employmentStatus: formattedStatus } };
             }
         }
         return null;
     }
 
-    const generateMatrix = async (currentUserData: UserData) => {
+    const generateMatrix = async (currentUserData: UserData, userEmail: string) => {
         if (!currentUserData.age || !currentUserData.employmentStatus) {
             setError("Your age and employment status must be set in your profile to generate the benefits matrix.");
             setIsLoading(false);
@@ -70,6 +72,7 @@ export default function BenefitsCheckerPage() {
                 existingBenefits: currentUserData.benefits || [],
             });
             setMatrixData(result);
+            localStorage.setItem(getStorageKey(userEmail), JSON.stringify(result));
         } catch (err: any) {
             console.error("Failed to generate benefits matrix:", err);
             if (err.message && err.message.includes("503")) {
@@ -83,16 +86,28 @@ export default function BenefitsCheckerPage() {
     };
     
     const handleRefresh = () => {
-        const loadedData = loadUserData();
-        if(loadedData) {
-            generateMatrix(loadedData);
+        const loadResult = loadUserData();
+        if(loadResult) {
+             if (loadResult.email) {
+                localStorage.removeItem(getStorageKey(loadResult.email));
+            }
+            generateMatrix(loadResult.userData, loadResult.email);
         }
     }
 
     useEffect(() => {
-        const loadedData = loadUserData();
-        if(loadedData) {
-            generateMatrix(loadedData);
+        const loadResult = loadUserData();
+        if(loadResult) {
+            const { email, userData } = loadResult;
+            const savedMatrix = localStorage.getItem(getStorageKey(email));
+            if (savedMatrix) {
+                setMatrixData(JSON.parse(savedMatrix));
+                setIsLoading(false);
+            } else {
+                generateMatrix(userData, email);
+            }
+        } else {
+            setIsLoading(false);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -223,3 +238,5 @@ export default function BenefitsCheckerPage() {
         </div>
     )
 }
+
+    

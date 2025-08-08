@@ -105,9 +105,24 @@ const painEmojis = [
 ];
 
 const bodyParts = [
-    "Head", "Neck", "Shoulders", "Chest", "Back (Upper)", "Back (Lower)",
-    "Abdomen", "Hips", "Arms (Upper)", "Elbows", "Forearms", "Wrists", "Hands",
-    "Thighs", "Knees", "Shins", "Calves", "Ankles", "Feet"
+    "Head", "Neck", "Chest",
+    "Back (Upper)", "Back (Lower)",
+    "Abdomen (General)", 
+    "Abdomen (Upper Left)", "Abdomen (Upper Right)",
+    "Abdomen (Lower Left)", "Abdomen (Lower Right)",
+    "Left Shoulder", "Right Shoulder",
+    "Left Arm (Upper)", "Right Arm (Upper)",
+    "Left Elbow", "Right Elbow",
+    "Left Forearm", "Right Forearm",
+    "Left Wrist", "Right Wrist",
+    "Left Hand", "Right Hand",
+    "Left Hip", "Right Hip",
+    "Left Thigh", "Right Thigh",
+    "Left Knee", "Right Knee",
+    "Left Shin", "Right Shin",
+    "Left Calf", "Right Calf",
+    "Left Ankle", "Right Ankle",
+    "Left Foot", "Right Foot"
 ];
 
 
@@ -133,7 +148,7 @@ function LogMedicationDialog({ onLog, prescribedMeds, existingMedsTaken, onDoseW
         if (newMedLog.isPrescribed) {
             const prescription = prescribedMeds.find(p => p.name === newMedLog.name);
             if (prescription) {
-                // Ensure we are only checking against meds taken today for this specific medication
+                // Get all doses of this medication taken in this specific entry/day
                 const todaysTakesForThisMed: MedDose[] = existingMedsTaken
                     .filter(m => m.name === newMedLog.name)
                     .map(m => ({ time: m.time, quantity: m.quantity }));
@@ -522,11 +537,11 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
     )
 }
 
-function DiaryEntryCard({ entry, onSave, currentUserEmail }: { entry: DiaryEntry; onSave: (entry: DiaryEntry) => void; currentUserEmail: string | null; }) {
+function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete }: { entry: DiaryEntry; onSave: (entry: DiaryEntry) => void; currentUserEmail: string | null; onDelete: (id: string) => void; }) {
     const hasPainDetails = (entry.painScore ?? 0) > 0 && (entry.painLocation || entry.painRemarks);
     
     return (
-        <Card className="diary-entry-card">
+        <Card className="diary-entry-card relative group">
             <CardHeader>
                 <div className="flex justify-between items-start">
                     <div>
@@ -618,8 +633,17 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail }: { entry: DiaryEntry
                     </div>
                 )}
             </CardContent>
-             <CardFooter>
+             <CardFooter className="flex justify-between items-center">
                  <DiaryEntryDialog onSave={onSave} existingEntry={entry} currentUserEmail={currentUserEmail} />
+                 <Button 
+                    variant="destructive" 
+                    size="icon" 
+                    className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => onDelete(entry.id)}
+                 >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Delete Entry</span>
+                 </Button>
              </CardFooter>
         </Card>
     );
@@ -694,6 +718,13 @@ export default function DiaryPage() {
         saveEntries(updatedEntries);
     };
 
+    const handleDeleteEntry = (id: string) => {
+        if (!currentUserEmail) return;
+        const updatedEntries = entries.filter(e => e.id !== id);
+        setEntries(updatedEntries);
+        saveEntries(updatedEntries);
+    };
+
     const handleDownloadPdf = async () => {
         const container = diaryContainerRef.current;
         if (!container) return;
@@ -754,7 +785,7 @@ export default function DiaryPage() {
             {entries.length > 0 ? (
                 <div className="space-y-6" ref={diaryContainerRef}>
                     {entries.map(entry => (
-                        <DiaryEntryCard key={entry.id} entry={entry} onSave={handleSaveEntry} currentUserEmail={currentUserEmail} />
+                        <DiaryEntryCard key={entry.id} entry={entry} onSave={handleSaveEntry} currentUserEmail={currentUserEmail} onDelete={handleDeleteEntry} />
                     ))}
                 </div>
             ) : (
@@ -768,3 +799,5 @@ export default function DiaryPage() {
         </div>
     )
 }
+
+    

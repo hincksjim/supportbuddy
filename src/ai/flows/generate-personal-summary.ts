@@ -12,6 +12,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { lookupPostcode } from '@/services/postcode-lookup';
+import { generateBenefitsSuggestion, BenefitSuggestion } from '@/ai/flows/generate-benefits-suggestion';
 
 
 const TimelineStepSchema = z.object({
@@ -113,7 +114,16 @@ export type GeneratePersonalSummaryOutput = z.infer<
 export async function generatePersonalSummary(
   input: GeneratePersonalSummaryInput
 ): Promise<GeneratePersonalSummaryOutput> {
+  // Step 1: Call dependent flows first
   const locationInfo = await lookupPostcode({ postcode: input.postcode });
+  const benefitsResult = await generateBenefitsSuggestion({
+      age: input.age,
+      employmentStatus: input.employmentStatus,
+      income: input.income,
+      savings: input.savings,
+      existingBenefits: input.existingBenefits || [],
+  });
+
   const currentDate = new Date().toLocaleDateString('en-GB', {
     year: 'numeric',
     month: 'long',
@@ -121,7 +131,15 @@ export async function generatePersonalSummary(
     weekday: 'long',
   });
 
-  const extendedInput = { ...input, locationInfo, currentDate };
+  // Step 2: Prepare the input for the main summary prompt
+  const extendedInput = { 
+    ...input, 
+    locationInfo, 
+    currentDate,
+    potentialBenefits: benefitsResult.suggestions,
+  };
+  
+  // Step 3: Call the main summarization flow
   return generatePersonalSummaryFlow(extendedInput);
 }
 
@@ -131,56 +149,8 @@ const EnrichedGeneratePersonalSummaryInputSchema = GeneratePersonalSummaryInputS
         nhs_ha: z.string(),
     }),
     currentDate: z.string().describe("The current date in 'Weekday, Day Month Year' format. For calculating dates from relative terms like 'tomorrow'."),
+    potentialBenefits: z.array(BenefitSuggestionSchema).describe("A pre-calculated list of potential benefits the user could claim."),
 });
-
-const benefitsDecisionLogic = `
-[
-  {
-    "Benefit": "Disability Living Allowance (DLA)", "Who its for": "For children under 16 to help with the extra costs of being disabled.",
-    "Rule": "Age Range Under 16, Health Impact (Cancer) Has cancer"
-  },
-  {
-    "Benefit": "Carer's Allowance", "Who its for": "For people who spend at least 35 hours a week caring for someone with substantial caring needs.",
-    "Rule": "Age Range Any, Health Impact (Cancer) Caring 35+ hours/week for someone with cancer"
-  },
-  {
-    "Benefit": "Statutory Sick Pay (SSP)", "Who its for": "Paid by your employer for up to 28 weeks if you're too ill to work.",
-    "Rule": "Age Range 16-Pension Age, Employment Status Employed, Health Impact (Cancer) Cannot work (cancer)"
-  },
-  {
-    "Benefit": "Personal Independence Payment (PIP)", "Who its for": "Helps with extra living costs if you have both a long-term physical or mental health condition and difficulty doing certain everyday tasks or getting around.",
-    "Rule": "Age Range 16-Pension Age, Health Impact (Cancer) any"
-  },
-  {
-    "Benefit": "New Style Employment and Support Allowance (ESA)", "Who its for": "For people who have a disability or health condition that affects how much they can work. It is based on your National Insurance contributions.",
-    "Rule": "Age Range 16-Pension Age, Employment Status Employed or Self-employed or Unemployed or On Benefits"
-  },
-  {
-    "Benefit": "Universal Credit (UC)", "Who its for": "A payment to help with your living costs. You may be able to get it if you’re on a low income, out of work or you cannot work.",
-    "Rule": "Age Range 16-Pension Age, Income/Savings Low income/savings < £16K or Health Impact (Cancer) any"
-  },
-  {
-    "Benefit": "Universal Credit (with LCWRA element)", "Who its for": "If you have a health condition that limits your ability to work, you can get an extra amount of Universal Credit. This is called the Limited Capability for Work and Work-Related Activity (LCWRA) element.",
-    "Rule": "Age Range 16-Pension Age, Health Impact (Cancer) any"
-  },
-  {
-    "Benefit": "Attendance Allowance", "Who its for": "For people over State Pension age who have a disability and need someone to help look after them.",
-    "Rule": "Age Range Pension Age+, Health Impact (Cancer) any"
-  },
-  {
-    "Benefit": "Pension Credit", "Who its for": "An income-related benefit to give you some extra money in retirement if you're on a low income.",
-    "Rule": "Age Range Pension Age+, Employment Status Retired or any"
-  },
-  {
-    "Benefit": "Blue Badge", "Who its for": "Helps people with disabilities or health conditions park closer to their destination.",
-    "Rule": "Age Range Any, Health Impact (Cancer) any mobility issues"
-  },
-  {
-    "Benefit": "Council Tax Support", "Who its for": "Helps people on low incomes pay their Council Tax bill. This is provided by your local council.",
-    "Rule": "Age Range Any, Income/Savings Low income"
-  }
-]
-`;
 
 
 const prompt = ai.definePrompt({
@@ -201,7 +171,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 6.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
 7.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources (especially conversations and documents) for any mention of doctor names, nurse names, hospital names, contact details (including phone numbers), **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections.
 8.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents and conversations you were provided, using the title, date, and ID for each, along with their citation marker.
-9.  **ANALYZE BENEFITS:** You must analyze the user's financial situation using the provided Benefits JSON Ruleset to populate the "Potential Additional Benefits" section of the report. You MUST NOT include any benefits the user is already receiving (from the \`existingBenefits\` list). Only list new, potential entitlements. For each suggested benefit, provide a brief description of what it's for.
+9.  **USE PRE-CALCULATED BENEFITS:** The "Potential Additional Benefits" section MUST be populated *only* from the \`potentialBenefits\` array provided in the input. For each item in the array, list its name in bold followed by its reason. Do not perform any new benefit calculations.
 
 ---
 **FIRST, REVIEW ALL AVAILABLE INFORMATION SOURCES TO USE:**
@@ -243,12 +213,12 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 *   Use the timeline data to understand planned and completed steps.
 ---
 
-**Benefits Definitions (JSON Ruleset):**
-\`\`\`json
-${benefitsDecisionLogic}
-\`\`\`
-
+**6. Pre-Calculated Potential Benefits (MUST USE THIS LIST):**
+{{#each potentialBenefits}}
+*   **{{name}}**: {{reason}}
+{{/each}}
 ---
+
 **NOW, POPULATE THE REPORT TEMPLATE BELOW:**
 
 ### **Personal Summary Report**
@@ -301,8 +271,14 @@ ${benefitsDecisionLogic}
 *   **Existing Benefits:** {{#if existingBenefits}}{{#each existingBenefits}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}None listed{{/if}}
 
 ### **Potential Additional Benefits**
-*(Based on the user's profile and the Benefits JSON Ruleset, list any benefits they may be eligible for but are not currently receiving. For each, provide a brief description of what it is for. If none, state "No additional benefits were identified at this time.")*
-*   [Example: **Personal Independence Payment (PIP):** For help with extra living costs due to a long-term health condition.]
+*(This section is now populated from the pre-calculated list. Format it as a bulleted list.)*
+{{#if potentialBenefits}}
+{{#each potentialBenefits}}
+*   **{{name}}:** {{reason}}
+{{/each}}
+{{else}}
+*   No additional benefits were identified at this time.
+{{/if}}
 
 ---
 ### **Sources**

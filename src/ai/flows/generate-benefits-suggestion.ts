@@ -25,6 +25,8 @@ const BenefitSuggestionSchema = z.object({
     name: z.string().describe("The name of the suggested benefit."),
     reason: z.string().describe("A brief, simple explanation of why this benefit is being suggested and what it is for."),
 });
+export type BenefitSuggestion = z.infer<typeof BenefitSuggestionSchema>;
+
 
 const GenerateBenefitsSuggestionOutputSchema = z.object({
   suggestions: z.array(BenefitSuggestionSchema).describe('A list of suggested benefits.'),
@@ -37,95 +39,8 @@ export async function generateBenefitsSuggestion(
   return generateBenefitsSuggestionFlow(input);
 }
 
-const benefitsDecisionLogic = `
-[
-  {
-    "Age Range":"Under 16",
-    "Employment Status":"N/A",
-    "Existing Benefits":"Any",
-    "Income/Savings":"N/A",
-    "Health Impact (Cancer)":"Has cancer",
-    "Additional or Replacement Benefits":"Disability Living Allowance (DLA), Carer's Allowance (for parent), NHS travel/prescription support"
-  },
-  {
-    "Age Range":"16-Pension Age",
-    "Employment Status":"Employed",
-    "Existing Benefits":"None or any",
-    "Income/Savings":"Any",
-    "Health Impact (Cancer)":"Cannot work (cancer)",
-    "Additional or Replacement Benefits":"Statutory Sick Pay (SSP), Personal Independence Payment (PIP), Employment and Support Allowance (ESA), Universal Credit (UC) with LCWRA element"
-  },
-  {
-    "Age Range":"16-Pension Age",
-    "Employment Status":"Employed",
-    "Existing Benefits":"SSP ended",
-    "Income/Savings":"Low income/savings < £16K",
-    "Health Impact (Cancer)":"Ongoing illness (cancer)",
-    "Additional or Replacement Benefits":"ESA, PIP, Universal Credit (UC) with LCWRA element, Blue Badge"
-  },
-  {
-    "Age Range":"16-Pension Age",
-    "Employment Status":"Unemployed",
-    "Existing Benefits":"JSA",
-    "Income/Savings":"Low income",
-    "Health Impact (Cancer)":"Diagnosed with cancer",
-    "Additional or Replacement Benefits":"Replace JSA with ESA, claim PIP, Universal Credit (UC) with LCWRA"
-  },
-  {
-    "Age Range":"16-Pension Age",
-    "Health Impact (Cancer)":"Any",
-    "Additional or Replacement Benefits":"Universal Credit (with LCWRA element)"
-  },
-  {
-    "Age Range":"16-Pension Age",
-    "Employment Status":"Self-employed",
-    "Existing Benefits":"None",
-    "Income/Savings":"Income affected",
-    "Health Impact (Cancer)":"Cancer limits work",
-    "Additional or Replacement Benefits":"Universal Credit (UC) with LCWRA element, PIP, ESA (New Style), Council Tax Support"
-  },
-  {
-    "Age Range":"16-Pension Age",
-    "Employment Status":"Already on ESA",
-    "Existing Benefits":"ESA",
-    "Income/Savings":"Low income",
-    "Health Impact (Cancer)":"Health worsens",
-    "Additional or Replacement Benefits":"Ensure they're in Support Group, PIP, Council Tax Support, Universal Credit (UC) with LCWRA element"
-  },
-  {
-    "Age Range":"Pension Age+",
-    "Employment Status":"Retired",
-    "Existing Benefits":"State Pension",
-    "Income/Savings":"Low income",
-    "Health Impact (Cancer)":"Diagnosed with cancer",
-    "Additional or Replacement Benefits":"Attendance Allowance, Pension Credit with Severe Disability Premium, Blue Badge, Free NHS travel/prescriptions"
-  },
-  {
-    "Age Range":"Pension Age+",
-    "Employment Status":"Retired",
-    "Existing Benefits":"Pension Credit",
-    "Income/Savings":"Low income",
-    "Health Impact (Cancer)":"Cancer diagnosis",
-    "Additional or Replacement Benefits":"Attendance Allowance, Carer's Allowance (for spouse if caring), Housing Benefit/Council Tax Support"
-  },
-  {
-    "Age Range":"Any",
-    "Employment Status":"Any",
-    "Existing Benefits":"Caring for someone with cancer",
-    "Income/Savings":"Any",
-    "Health Impact (Cancer)":"Caring 35+ hours/week",
-    "Additional or Replacement Benefits":"Carer's Allowance, Council Tax discount for carers"
-  },
-  {
-    "Age Range":"Terminal",
-    "Employment Status":"Any",
-    "Existing Benefits":"Any",
-    "Income/Savings":"Any",
-    "Health Impact (Cancer)":"Terminal (expected < 12 months)",
-    "Additional or Replacement Benefits":"Fast-track: PIP (highest rate), Attendance Allowance, DLA, Universal Credit (UC) with LCWRA element, ESA with no work requirements"
-  }
-]
-`;
+const benefitsDecisionLogic = "[{\"Age Range\":\"Under 16\",\"Employment Status\":\"N/A\",\"Existing Benefits\":\"Any\",\"Income/Savings\":\"N/A\",\"Health Impact (Cancer)\":\"Has cancer\",\"Additional or Replacement Benefits\":\"Disability Living Allowance (DLA), Carer's Allowance (for parent), NHS travel/prescription support\"},{\"Age Range\":\"16-Pension Age\",\"Employment Status\":\"Employed\",\"Existing Benefits\":\"None or any\",\"Income/Savings\":\"Any\",\"Health Impact (Cancer)\":\"Cannot work (cancer)\",\"Additional or Replacement Benefits\":\"Statutory Sick Pay (SSP), Personal Independence Payment (PIP), New Style Employment and Support Allowance (ESA), Universal Credit (with LCWRA element)\"},{\"Age Range\":\"16-Pension Age\",\"Employment Status\":\"Employed\",\"Existing Benefits\":\"SSP ended\",\"Income/Savings\":\"Low income/savings < £16K\",\"Health Impact (Cancer)\":\"Ongoing illness (cancer)\",\"Additional or Replacement Benefits\":\"New Style ESA, PIP, Universal Credit (with LCWRA element), Blue Badge\"},{\"Age Range\":\"16-Pension Age\",\"Employment Status\":\"Unemployed\",\"Existing Benefits\":\"JSA\",\"Income/Savings\":\"Low income\",\"Health Impact (Cancer)\":\"Diagnosed with cancer\",\"Additional or Replacement Benefits\":\"Replace JSA with New Style ESA, claim PIP, Universal Credit (with LCWRA element)\"},{\"Age Range\":\"16-Pension Age\",\"Health Impact (Cancer)\":\"Any\",\"Additional or Replacement Benefits\":\"Universal Credit (with LCWRA element)\"},{\"Age Range\":\"16-Pension Age\",\"Employment Status\":\"Self-employed\",\"Existing Benefits\":\"None\",\"Income/Savings\":\"Income affected\",\"Health Impact (Cancer)\":\"Cancer limits work\",\"Additional or Replacement Benefits\":\"Universal Credit (UC) with LCWRA element, PIP, ESA (New Style), Council Tax Support\"},{\"Age Range\":\"16-Pension Age\",\"Employment Status\":\"On Benefits\",\"Existing Benefits\":\"ESA\",\"Income/Savings\":\"Low income\",\"Health Impact (Cancer)\":\"Health worsens\",\"Additional or Replacement Benefits\":\"Ensure they're in Support Group, PIP, Council Tax Support, Universal Credit (UC) with LCWRA element\"},{\"Age Range\":\"Pension Age+\",\"Employment Status\":\"Retired or any\",\"Existing Benefits\":\"State Pension\",\"Income/Savings\":\"Low income\",\"Health Impact (Cancer)\":\"Diagnosed with cancer\",\"Additional or Replacement Benefits\":\"Attendance Allowance, Pension Credit with Severe Disability Premium, Blue Badge, Free NHS travel/prescriptions\"},{\"Age Range\":\"Pension Age+\",\"Employment Status\":\"Retired or any\",\"Existing Benefits\":\"Pension Credit\",\"Income/Savings\":\"Low income\",\"Health Impact (Cancer)\":\"Cancer diagnosis\",\"Additional or Replacement Benefits\":\"Attendance Allowance, Carer's Allowance (for spouse if caring), Housing Benefit/Council Tax Support\"},{\"Age Range\":\"Any\",\"Employment Status\":\"Any\",\"Existing Benefits\":\"Caring for someone with cancer\",\"Income/Savings\":\"Any\",\"Health Impact (Cancer)\":\"Caring 35+ hours/week\",\"Additional or Replacement Benefits\":\"Carer's Allowance, Council Tax discount for carers\"},{\"Age Range\":\"Terminal\",\"Employment Status\":\"Any\",\"Existing Benefits\":\"Any\",\"Income/Savings\":\"Any\",\"Health Impact (Cancer)\":\"Terminal (expected < 12 months)\",\"Additional or Replacement Benefits\":\"Fast-track: PIP (highest rate), Attendance Allowance, DLA, Universal Credit (with LCWRA element), ESA with no work requirements\"}]";
+
 
 const prompt = ai.definePrompt({
   name: 'generateBenefitsSuggestionPrompt',
@@ -167,4 +82,3 @@ const generateBenefitsSuggestionFlow = ai.defineFlow(
     return output!;
   }
 );
-

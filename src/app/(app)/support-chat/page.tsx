@@ -482,14 +482,21 @@ function SupportChatPageContent() {
     URL.revokeObjectURL(url);
   };
 
-  const handleSaveMessage = (message: Message) => {
+  const handleSaveMessage = (message: Message, index: number) => {
     if (!currentUserEmail) return;
+
+    const userPrompt = messages[index - 1];
+    let contentToSave = message.content;
+
+    if (userPrompt && userPrompt.role === 'user') {
+      contentToSave = `You asked:\n"${userPrompt.content}"\n\nSupport Buddy replied:\n${message.content}`;
+    }
 
     const savedMessage: SavedMessageActivity = {
         id: new Date().toISOString(),
         type: 'savedMessage',
-        title: "Saved Message",
-        content: message.content,
+        title: "Saved Chat Snippet",
+        content: contentToSave,
         date: new Date().toISOString()
     };
     
@@ -558,7 +565,7 @@ function SupportChatPageContent() {
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownloadMessage(message.content)}>
                                 <Download className="w-4 h-4"/>
                             </Button>
-                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleSaveMessage(message)}>
+                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleSaveMessage(message, index)}>
                                 <Bookmark className="w-4 h-4"/>
                             </Button>
                         </div>
@@ -657,5 +664,3 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
-
-    

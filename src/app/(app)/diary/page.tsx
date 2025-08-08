@@ -35,13 +35,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
-import { BodyFront, BodyBack } from "@/components/icons"
-
-// Data structure for pain locations
-export interface PainLocation {
-    x: number; // percentage
-    y: number; // percentage
-}
 
 // Data structure for meds taken
 export interface MedsTaken {
@@ -60,7 +53,7 @@ export interface DiaryEntry {
   diagnosisMood: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
   treatmentMood: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
   painScore: number | null;
-  painLocations: { front: PainLocation[], back: PainLocation[] };
+  painLocation: string | null;
   painRemarks: string;
   weight: string;
   sleep: string;
@@ -111,59 +104,12 @@ const painEmojis = [
     '😭'  // 10
 ];
 
-function PainBodyMap({ 
-    view, 
-    locations, 
-    onLocationChange,
-    readOnly = false 
-}: { 
-    view: 'front' | 'back', 
-    locations: PainLocation[], 
-    onLocationChange: (locations: PainLocation[]) => void,
-    readOnly?: boolean
-}) {
-    const containerRef = useRef<HTMLDivElement>(null);
+const bodyParts = [
+    "Head", "Neck", "Shoulders", "Chest", "Back (Upper)", "Back (Lower)",
+    "Abdomen", "Hips", "Arms (Upper)", "Elbows", "Forearms", "Wrists", "Hands",
+    "Thighs", "Knees", "Shins", "Calves", "Ankles", "Feet"
+];
 
-    const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (readOnly || !containerRef.current) return;
-        const rect = containerRef.current.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
-        onLocationChange([...locations, { x, y }]);
-    };
-
-    const handleRemovePoint = (e: React.MouseEvent, index: number) => {
-        e.stopPropagation();
-        onLocationChange(locations.filter((_, i) => i !== index));
-    };
-
-    const BodyComponent = view === 'front' ? BodyFront : BodyBack;
-
-    return (
-        <div ref={containerRef} className="relative w-full aspect-[2/3] cursor-crosshair" onClick={handleMapClick}>
-            <BodyComponent className="w-full h-full text-muted-foreground/30" />
-            {locations.map((loc, index) => (
-                 <div
-                    key={index}
-                    className="absolute w-5 h-5 -translate-x-1/2 -translate-y-1/2"
-                    style={{ left: `${loc.x}%`, top: `${loc.y}%` }}
-                >
-                    {readOnly ? (
-                         <X className="w-full h-full text-destructive" />
-                    ): (
-                        <button
-                            onClick={(e) => handleRemovePoint(e, index)}
-                            className="w-full h-full rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:scale-110 transition-transform"
-                            aria-label="Remove pain point"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                    )}
-                </div>
-            ))}
-        </div>
-    );
-}
 
 function LogMedicationDialog({ onLog, prescribedMeds, existingMedsTaken, onDoseWarning }: { onLog: (med: MedsTaken) => void; prescribedMeds: Medication[]; existingMedsTaken: MedsTaken[], onDoseWarning: (warning: string) => void; }) {
     const [medName, setMedName] = useState("");
@@ -292,7 +238,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
     const [diagnosisMood, setDiagnosisMood] = useState<DiaryEntry['diagnosisMood']>('meh');
     const [treatmentMood, setTreatmentMood] = useState<DiaryEntry['treatmentMood']>('meh');
     const [painScore, setPainScore] = useState<DiaryEntry['painScore']>(0);
-    const [painLocations, setPainLocations] = useState<DiaryEntry['painLocations']>({ front: [], back: []});
+    const [painLocation, setPainLocation] = useState<DiaryEntry['painLocation']>(null);
     const [painRemarks, setPainRemarks] = useState('');
     const [weight, setWeight] = useState('');
     const [sleep, setSleep] = useState('');
@@ -327,7 +273,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
             diagnosisMood: 'meh',
             treatmentMood: 'meh',
             painScore: 0,
-            painLocations: { front: [], back: [] },
+            painLocation: null,
             painRemarks: '',
             weight: '',
             sleep: '',
@@ -343,7 +289,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
         setDiagnosisMood(entryToEdit.diagnosisMood);
         setTreatmentMood(entryToEdit.treatmentMood);
         setPainScore(entryToEdit.painScore);
-        setPainLocations(entryToEdit.painLocations || { front: [], back: [] });
+        setPainLocation(entryToEdit.painLocation || null);
         setPainRemarks(entryToEdit.painRemarks || '');
         setWeight(entryToEdit.weight);
         setSleep(entryToEdit.sleep);
@@ -363,7 +309,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
             diagnosisMood,
             treatmentMood,
             painScore,
-            painLocations,
+            painLocation,
             painRemarks,
             weight,
             sleep,
@@ -476,27 +422,24 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
                     {(painScore ?? 0) > 0 && (
                          <div className="space-y-4 pt-4 border-t">
                             <Label className="font-semibold">Pain Details</Label>
-                            <div className="grid grid-cols-2 gap-4">
+                             <div className="grid grid-cols-1 gap-4">
                                 <div className="space-y-2">
-                                    <Label className="text-sm text-center block">Front</Label>
-                                    <PainBodyMap 
-                                        view="front" 
-                                        locations={painLocations.front} 
-                                        onLocationChange={(locs) => setPainLocations(p => ({...p, front: locs}))}
-                                    />
+                                    <Label htmlFor="pain-location">Pain Location</Label>
+                                    <Select value={painLocation || ""} onValueChange={(val) => setPainLocation(val)}>
+                                        <SelectTrigger id="pain-location">
+                                            <SelectValue placeholder="Select where it hurts" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {bodyParts.map(part => (
+                                                <SelectItem key={part} value={part}>{part}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                                 <div className="space-y-2">
-                                     <Label className="text-sm text-center block">Back</Label>
-                                     <PainBodyMap 
-                                        view="back" 
-                                        locations={painLocations.back} 
-                                        onLocationChange={(locs) => setPainLocations(p => ({...p, back: locs}))}
-                                    />
+                                    <Label htmlFor="pain-remarks">Pain Remarks</Label>
+                                    <Textarea id="pain-remarks" placeholder="Describe the pain (e.g., sharp, dull, aching)..." value={painRemarks} onChange={(e) => setPainRemarks(e.target.value)} />
                                 </div>
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="pain-remarks">Pain Remarks</Label>
-                                <Textarea id="pain-remarks" placeholder="Describe the pain (e.g., sharp, dull, aching)..." value={painRemarks} onChange={(e) => setPainRemarks(e.target.value)} />
                             </div>
                         </div>
                     )}
@@ -580,8 +523,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
 }
 
 function DiaryEntryCard({ entry, onSave, currentUserEmail }: { entry: DiaryEntry; onSave: (entry: DiaryEntry) => void; currentUserEmail: string | null; }) {
-    const hasPainDetails = (entry.painScore ?? 0) > 0 && 
-        ((entry.painLocations && (entry.painLocations.front.length > 0 || entry.painLocations.back.length > 0)) || entry.painRemarks);
+    const hasPainDetails = (entry.painScore ?? 0) > 0 && (entry.painLocation || entry.painRemarks);
     
     return (
         <Card className="diary-entry-card">
@@ -633,18 +575,9 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail }: { entry: DiaryEntry
                 {hasPainDetails && (
                     <div className="space-y-2">
                         <h4 className="font-semibold text-sm">Pain Details</h4>
-                        <div className="flex gap-4">
-                            <div className="w-1/2">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <PainBodyMap view="front" locations={entry.painLocations?.front || []} onLocationChange={() => {}} readOnly />
-                                    <PainBodyMap view="back" locations={entry.painLocations?.back || []} onLocationChange={() => {}} readOnly />
-                                </div>
-                            </div>
-                             <div className="w-1/2">
-                                {entry.painRemarks && (
-                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap border p-2 rounded-md bg-muted/50 h-full">{entry.painRemarks}</p>
-                                )}
-                             </div>
+                         <div className="text-sm text-muted-foreground">
+                            {entry.painLocation && <p><strong>Location:</strong> {entry.painLocation}</p>}
+                            {entry.painRemarks && <p className="whitespace-pre-wrap mt-1"><strong>Remarks:</strong> {entry.painRemarks}</p>}
                         </div>
                     </div>
                 )}
@@ -696,7 +629,7 @@ export default function DiaryPage() {
     const [entries, setEntries] = useState<DiaryEntry[]>([]);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
-    const entriesRef = useRef(entries);
+    const entriesRef = useRef<DiaryEntry[]>([]);
     const diaryContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -725,10 +658,10 @@ export default function DiaryPage() {
         }
     }
 
-    const saveEntries = () => {
+    const saveEntries = (updatedEntries: DiaryEntry[]) => {
         if (!currentUserEmail) return;
         try {
-             localStorage.setItem(`diaryEntries_${currentUserEmail}`, JSON.stringify(entriesRef.current));
+             localStorage.setItem(`diaryEntries_${currentUserEmail}`, JSON.stringify(updatedEntries));
         } catch (error) {
             console.error("Could not save diary entries to localStorage", error);
         }
@@ -738,41 +671,27 @@ export default function DiaryPage() {
         if (currentUserEmail) {
             loadEntries();
         }
-
-        const handleBeforeUnload = () => {
-            if (currentUserEmail) {
-                saveEntries();
-            }
-        };
-
-        window.addEventListener('beforeunload', handleBeforeUnload);
-
-        return () => {
-            if (currentUserEmail) {
-                saveEntries();
-            }
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUserEmail]);
 
     const handleSaveEntry = (entry: DiaryEntry) => {
         if (!currentUserEmail) return;
         
-        const currentEntries = [...entriesRef.current];
-        const existingIndex = currentEntries.findIndex(e => e.id === entry.id);
+        let updatedEntries;
+        const existingIndex = entries.findIndex(e => e.id === entry.id);
 
         if (existingIndex > -1) {
             // Update existing entry
-            currentEntries[existingIndex] = entry;
+            updatedEntries = [...entries];
+            updatedEntries[existingIndex] = entry;
         } else {
             // Add new entry
-            currentEntries.push(entry);
+            updatedEntries = [...entries, entry];
         }
         
-        currentEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setEntries(currentEntries);
-        // Defer saving to unmount/beforeunload
+        updatedEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setEntries(updatedEntries);
+        saveEntries(updatedEntries);
     };
 
     const handleDownloadPdf = async () => {

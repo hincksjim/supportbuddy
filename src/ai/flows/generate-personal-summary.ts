@@ -201,7 +201,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 6.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
 7.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources (especially conversations and documents) for any mention of doctor names, nurse names, hospital names, contact details (including phone numbers), **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections.
 8.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents and conversations you were provided, using the title, date, and ID for each, along with their citation marker.
-9.  **ANALYZE BENEFITS:** You must analyze the user's financial situation using the provided Benefits JSON Ruleset to populate the "Potential Additional Benefits" section of the report.
+9.  **ANALYZE BENEFITS:** You must analyze the user's financial situation using the provided Benefits JSON Ruleset to populate the "Potential Additional Benefits" section of the report. You MUST NOT include any benefits the user is already receiving (from the \`existingBenefits\` list). Only list new, potential entitlements. For each suggested benefit, provide a brief description of what it's for.
 
 ---
 **FIRST, REVIEW ALL AVAILABLE INFORMATION SOURCES TO USE:**

@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -19,9 +19,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Loader2, RefreshCw, CheckCircle2, XCircle, MinusCircle, Info, ExternalLink } from "lucide-react"
+import { Loader2, RefreshCw, CheckCircle2, XCircle, MinusCircle, Info, ExternalLink, Download } from "lucide-react"
 import { generateBenefitsMatrix, GenerateBenefitsMatrixOutput } from "@/ai/flows/generate-benefits-matrix"
 import Link from "next/link"
+import jsPDF from "jspdf"
+import html2canvas from "html2canvas"
 
 interface UserData {
     age?: string;
@@ -32,9 +34,11 @@ interface UserData {
 export default function BenefitsCheckerPage() {
     const [matrixData, setMatrixData] = useState<GenerateBenefitsMatrixOutput | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isDownloading, setIsDownloading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
     const [userData, setUserData] = useState<UserData>({});
+    const matrixRef = useRef<HTMLDivElement>(null);
 
     const getStorageKey = (email: string) => `benefitsMatrix_${email}`;
 
@@ -112,6 +116,45 @@ export default function BenefitsCheckerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const handleDownloadPdf = async () => {
+        const container = matrixRef.current;
+        if (!container) return;
+        setIsDownloading(true);
+
+        try {
+            const canvas = await html2canvas(container, {
+                scale: 2,
+                scrollX: 0,
+                scrollY: -window.scrollY,
+                windowWidth: container.scrollWidth,
+                windowHeight: container.scrollHeight
+            });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('l', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = imgWidth / imgHeight;
+
+            let finalImgWidth = pdfWidth - 20;
+            let finalImgHeight = finalImgWidth / ratio;
+
+            if (finalImgHeight > pdfHeight - 20) {
+                finalImgHeight = pdfHeight - 20;
+                finalImgWidth = finalImgHeight * ratio;
+            }
+
+            pdf.addImage(imgData, 'PNG', 10, 10, finalImgWidth, finalImgHeight);
+            pdf.save('Benefits-Matrix.pdf');
+        } catch (error) {
+            console.error("Failed to generate PDF", error);
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
+
     // Get a unique list of all benefit names across all scenarios
     const allBenefitNames = matrixData ? 
         Array.from(new Set(matrixData.scenarios.flatMap(s => s.benefits.map(b => b.name))))
@@ -126,10 +169,16 @@ export default function BenefitsCheckerPage() {
                         Compare your current benefits with what you might be entitled to in different situations.
                     </p>
                 </div>
-                <Button onClick={handleRefresh} disabled={isLoading}>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Refresh Matrix
-                </Button>
+                 <div className="flex items-center gap-2">
+                    <Button onClick={handleRefresh} disabled={isLoading}>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Refresh Matrix
+                    </Button>
+                     <Button onClick={handleDownloadPdf} disabled={isDownloading || !matrixData} variant="outline">
+                        {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        Download PDF
+                    </Button>
+                </div>
             </div>
 
             <Card>
@@ -150,7 +199,7 @@ export default function BenefitsCheckerPage() {
                             <p>{error}</p>
                         </div>
                     ) : matrixData ? (
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto" ref={matrixRef}>
                             <Table>
                                 <TableHeader>
                                     <TableRow>

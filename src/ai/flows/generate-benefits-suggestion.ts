@@ -21,7 +21,7 @@ const GenerateBenefitsSuggestionInputSchema = z.object({
 });
 export type GenerateBenefitsSuggestionInput = z.infer<typeof GenerateBenefitsSuggestionInputSchema>;
 
-const BenefitSuggestionSchema = z.object({
+export const BenefitSuggestionSchema = z.object({
     name: z.string().describe("The name of the suggested benefit."),
     reason: z.string().describe("A brief, simple explanation of why this benefit is being suggested and what it is for."),
 });

@@ -126,15 +126,18 @@ function LogMedicationDialog({ onLog, prescribedMeds, existingMedsTaken, onDoseW
         if (newMedLog.isPrescribed) {
             const prescription = prescribedMeds.find(p => p.name === newMedLog.name);
             if (prescription) {
-                const todaysTakes: MedDose[] = [
-                    ...existingMedsTaken.filter(m => m.name === newMedLog.name),
-                    newMedLog
-                ].map(m => ({ time: m.time, quantity: m.quantity }));
+                // Ensure we are only checking against meds taken today for this specific medication
+                const todaysTakesForThisMed: MedDose[] = existingMedsTaken
+                    .filter(m => m.name === newMedLog.name)
+                    .map(m => ({ time: m.time, quantity: m.quantity }));
+
+                // Add the new dose to the list for checking
+                const dosesToCheck = [...todaysTakesForThisMed, { time: newMedLog.time, quantity: newMedLog.quantity }];
 
                 try {
                     const result = await checkMedicationDose({
                         prescriptionDose: prescription.dose,
-                        dosesTaken: todaysTakes
+                        dosesTaken: dosesToCheck
                     });
                     if (result.warning) {
                         onDoseWarning(result.warning);
@@ -611,10 +614,19 @@ export default function DiaryPage() {
             loadEntries();
         }
 
+        const handleBeforeUnload = () => {
+            if (currentUserEmail) {
+                saveEntries();
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
         return () => {
             if (currentUserEmail) {
                 saveEntries();
             }
+            window.removeEventListener('beforeunload', handleBeforeUnload);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUserEmail]);
@@ -635,6 +647,7 @@ export default function DiaryPage() {
         
         currentEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setEntries(currentEntries);
+        // Defer saving to unmount/beforeunload
     };
 
     const handleDownloadPdf = async () => {
@@ -652,37 +665,28 @@ export default function DiaryPage() {
         pdf.text("My Diary Report", pdfWidth / 2, pdfHeight / 2, { align: 'center' });
 
         const entryCards = Array.from(container.querySelectorAll('.diary-entry-card')) as HTMLElement[];
-        const cardsPerPage = 4;
-        const cardGridRows = 2;
-        const cardGridCols = 2;
-
-        const cardWidth = (pdfWidth - (margin * (cardGridCols + 1))) / cardGridCols;
         
-        for (let i = 0; i < entryCards.length; i += cardsPerPage) {
+        for (let i = 0; i < entryCards.length; i++) {
             pdf.addPage();
-            const pageCards = entryCards.slice(i, i + cardsPerPage);
+            const card = entryCards[i];
+            const canvas = await html2canvas(card, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = imgWidth / imgHeight;
 
-            for (let j = 0; j < pageCards.length; j++) {
-                const card = pageCards[j];
-                const canvas = await html2canvas(card, { scale: 2 });
-                const imgData = canvas.toDataURL('image/png');
-                
-                const cardHeight = (canvas.height * cardWidth) / canvas.width;
-
-                const row = Math.floor(j / cardGridCols);
-                const col = j % cardGridCols;
-
-                const xPos = margin + col * (cardWidth + margin);
-                const yPos = margin + row * (cardHeight + margin);
-                
-                if (yPos + cardHeight > pdfHeight - margin && j > 0) {
-                   // This logic might need refinement if a single card is too tall
-                   // For now, we assume cards fit within half the page height.
-                   continue;
-                }
-                
-                pdf.addImage(imgData, 'PNG', xPos, yPos, cardWidth, cardHeight);
+            let finalImgWidth = pdfWidth - margin * 2;
+            let finalImgHeight = finalImgWidth / ratio;
+            
+            if (finalImgHeight > pdfHeight - margin * 2) {
+                finalImgHeight = pdfHeight - margin * 2;
+                finalImgWidth = finalImgHeight * ratio;
             }
+
+            const xPos = (pdfWidth - finalImgWidth) / 2;
+
+            pdf.addImage(imgData, 'PNG', xPos, margin, finalImgWidth, finalImgHeight);
         }
 
         pdf.save('My-Diary.pdf');
@@ -720,7 +724,5 @@ export default function DiaryPage() {
         </div>
     )
 }
-
-    
 
     

@@ -22,6 +22,7 @@ interface BenefitSuggestion {
     name: string;
     reason: string;
     url: string;
+    potentialAmount?: string;
 }
 
 export default function FinancePage() {
@@ -50,8 +51,9 @@ export default function FinancePage() {
     }
 
     const fetchSuggestions = async (currentUserData: UserData | null) => {
-        if (!currentUserData || !currentUserData.age) {
+        if (!currentUserData || !currentUserData.age || !currentUserData.employmentStatus) {
             setIsLoadingSuggestions(false);
+            setSuggestionError("Your age and employment status must be set in your profile to get suggestions.");
             return;
         }
 
@@ -59,27 +61,31 @@ export default function FinancePage() {
         setSuggestionError(null);
         
         try {
+            // Generate a matrix for the user's current situation and potential future ones.
             const matrixResult = await generateBenefitsMatrix({
-                age: currentUserData.age || "",
-                employmentStatus: currentUserData.employmentStatus || "",
+                age: currentUserData.age,
+                employmentStatus: currentUserData.employmentStatus,
                 existingBenefits: currentUserData.benefits || [],
             });
 
-            // Process the matrix to find new suggestions
-            // The first scenario is the user's current situation.
-            const currentSituation = matrixResult.scenarios[0];
-            if (currentSituation) {
-                const newSuggestions = currentSituation.benefits
-                    .filter(b => b.isEligible && !b.isCurrent) // Find eligible benefits the user doesn't have
-                    .map(b => ({
-                        name: b.name,
-                        reason: b.requirements, // Use the more detailed requirements as the reason
-                        url: b.url,
-                    }));
-                setSuggestedBenefits(newSuggestions);
-            } else {
-                 setSuggestedBenefits([]);
-            }
+            // Create a scenario representing the user's current state to find suggestions.
+            // This is a temporary structure for logic, not for display.
+            const currentSituationScenario = {
+                 scenario: "Current Situation",
+                 description: "Your current financial state.",
+                 benefits: matrixResult.scenarios[0].benefits
+            };
+            
+            // Now, find suggestions from this current situation scenario.
+            const newSuggestions = currentSituationScenario.benefits
+                .filter(b => b.isEligible && !b.isCurrent) // Find eligible benefits the user doesn't have
+                .map(b => ({
+                    name: b.name,
+                    reason: b.requirements,
+                    url: b.url,
+                    potentialAmount: b.potentialAmount
+                }));
+            setSuggestedBenefits(newSuggestions);
 
         } catch (error: any) {
             console.error("Failed to fetch benefit suggestions:", error);
@@ -215,12 +221,15 @@ export default function FinancePage() {
                            <div className="space-y-4">
                             {suggestedBenefits.map((suggestion, index) => (
                                 <Alert key={index}>
-                                    <div className="flex justify-between items-start">
-                                        <div>
+                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                                        <div className="flex-1">
                                             <AlertTitle className="font-bold">{suggestion.name}</AlertTitle>
-                                            <AlertDescription>{suggestion.reason}</AlertDescription>
+                                            <AlertDescription className="mt-1">{suggestion.reason}</AlertDescription>
+                                            {suggestion.potentialAmount && (
+                                                 <p className="text-sm font-semibold mt-2 text-primary">{suggestion.potentialAmount}</p>
+                                            )}
                                         </div>
-                                        <Button asChild variant="secondary" size="sm" className="ml-4">
+                                        <Button asChild variant="secondary" size="sm" className="mt-2 sm:mt-0">
                                             <Link href={suggestion.url} target="_blank" rel="noopener noreferrer">
                                                 Learn More
                                             </Link>
@@ -240,3 +249,4 @@ export default function FinancePage() {
     )
 }
 
+    

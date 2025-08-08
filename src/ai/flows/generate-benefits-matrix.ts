@@ -25,7 +25,8 @@ const BenefitInfoSchema = z.object({
     isCurrent: z.boolean().describe("Whether the user is already receiving this benefit."),
     reason: z.string().describe("A brief, one-sentence explanation for the eligibility status."),
     requirements: z.string().describe("A slightly more detailed, user-friendly explanation of the key requirements or purpose of the benefit (2-3 sentences)."),
-    url: z.string().describe("The official government URL for more information and to apply for the benefit.")
+    url: z.string().describe("The official government URL for more information and to apply for the benefit."),
+    potentialAmount: z.string().optional().describe("A string describing the potential weekly or monthly amount for the benefit (e.g., 'Up to £108.55 per week')."),
 });
 
 const ScenarioSchema = z.object({
@@ -47,50 +48,48 @@ export async function generateBenefitsMatrix(
 
 const benefitsDecisionLogic = `
 [
-  // This is a comprehensive list of rules for determining UK benefit eligibility based on various life circumstances.
-  // The AI will use these rules to populate the matrix for different scenarios.
   {
-    "Benefit": "Disability Living Allowance (DLA)", "Who its for": "For children under 16 to help with the extra costs of being disabled.", "URL": "https://www.gov.uk/disability-living-allowance-children",
+    "Benefit": "Disability Living Allowance (DLA)", "Who its for": "For children under 16 to help with the extra costs of being disabled.", "URL": "https://www.gov.uk/disability-living-allowance-children", "Weekly Rate": "£28.70 to £184.30 per week",
     "Rule": "Age Range Under 16, Health Impact (Cancer) Has cancer"
   },
   {
-    "Benefit": "Carer's Allowance", "Who its for": "For people who spend at least 35 hours a week caring for someone with substantial caring needs.", "URL": "https://www.gov.uk/carers-allowance",
+    "Benefit": "Carer's Allowance", "Who its for": "For people who spend at least 35 hours a week caring for someone with substantial caring needs.", "URL": "https://www.gov.uk/carers-allowance", "Weekly Rate": "£81.90 per week",
     "Rule": "Age Range Any, Health Impact (Cancer) Caring 35+ hours/week for someone with cancer"
   },
   {
-    "Benefit": "Statutory Sick Pay (SSP)", "Who its for": "Paid by your employer for up to 28 weeks if you're too ill to work.", "URL": "https://www.gov.uk/statutory-sick-pay",
+    "Benefit": "Statutory Sick Pay (SSP)", "Who its for": "Paid by your employer for up to 28 weeks if you're too ill to work.", "URL": "https://www.gov.uk/statutory-sick-pay", "Weekly Rate": "£116.75 per week",
     "Rule": "Age Range 16-Pension Age, Employment Status Employed, Health Impact (Cancer) Cannot work (cancer)"
   },
   {
-    "Benefit": "Personal Independence Payment (PIP)", "Who its for": "Helps with extra living costs if you have both a long-term physical or mental health condition and difficulty doing certain everyday tasks or getting around.", "URL": "https://www.gov.uk/pip",
+    "Benefit": "Personal Independence Payment (PIP)", "Who its for": "Helps with extra living costs if you have both a long-term physical or mental health condition and difficulty doing certain everyday tasks or getting around.", "URL": "https://www.gov.uk/pip", "Weekly Rate": "£28.70 to £184.30 per week",
     "Rule": "Age Range 16-Pension Age, Health Impact (Cancer) any"
   },
   {
-    "Benefit": "New Style Employment and Support Allowance (ESA)", "Who its for": "For people who have a disability or health condition that affects how much they can work. It is based on your National Insurance contributions.", "URL": "https://www.gov.uk/employment-support-allowance",
+    "Benefit": "New Style Employment and Support Allowance (ESA)", "Who its for": "For people who have a disability or health condition that affects how much they can work. It is based on your National Insurance contributions.", "URL": "https://www.gov.uk/employment-support-allowance", "Weekly Rate": "Up to £138.20 per week",
     "Rule": "Age Range 16-Pension Age, Employment Status Employed or Self-employed or Unemployed or On Benefits"
   },
   {
-    "Benefit": "Universal Credit (UC)", "Who its for": "A payment to help with your living costs. You may be able to get it if you’re on a low income, out of work or you cannot work.", "URL": "https://www.gov.uk/universal-credit",
+    "Benefit": "Universal Credit (UC)", "Who its for": "A payment to help with your living costs. You may be able to get it if you’re on a low income, out of work or you cannot work.", "URL": "https://www.gov.uk/universal-credit", "Weekly Rate": "Varies based on circumstances",
     "Rule": "Age Range 16-Pension Age, Income/Savings Low income/savings < £16K or Health Impact (Cancer) any"
   },
   {
-    "Benefit": "Universal Credit (with LCWRA element)", "Who its for": "If you have a health condition that limits your ability to work, you can get an extra amount of Universal Credit. This is called the Limited Capability for Work and Work-Related Activity (LCWRA) element.", "URL": "https://www.understandinguniversalcredit.gov.uk/new-to-universal-credit/health-conditions-or-disabilities/",
+    "Benefit": "Universal Credit (with LCWRA element)", "Who its for": "If you have a health condition that limits your ability to work, you can get an extra amount of Universal Credit. This is called the Limited Capability for Work and Work-Related Activity (LCWRA) element.", "URL": "https://www.understandinguniversalcredit.gov.uk/new-to-universal-credit/health-conditions-or-disabilities/", "Weekly Rate": "An additional £416.19 per month",
     "Rule": "Age Range 16-Pension Age, Health Impact (Cancer) any"
   },
   {
-    "Benefit": "Attendance Allowance", "Who its for": "For people over State Pension age who have a disability and need someone to help look after them.", "URL": "https://www.gov.uk/attendance-allowance",
+    "Benefit": "Attendance Allowance", "Who its for": "For people over State Pension age who have a disability and need someone to help look after them.", "URL": "https://www.gov.uk/attendance-allowance", "Weekly Rate": "£72.65 or £108.55 per week",
     "Rule": "Age Range Pension Age+, Health Impact (Cancer) any"
   },
   {
-    "Benefit": "Pension Credit", "Who its for": "An income-related benefit to give you some extra money in retirement if you're on a low income.", "URL": "https://www.gov.uk/pension-credit",
+    "Benefit": "Pension Credit", "Who its for": "An income-related benefit to give you some extra money in retirement if you're on a low income.", "URL": "https://www.gov.uk/pension-credit", "Weekly Rate": "Tops up income to a minimum level",
     "Rule": "Age Range Pension Age+, Employment Status Retired or any"
   },
   {
-    "Benefit": "Blue Badge", "Who its for": "Helps people with disabilities or health conditions park closer to their destination.", "URL": "https://www.gov.uk/blue-badge-scheme-information-council",
+    "Benefit": "Blue Badge", "Who its for": "Helps people with disabilities or health conditions park closer to their destination.", "URL": "https://www.gov.uk/blue-badge-scheme-information-council", "Weekly Rate": "N/A (Parking Permit)",
     "Rule": "Age Range Any, Health Impact (Cancer) any mobility issues"
   },
   {
-    "Benefit": "Council Tax Support", "Who its for": "Helps people on low incomes pay their Council Tax bill. This is provided by your local council.", "URL": "https://www.gov.uk/apply-council-tax-reduction",
+    "Benefit": "Council Tax Support", "Who its for": "Helps people on low incomes pay their Council Tax bill. This is provided by your local council.", "URL": "https://www.gov.uk/apply-council-tax-reduction", "Weekly Rate": "Up to 100% reduction",
     "Rule": "Age Range Any, Income/Savings Low income"
   }
 ]
@@ -113,7 +112,7 @@ ${benefitsDecisionLogic}
 \`\`\`
 
 **CRITICAL Pension Age Rule:**
-The UK State Pension age is not a fixed number (like 65). It varies based on date of birth and is gradually increasing. You MUST use the user's Age ({{{age}}}) to make a reasonable determination of whether they are of working age or pension age. For example, a 64-year-old is of working age. Someone who is 68 is of pension age. Use your knowledge of current UK pension ages to determine which category the user falls into. Do not classify someone as "Pension Age+" if their age is below the current state pension threshold.
+The UK State Pension age is not a fixed number. It varies based on date of birth and is gradually increasing. You MUST use the user's Age ({{{age}}}) to make a reasonable determination of whether they are of working age or pension age. For example, a 64-year-old is of working age. Someone who is 68 is of pension age. Use your knowledge of current UK pension ages to determine which category the user falls into. Do not classify someone as "Pension Age+" if their age is below the current state pension threshold.
 
 **Employment Status Mapping**: For the purpose of applying the rules, consider the status 'unemployed-on-benefits' to be the same as 'On Benefits'.
 
@@ -136,13 +135,14 @@ Create a response for the following three scenarios. For each scenario, determin
     *   List all potential benefits from the rules.
 
 **Output Formatting Instructions:**
-For each scenario, you must generate a list of all possible benefits mentioned in the ruleset. For each benefit in that list, you MUST determine five things:
+For each scenario, you must generate a list of all possible benefits mentioned in the ruleset. For each benefit in that list, you MUST determine seven things:
 1.  \`name\`: The name of the benefit, taken from the "Benefit" field in the JSON.
 2.  \`isEligible\`: A boolean. Set to \`true\` if the rules for the given scenario suggest this benefit.
 3.  \`isCurrent\`: A boolean. Set to \`true\` if this benefit is in the user's \`existingBenefits\` list.
 4.  \`reason\`: A brief, one-sentence explanation for the eligibility status. If \`isCurrent\` is true, the reason MUST be "You are already receiving this benefit.". If eligible, explain why (e.g., "For help with daily living costs due to illness"). If not eligible, state "Not typically available in this scenario."
 5.  \`requirements\`: A slightly more detailed, user-friendly explanation of the key requirements or purpose of the benefit (2-3 sentences), based on the "Who its for" description in the JSON ruleset.
 6.  \`url\`: The official government URL for the benefit, taken from the "URL" field in the JSON.
+7.  \`potentialAmount\`: A string describing the potential payment amount, taken from the "Weekly Rate" field in the JSON ruleset.
 
 **Crucial Logic:** If a benefit is marked as \`isCurrent: true\`, you MUST also set \`isEligible: true\`. This ensures the UI correctly shows it as "Already Receiving" rather than "Not Eligible".
 
@@ -161,3 +161,5 @@ const generateBenefitsMatrixFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

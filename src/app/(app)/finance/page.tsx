@@ -32,6 +32,8 @@ export default function FinancePage() {
     const [suggestionError, setSuggestionError] = useState<string | null>(null);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
+    const getStorageKey = (email: string) => `financialSuggestions_${email}`;
+
     const loadData = () => {
         const email = localStorage.getItem("currentUserEmail");
         if (email) {
@@ -43,14 +45,15 @@ export default function FinancePage() {
                 if (formattedStatus === 'Unemployed not on benefits') formattedStatus = 'Unemployed';
                 if (formattedStatus === 'Unemployed on benefits') formattedStatus = 'On Benefits';
                 
-                setUserData({ ...parsedData, employmentStatus: formattedStatus });
-                return { ...parsedData, employmentStatus: formattedStatus };
+                const userData = { ...parsedData, employmentStatus: formattedStatus };
+                setUserData(userData);
+                return { userData, email };
             }
         }
         return null;
     }
 
-    const fetchSuggestions = async (currentUserData: UserData | null) => {
+    const fetchSuggestions = async (currentUserData: UserData, userEmail: string) => {
         if (!currentUserData || !currentUserData.age || !currentUserData.employmentStatus) {
             setIsLoadingSuggestions(false);
             setSuggestionError("Your age and employment status must be set in your profile to get suggestions.");
@@ -61,31 +64,29 @@ export default function FinancePage() {
         setSuggestionError(null);
         
         try {
-            // Generate a matrix for the user's current situation and potential future ones.
             const matrixResult = await generateBenefitsMatrix({
                 age: currentUserData.age,
                 employmentStatus: currentUserData.employmentStatus,
                 existingBenefits: currentUserData.benefits || [],
             });
 
-            // Create a scenario representing the user's current state to find suggestions.
-            // This is a temporary structure for logic, not for display.
             const currentSituationScenario = {
                  scenario: "Current Situation",
                  description: "Your current financial state.",
                  benefits: matrixResult.scenarios[0].benefits
             };
             
-            // Now, find suggestions from this current situation scenario.
             const newSuggestions = currentSituationScenario.benefits
-                .filter(b => b.isEligible && !b.isCurrent) // Find eligible benefits the user doesn't have
+                .filter(b => b.isEligible && !b.isCurrent)
                 .map(b => ({
                     name: b.name,
                     reason: b.requirements,
                     url: b.url,
                     potentialAmount: b.potentialAmount
                 }));
+
             setSuggestedBenefits(newSuggestions);
+            localStorage.setItem(getStorageKey(userEmail), JSON.stringify(newSuggestions));
 
         } catch (error: any) {
             console.error("Failed to fetch benefit suggestions:", error);
@@ -100,14 +101,29 @@ export default function FinancePage() {
     };
 
     useEffect(() => {
-        const loadedData = loadData();
-        fetchSuggestions(loadedData);
+        const loadResult = loadData();
+        if (loadResult) {
+            const { userData, email } = loadResult;
+            const cachedSuggestions = localStorage.getItem(getStorageKey(email));
+            if (cachedSuggestions) {
+                setSuggestedBenefits(JSON.parse(cachedSuggestions));
+                setIsLoadingSuggestions(false);
+            } else {
+                fetchSuggestions(userData, email);
+            }
+        } else {
+            setIsLoadingSuggestions(false);
+        }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleRefresh = () => {
-        const loadedData = loadData();
-        fetchSuggestions(loadedData);
+        const loadResult = loadData();
+        if (loadResult) {
+            const { userData, email } = loadResult;
+            localStorage.removeItem(getStorageKey(email));
+            fetchSuggestions(userData, email);
+        }
     }
 
     const formatCurrency = (value: string | undefined) => {
@@ -248,5 +264,3 @@ export default function FinancePage() {
         </div>
     )
 }
-
-    

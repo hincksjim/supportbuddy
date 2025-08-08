@@ -12,7 +12,8 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { lookupPostcode } from '@/services/postcode-lookup';
-import { generateBenefitsSuggestion, BenefitSuggestion, BenefitSuggestionSchema } from '@/ai/flows/generate-benefits-suggestion';
+import { generateBenefitsSuggestion } from '@/ai/flows/generate-benefits-suggestion';
+import { BenefitSuggestionSchema } from './types';
 
 
 const TimelineStepSchema = z.object({

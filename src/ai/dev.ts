@@ -16,4 +16,4 @@ import '@/services/postcode-lookup.ts';
 import '@/ai/flows/check-medication-dose.ts';
 import '@/ai/flows/generate-benefits-matrix.ts';
 import '@/ai/flows/analyze-medication.ts';
-
+import '@/ai/flows/types.ts';

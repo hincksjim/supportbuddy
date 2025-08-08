@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { BenefitSuggestionSchema } from './types';
 
 const GenerateBenefitsSuggestionInputSchema = z.object({
   age: z.string().describe("The user's age."),
@@ -20,13 +21,6 @@ const GenerateBenefitsSuggestionInputSchema = z.object({
   existingBenefits: z.array(z.string()).optional().describe("A list of benefits the user is already receiving."),
 });
 export type GenerateBenefitsSuggestionInput = z.infer<typeof GenerateBenefitsSuggestionInputSchema>;
-
-export const BenefitSuggestionSchema = z.object({
-    name: z.string().describe("The name of the suggested benefit."),
-    reason: z.string().describe("A brief, simple explanation of why this benefit is being suggested and what it is for."),
-});
-export type BenefitSuggestion = z.infer<typeof BenefitSuggestionSchema>;
-
 
 const GenerateBenefitsSuggestionOutputSchema = z.object({
   suggestions: z.array(BenefitSuggestionSchema).describe('A list of suggested benefits.'),

@@ -48,7 +48,7 @@ const benefitsDecisionLogic = `
     "Additional or Replacement Benefits":"Disability Living Allowance (DLA), Carer's Allowance (for parent), NHS travel/prescription support"
   },
   {
-    "Age Range":"16-64",
+    "Age Range":"16-Pension Age",
     "Employment Status":"Employed",
     "Existing Benefits":"None or any",
     "Income/Savings":"Any",
@@ -56,7 +56,7 @@ const benefitsDecisionLogic = `
     "Additional or Replacement Benefits":"Statutory Sick Pay (SSP), Personal Independence Payment (PIP), Employment and Support Allowance (ESA), Universal Credit (UC) with LCWRA element"
   },
   {
-    "Age Range":"16-64",
+    "Age Range":"16-Pension Age",
     "Employment Status":"Employed",
     "Existing Benefits":"SSP ended",
     "Income/Savings":"Low income/savings < £16K",
@@ -64,7 +64,7 @@ const benefitsDecisionLogic = `
     "Additional or Replacement Benefits":"ESA, PIP, Universal Credit (UC) with LCWRA element, Blue Badge"
   },
   {
-    "Age Range":"16-64",
+    "Age Range":"16-Pension Age",
     "Employment Status":"Unemployed",
     "Existing Benefits":"JSA",
     "Income/Savings":"Low income",
@@ -72,12 +72,12 @@ const benefitsDecisionLogic = `
     "Additional or Replacement Benefits":"Replace JSA with ESA, claim PIP, Universal Credit (UC) with LCWRA"
   },
   {
-    "Age Range":"16-64",
+    "Age Range":"16-Pension Age",
     "Health Impact (Cancer)":"Any",
     "Additional or Replacement Benefits":"Universal Credit (with LCWRA element)"
   },
   {
-    "Age Range":"16-64",
+    "Age Range":"16-Pension Age",
     "Employment Status":"Self-employed",
     "Existing Benefits":"None",
     "Income/Savings":"Income affected",
@@ -85,7 +85,7 @@ const benefitsDecisionLogic = `
     "Additional or Replacement Benefits":"Universal Credit (UC) with LCWRA element, PIP, ESA (New Style), Council Tax Support"
   },
   {
-    "Age Range":"16-64",
+    "Age Range":"16-Pension Age",
     "Employment Status":"Already on ESA",
     "Existing Benefits":"ESA",
     "Income/Savings":"Low income",
@@ -93,7 +93,7 @@ const benefitsDecisionLogic = `
     "Additional or Replacement Benefits":"Ensure they're in Support Group, PIP, Council Tax Support, Universal Credit (UC) with LCWRA element"
   },
   {
-    "Age Range":"65+",
+    "Age Range":"Pension Age+",
     "Employment Status":"Retired",
     "Existing Benefits":"State Pension",
     "Income/Savings":"Low income",
@@ -101,7 +101,7 @@ const benefitsDecisionLogic = `
     "Additional or Replacement Benefits":"Attendance Allowance, Pension Credit with Severe Disability Premium, Blue Badge, Free NHS travel/prescriptions"
   },
   {
-    "Age Range":"65+",
+    "Age Range":"Pension Age+",
     "Employment Status":"Retired",
     "Existing Benefits":"Pension Credit",
     "Income/Savings":"Low income",
@@ -167,3 +167,4 @@ const generateBenefitsSuggestionFlow = ai.defineFlow(
     return output!;
   }
 );
+

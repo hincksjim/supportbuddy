@@ -5,8 +5,9 @@ import { useState, useEffect } from "react"
 import { Landmark, Briefcase, HandCoins, PiggyBank, Wallet, Lightbulb, Loader2, RefreshCw, AlertCircle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { generateBenefitsSuggestion, GenerateBenefitsSuggestionInput } from "@/ai/flows/generate-benefits-suggestion"
+import { generateBenefitsMatrix } from "@/ai/flows/generate-benefits-matrix"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 interface UserData {
     name?: string;
@@ -20,6 +21,7 @@ interface UserData {
 interface BenefitSuggestion {
     name: string;
     reason: string;
+    url: string;
 }
 
 export default function FinancePage() {
@@ -28,10 +30,8 @@ export default function FinancePage() {
     const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
     const [suggestionError, setSuggestionError] = useState<string | null>(null);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
 
     const loadData = () => {
-        setIsLoading(true);
         const email = localStorage.getItem("currentUserEmail");
         if (email) {
             setCurrentUserEmail(email);
@@ -46,7 +46,6 @@ export default function FinancePage() {
                 return { ...parsedData, employmentStatus: formattedStatus };
             }
         }
-        setIsLoading(false);
         return null;
     }
 
@@ -60,21 +59,32 @@ export default function FinancePage() {
         setSuggestionError(null);
         
         try {
-            const input: GenerateBenefitsSuggestionInput = {
+            const matrixResult = await generateBenefitsMatrix({
                 age: currentUserData.age || "",
                 employmentStatus: currentUserData.employmentStatus || "",
                 existingBenefits: currentUserData.benefits || [],
-            };
-            if (currentUserData.income) input.income = currentUserData.income;
-            if (currentUserData.savings) input.savings = currentUserData.savings;
+            });
 
-            const result = await generateBenefitsSuggestion(input);
-            setSuggestedBenefits(result.suggestions);
+            // Process the matrix to find new suggestions
+            // The first scenario is the user's current situation.
+            const currentSituation = matrixResult.scenarios[0];
+            if (currentSituation) {
+                const newSuggestions = currentSituation.benefits
+                    .filter(b => b.isEligible && !b.isCurrent) // Find eligible benefits the user doesn't have
+                    .map(b => ({
+                        name: b.name,
+                        reason: b.requirements, // Use the more detailed requirements as the reason
+                        url: b.url,
+                    }));
+                setSuggestedBenefits(newSuggestions);
+            } else {
+                 setSuggestedBenefits([]);
+            }
 
         } catch (error: any) {
             console.error("Failed to fetch benefit suggestions:", error);
-             if (error.message && (error.message.includes("429") || error.message.includes("Too Many Requests"))) {
-                setSuggestionError("You've exceeded the number of requests for today. Please try again tomorrow.");
+             if (error.message && (error.message.includes("429") || error.message.includes("503"))) {
+                setSuggestionError("The AI service is busy or rate limited. Please try again in a moment.");
             } else {
                 setSuggestionError("Sorry, there was an error fetching benefit suggestions.");
             }
@@ -110,9 +120,9 @@ export default function FinancePage() {
                         A summary of your current financial situation and potential support.
                     </p>
                 </div>
-                <Button onClick={handleRefresh} disabled={isLoading || isLoadingSuggestions}>
+                <Button onClick={handleRefresh} disabled={isLoadingSuggestions}>
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    Refresh
+                    Refresh Suggestions
                 </Button>
             </div>
 
@@ -205,8 +215,17 @@ export default function FinancePage() {
                            <div className="space-y-4">
                             {suggestedBenefits.map((suggestion, index) => (
                                 <Alert key={index}>
-                                    <AlertTitle className="font-bold">{suggestion.name}</AlertTitle>
-                                    <AlertDescription>{suggestion.reason}</AlertDescription>
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <AlertTitle className="font-bold">{suggestion.name}</AlertTitle>
+                                            <AlertDescription>{suggestion.reason}</AlertDescription>
+                                        </div>
+                                        <Button asChild variant="secondary" size="sm" className="ml-4">
+                                            <Link href={suggestion.url} target="_blank" rel="noopener noreferrer">
+                                                Learn More
+                                            </Link>
+                                        </Button>
+                                    </div>
                                 </Alert>
                             ))}
                            </div>
@@ -220,3 +239,4 @@ export default function FinancePage() {
         </div>
     )
 }
+

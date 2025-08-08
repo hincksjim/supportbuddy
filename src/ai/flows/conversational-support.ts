@@ -41,8 +41,7 @@ export async function aiConversationalSupport(input: AiConversationalSupportInpu
   return aiConversationalSupportFlow(input);
 }
 
-const benefitsDecisionLogic = `
-[
+const benefitsDecisionLogic = JSON.stringify([
   {
     "Age Range":"Under 16",
     "Employment Status":"N/A",
@@ -128,8 +127,7 @@ const benefitsDecisionLogic = `
     "Health Impact (Cancer)":"Terminal (expected < 12 months)",
     "Additional or Replacement Benefits":"Fast-track: PIP (highest rate), Attendance Allowance, DLA, Universal Credit (with LCWRA element), ESA with no work requirements"
   }
-]
-`;
+]);
 
 
 const prompt = ai.definePrompt({

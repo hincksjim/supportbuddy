@@ -13,7 +13,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { lookupPostcode } from '@/services/postcode-lookup';
 import { generateBenefitsSuggestion } from '@/ai/flows/generate-benefits-suggestion';
-import { BenefitSuggestion } from './types';
+import { BenefitSuggestion, SourceConversation, SourceDocument } from './types';
 
 
 const TimelineStepSchema = z.object({
@@ -30,27 +30,6 @@ const TimelineStageSchema = z.object({
   description: z.string(),
   steps: z.array(TimelineStepSchema),
 });
-
-const SourceDocumentSchema = z.object({
-    id: z.string().describe("The unique ID of the document analysis."),
-    title: z.string().describe("The user-provided title for the document analysis."),
-    date: z.string().describe("The date the analysis was performed."),
-    analysis: z.string().describe("The AI-generated analysis of the document."),
-});
-export type SourceDocument = z.infer<typeof SourceDocumentSchema>;
-
-
-const SourceConversationSchema = z.object({
-    id: z.string().describe("The unique ID of the conversation summary."),
-    title: z.string().describe("The AI-generated title for the conversation summary."),
-    date: z.string().describe("The date the conversation was summarized."),
-    summary: z.string().describe("The AI-generated summary of the conversation."),
-    fullConversation: z.array(z.object({
-        role: z.enum(['user', 'assistant']),
-        content: z.string(),
-    })).describe("The full transcript of the conversation for detailed analysis.")
-});
-export type SourceConversation = z.infer<typeof SourceConversationSchema>;
 
 const DiaryEntrySchema = z.object({
   id: z.string(),
@@ -96,8 +75,8 @@ const GeneratePersonalSummaryInputSchema = z.object({
         disclaimer: z.string(),
         timeline: z.array(TimelineStageSchema)
     }).nullable().describe('The user\'s current treatment timeline data, which includes completed steps and notes.'),
-    sourceDocuments: z.array(SourceDocumentSchema).describe('An array of previously analyzed documents, including their titles and analysis content.'),
-    sourceConversations: z.array(SourceConversationSchema).describe('An array of summaries and full transcripts from previous conversations.'),
+    sourceDocuments: z.array(SourceDocument).describe('An array of previously analyzed documents, including their titles and analysis content.'),
+    sourceConversations: z.array(SourceConversation).describe('An array of summaries and full transcripts from previous conversations.'),
     diaryData: z.array(DiaryEntrySchema).describe('An array of the user\'s diary entries.'),
     medicationData: z.array(MedicationSchema).describe('An array of the user\'s prescribed medications.'),
 });
@@ -279,7 +258,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 *   **Existing Benefits:** {{#if existingBenefits}}{{#each existingBenefits}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}None listed{{/if}}
 
 ### **Potential Additional Benefits**
-*(This section is now populated from the pre-formatted string. You MUST insert the exact text from potentialBenefitsText here.)*
+(This section is now populated from the pre-formatted string. You MUST Insert the exact text from potentialBenefitsText here.)
 {{{potentialBenefitsText}}}
 
 ---

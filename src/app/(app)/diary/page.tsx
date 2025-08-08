@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
-import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download } from "lucide-react"
+import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Medication } from "@/app/(app)/medication/page"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -35,7 +35,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
+import { BodyFront, BodyBack } from "@/components/icons"
 
+// Data structure for pain locations
+export interface PainLocation {
+    x: number; // percentage
+    y: number; // percentage
+}
 
 // Data structure for meds taken
 export interface MedsTaken {
@@ -54,6 +60,8 @@ export interface DiaryEntry {
   diagnosisMood: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
   treatmentMood: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
   painScore: number | null;
+  painLocations: { front: PainLocation[], back: PainLocation[] };
+  painRemarks: string;
   weight: string;
   sleep: string;
   food: string;
@@ -103,6 +111,59 @@ const painEmojis = [
     '😭'  // 10
 ];
 
+function PainBodyMap({ 
+    view, 
+    locations, 
+    onLocationChange,
+    readOnly = false 
+}: { 
+    view: 'front' | 'back', 
+    locations: PainLocation[], 
+    onLocationChange: (locations: PainLocation[]) => void,
+    readOnly?: boolean
+}) {
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (readOnly || !containerRef.current) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        onLocationChange([...locations, { x, y }]);
+    };
+
+    const handleRemovePoint = (e: React.MouseEvent, index: number) => {
+        e.stopPropagation();
+        onLocationChange(locations.filter((_, i) => i !== index));
+    };
+
+    const BodyComponent = view === 'front' ? BodyFront : BodyBack;
+
+    return (
+        <div ref={containerRef} className="relative w-full aspect-[2/3] cursor-crosshair" onClick={handleMapClick}>
+            <BodyComponent className="w-full h-full text-muted-foreground/30" />
+            {locations.map((loc, index) => (
+                 <div
+                    key={index}
+                    className="absolute w-5 h-5 -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: `${loc.x}%`, top: `${loc.y}%` }}
+                >
+                    {readOnly ? (
+                         <X className="w-full h-full text-destructive" />
+                    ): (
+                        <button
+                            onClick={(e) => handleRemovePoint(e, index)}
+                            className="w-full h-full rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:scale-110 transition-transform"
+                            aria-label="Remove pain point"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+}
 
 function LogMedicationDialog({ onLog, prescribedMeds, existingMedsTaken, onDoseWarning }: { onLog: (med: MedsTaken) => void; prescribedMeds: Medication[]; existingMedsTaken: MedsTaken[], onDoseWarning: (warning: string) => void; }) {
     const [medName, setMedName] = useState("");
@@ -231,6 +292,8 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
     const [diagnosisMood, setDiagnosisMood] = useState<DiaryEntry['diagnosisMood']>('meh');
     const [treatmentMood, setTreatmentMood] = useState<DiaryEntry['treatmentMood']>('meh');
     const [painScore, setPainScore] = useState<DiaryEntry['painScore']>(0);
+    const [painLocations, setPainLocations] = useState<DiaryEntry['painLocations']>({ front: [], back: []});
+    const [painRemarks, setPainRemarks] = useState('');
     const [weight, setWeight] = useState('');
     const [sleep, setSleep] = useState('');
     const [food, setFood] = useState('');
@@ -264,6 +327,8 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
             diagnosisMood: 'meh',
             treatmentMood: 'meh',
             painScore: 0,
+            painLocations: { front: [], back: [] },
+            painRemarks: '',
             weight: '',
             sleep: '',
             food: '',
@@ -278,6 +343,8 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
         setDiagnosisMood(entryToEdit.diagnosisMood);
         setTreatmentMood(entryToEdit.treatmentMood);
         setPainScore(entryToEdit.painScore);
+        setPainLocations(entryToEdit.painLocations || { front: [], back: [] });
+        setPainRemarks(entryToEdit.painRemarks || '');
         setWeight(entryToEdit.weight);
         setSleep(entryToEdit.sleep);
         setFood(entryToEdit.food);
@@ -296,6 +363,8 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
             diagnosisMood,
             treatmentMood,
             painScore,
+            painLocations,
+            painRemarks,
             weight,
             sleep,
             food,
@@ -338,7 +407,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>{existingEntry ? 'Edit' : 'New'} Diary Entry</DialogTitle>
                     <DialogDescription>Log how you're feeling and other key factors for today.</DialogDescription>
@@ -403,6 +472,36 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
                            <span className="font-bold w-6 text-center">{painScore ?? 0}</span>
                         </div>
                     </div>
+
+                    {(painScore ?? 0) > 0 && (
+                         <div className="space-y-4 pt-4 border-t">
+                            <Label className="font-semibold">Pain Details</Label>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-sm text-center block">Front</Label>
+                                    <PainBodyMap 
+                                        view="front" 
+                                        locations={painLocations.front} 
+                                        onLocationChange={(locs) => setPainLocations(p => ({...p, front: locs}))}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                     <Label className="text-sm text-center block">Back</Label>
+                                     <PainBodyMap 
+                                        view="back" 
+                                        locations={painLocations.back} 
+                                        onLocationChange={(locs) => setPainLocations(p => ({...p, back: locs}))}
+                                    />
+                                </div>
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="pain-remarks">Pain Remarks</Label>
+                                <Textarea id="pain-remarks" placeholder="Describe the pain (e.g., sharp, dull, aching)..." value={painRemarks} onChange={(e) => setPainRemarks(e.target.value)} />
+                            </div>
+                        </div>
+                    )}
+
+
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="weight">Weight (kg)</Label>
@@ -442,7 +541,12 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
                                <p className="text-sm text-muted-foreground">No medications logged for today.</p>
                            )}
                            <div className="pt-2">
-                             <LogMedicationDialog onLog={handleLogMedication} prescribedMeds={prescribedMeds} existingMedsTaken={medsTaken} onDoseWarning={handleDoseWarning} />
+                             <LogMedicationDialog 
+                                onLog={handleLogMedication} 
+                                prescribedMeds={prescribedMeds} 
+                                existingMedsTaken={medsTaken} 
+                                onDoseWarning={handleDoseWarning} 
+                             />
                            </div>
                         </div>
                     </div>
@@ -476,6 +580,9 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
 }
 
 function DiaryEntryCard({ entry, onSave, currentUserEmail }: { entry: DiaryEntry; onSave: (entry: DiaryEntry) => void; currentUserEmail: string | null; }) {
+    const hasPainDetails = (entry.painScore ?? 0) > 0 && 
+        ((entry.painLocations && (entry.painLocations.front.length > 0 || entry.painLocations.back.length > 0)) || entry.painRemarks);
+    
     return (
         <Card className="diary-entry-card">
             <CardHeader>
@@ -521,6 +628,24 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail }: { entry: DiaryEntry
                     <div className="grid grid-cols-3 gap-4 text-sm">
                         {entry.weight && <div><strong>Weight:</strong> {entry.weight} kg</div>}
                         {entry.sleep && <div><strong>Sleep:</strong> {entry.sleep} hours</div>}
+                    </div>
+                )}
+                {hasPainDetails && (
+                    <div className="space-y-2">
+                        <h4 className="font-semibold text-sm">Pain Details</h4>
+                        <div className="flex gap-4">
+                            <div className="w-1/2">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <PainBodyMap view="front" locations={entry.painLocations?.front || []} onLocationChange={() => {}} readOnly />
+                                    <PainBodyMap view="back" locations={entry.painLocations?.back || []} onLocationChange={() => {}} readOnly />
+                                </div>
+                            </div>
+                             <div className="w-1/2">
+                                {entry.painRemarks && (
+                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap border p-2 rounded-md bg-muted/50 h-full">{entry.painRemarks}</p>
+                                )}
+                             </div>
+                        </div>
                     </div>
                 )}
                  {entry.medsTaken && entry.medsTaken.length > 0 && (
@@ -634,7 +759,7 @@ export default function DiaryPage() {
     const handleSaveEntry = (entry: DiaryEntry) => {
         if (!currentUserEmail) return;
         
-        const currentEntries = [...entries];
+        const currentEntries = [...entriesRef.current];
         const existingIndex = currentEntries.findIndex(e => e.id === entry.id);
 
         if (existingIndex > -1) {
@@ -724,5 +849,3 @@ export default function DiaryPage() {
         </div>
     )
 }
-
-    

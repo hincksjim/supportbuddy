@@ -29,12 +29,12 @@ import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download, 
 import { cn } from "@/lib/utils"
 import { Medication } from "@/app/(app)/medication/page"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { checkMedicationDose, MedDose } from "@/ai/flows/check-medication-dose"
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
+import { getMaxDailyDose } from "@/ai/flows/get-max-daily-dose"
 
 // Data structure for meds taken
 export interface MedsTaken {
@@ -147,23 +147,26 @@ function LogMedicationDialog({ onLog, prescribedMeds, existingMedsTaken, onDoseW
         // --- Dose Checking Logic ---
         if (newMedLog.isPrescribed) {
             const prescription = prescribedMeds.find(p => p.name === newMedLog.name);
-            if (prescription) {
-                // Get all doses of this medication taken in this specific entry/day
-                const todaysTakesForThisMed: MedDose[] = existingMedsTaken
-                    .filter(m => m.name === newMedLog.name)
-                    .map(m => ({ time: m.time, quantity: m.quantity }));
-
-                // Add the new dose to the list for checking
-                const dosesToCheck = [...todaysTakesForThisMed, { time: newMedLog.time, quantity: newMedLog.quantity }];
-
+            if (prescription && prescription.dose) {
                 try {
-                    const result = await checkMedicationDose({
-                        medicationName: newMedLog.name,
-                        prescriptionDose: prescription.dose,
-                        dosesTaken: dosesToCheck
-                    });
-                    if (result.warning) {
-                        onDoseWarning(result.warning);
+                    // Step 1: Use AI to get the max daily dose from the prescription string
+                    const maxDoseResult = await getMaxDailyDose({ prescriptionDose: prescription.dose });
+                    const maxDose = maxDoseResult.maxDose;
+
+                    if (maxDose > 0) {
+                        // Step 2: Count tablets of THIS medication taken today
+                        const todaysTakesForThisMed = existingMedsTaken
+                            .filter(m => m.name === newMedLog.name)
+                            .reduce((sum, m) => sum + m.quantity, 0);
+                        
+                        // Add the quantity from the new log entry
+                        const totalTakenToday = todaysTakesForThisMed + newMedLog.quantity;
+                        
+                        // Step 3: Compare in code
+                        if (totalTakenToday > maxDose) {
+                            const warning = `It looks like you have taken more than the prescribed daily dose of ${maxDose} tablets for ${newMedLog.name}. Please double-check the instructions or consult your doctor.`;
+                            onDoseWarning(warning);
+                        }
                     }
                 } catch (error) {
                     console.error("Dose check failed:", error);
@@ -800,3 +803,5 @@ export default function DiaryPage() {
         </div>
     )
 }
+
+    

@@ -28,7 +28,6 @@ import { PlusCircle, Loader2, Pill, Trash2, Download, Bot, AlertCircle, RefreshC
 import jsPDF from "jspdf"
 import { analyzeMedication } from "@/ai/flows/analyze-medication"
 import { analyzeMedicationPhoto, AnalyzeMedicationPhotoOutput } from "@/ai/flows/analyze-medication-photo"
-import { getMaxDailyDose } from "@/ai/flows/get-max-daily-dose"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 
@@ -159,6 +158,9 @@ function MedicationDialog({ onSave, existingMedication, initialValues, open, onO
     const [name, setName] = useState('');
     const [strength, setStrength] = useState('');
     const [dose, setDose] = useState('');
+    const [dosePerIntake, setDosePerIntake] = useState<number | undefined>();
+    const [frequency, setFrequency] = useState<string | undefined>();
+    const [maxDosePerDay, setMaxDosePerDay] = useState<number | undefined>();
     const [issuedBy, setIssuedBy] = useState('');
     const [issuedDate, setIssuedDate] = useState(new Date().toISOString().split('T')[0]);
     const [isSaving, setIsSaving] = useState(false);
@@ -171,6 +173,9 @@ function MedicationDialog({ onSave, existingMedication, initialValues, open, onO
         setName(initialValues?.name || '');
         setStrength(initialValues?.strength || '');
         setDose(initialValues?.dose || '');
+        setDosePerIntake(initialValues?.dosePerIntake || undefined);
+        setFrequency(initialValues?.frequency || undefined);
+        setMaxDosePerDay(initialValues?.maxDosePerDay || undefined);
         setIssuedBy(initialValues?.issuedBy || '');
         setIssuedDate(initialValues?.issuedDate || new Date().toISOString().split('T')[0]);
     }
@@ -190,6 +195,9 @@ function MedicationDialog({ onSave, existingMedication, initialValues, open, onO
             setName(existingMedication.name);
             setStrength(existingMedication.strength);
             setDose(existingMedication.dose);
+            setDosePerIntake(existingMedication.dosePerIntake);
+            setFrequency(existingMedication.frequency);
+            setMaxDosePerDay(existingMedication.maxDosePerDay);
             setIssuedBy(existingMedication.issuedBy);
             setIssuedDate(new Date(existingMedication.issuedDate).toISOString().split('T')[0]);
         } else if (open) {
@@ -205,6 +213,9 @@ function MedicationDialog({ onSave, existingMedication, initialValues, open, onO
             name,
             strength,
             dose,
+            dosePerIntake,
+            frequency,
+            maxDosePerDay,
             issuedBy,
             issuedDate: new Date(issuedDate).toISOString(),
             isAnalyzing: isNew, // Only set analyzing flag for new meds
@@ -230,8 +241,22 @@ function MedicationDialog({ onSave, existingMedication, initialValues, open, onO
                         <Input id="med-strength" placeholder="e.g., 500mg" value={strength} onChange={(e) => setStrength(e.target.value)} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="med-dose">Dose</Label>
+                        <Label htmlFor="med-dose">Dose Instructions</Label>
                         <Textarea id="med-dose" placeholder="e.g., One tablet twice a day" value={dose} onChange={(e) => setDose(e.target.value)} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="med-dose-per-intake">Dose Per Intake</Label>
+                            <Input id="med-dose-per-intake" type="number" placeholder="e.g., 2" value={dosePerIntake || ''} onChange={(e) => setDosePerIntake(e.target.value ? parseInt(e.target.value) : undefined)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="med-max-dose">Max Dose Per Day</Label>
+                            <Input id="med-max-dose" type="number" placeholder="e.g., 8" value={maxDosePerDay || ''} onChange={(e) => setMaxDosePerDay(e.target.value ? parseInt(e.target.value) : undefined)} />
+                        </div>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="med-frequency">Frequency</Label>
+                        <Input id="med-frequency" placeholder="e.g., Every 4-6 hours" value={frequency || ''} onChange={(e) => setFrequency(e.target.value)} />
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="med-issued-by">Issued By</Label>
@@ -500,7 +525,7 @@ function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues
 
         if (existingIndex > -1) {
             updatedMeds = [...medications];
-            updatedMeds[existingIndex] = { ...updatedMeds[existingIndex], ...medication };
+            updatedMeds[existingIndex] = { ...updatedMeds[existingIndex], ...medication, isAnalyzing: false };
         } else {
             updatedMeds = [medication, ...medications];
         }
@@ -510,11 +535,11 @@ function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues
         saveMedications(updatedMeds);
 
         if (isNew) {
-            triggerMedicationAnalysis(medication.id, medication.dose);
+            triggerMedicationAnalysis(medication.id);
         }
     };
 
-    const triggerMedicationAnalysis = async (medicationId: string, dose: string) => {
+    const triggerMedicationAnalysis = async (medicationId: string) => {
         const currentMeds = medicationsRef.current;
         const medIndex = currentMeds.findIndex(m => m.id === medicationId);
         if (medIndex === -1) return;
@@ -525,14 +550,10 @@ function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues
             .map(m => m.name);
 
         try {
-            // Run analyses in parallel
-            const [analysisResult, doseResult] = await Promise.all([
-                analyzeMedication({
-                    medicationName: medicationToAnalyze.name,
-                    existingMedications,
-                }),
-                getMaxDailyDose({ prescriptionDose: dose })
-            ]);
+            const analysisResult = await analyzeMedication({
+                medicationName: medicationToAnalyze.name,
+                existingMedications,
+            });
 
             setMedications(prevMeds => {
                 const updatedMeds = prevMeds.map(m => {
@@ -543,9 +564,6 @@ function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues
                             interactionWarning: analysisResult.interactionWarning,
                             sideEffects: analysisResult.sideEffects,
                             disclaimer: analysisResult.disclaimer,
-                            dosePerIntake: doseResult.dosePerIntake,
-                            frequency: doseResult.frequency,
-                            maxDosePerDay: doseResult.maxDosePerDay,
                             isAnalyzing: false,
                         };
                     }
@@ -568,7 +586,7 @@ function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues
         setMedications(prevMeds => {
             const medToRecheck = prevMeds.find(m => m.id === medicationId);
             if (medToRecheck) {
-                triggerMedicationAnalysis(medicationId, medToRecheck.dose);
+                triggerMedicationAnalysis(medicationId);
             }
             return prevMeds.map(m => m.id === medicationId ? { ...m, isAnalyzing: true } : m)
         });

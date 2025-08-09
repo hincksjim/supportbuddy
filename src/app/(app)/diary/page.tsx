@@ -158,6 +158,7 @@ function LogMedicationDialog({ onLog, prescribedMeds, existingMedsTaken, onDoseW
 
                 try {
                     const result = await checkMedicationDose({
+                        medicationName: newMedLog.name,
                         prescriptionDose: prescription.dose,
                         dosesTaken: dosesToCheck
                     });
@@ -799,5 +800,3 @@ export default function DiaryPage() {
         </div>
     )
 }
-
-    

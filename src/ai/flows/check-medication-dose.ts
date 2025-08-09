@@ -22,6 +22,7 @@ export type MedDose = z.infer<typeof MedDoseSchema>;
 
 
 const CheckMedicationDoseInputSchema = z.object({
+  medicationName: z.string().describe('The name of the medication being checked.'),
   prescriptionDose: z.string().describe('The prescribed dose instructions from the medication list (e.g., "One tablet twice a day").'),
   dosesTaken: z.array(MedDoseSchema).describe("A list of all doses of this specific medication taken by the user today."),
 });
@@ -44,25 +45,24 @@ const prompt = ai.definePrompt({
   name: 'checkMedicationDosePrompt',
   input: {schema: CheckMedicationDoseInputSchema},
   output: {schema: CheckMedicationDoseOutputSchema},
-  prompt: `You are an AI pharmacy assistant. Your task is to analyze a prescribed medication dose and a log of doses taken today to see if the user might have taken too much.
+  prompt: `You are an AI pharmacy assistant. Your task is to analyze if a user has taken more of a specific medication than prescribed for a single day.
+
+**CRITICAL INSTRUCTION:** Your analysis MUST only concern the medication named "{{{medicationName}}}". Do NOT consider any other medications.
 
 **Task:**
-1.  **Analyze the Prescription:** First, understand the prescribed daily limit from the instruction string.
-    *   "One tablet twice a day" means a maximum of 2 tablets in 24 hours.
-    *   "Two pills every 4-6 hours, no more than 8 in 24 hours" means a max of 8 pills in 24 hours.
-    *   "One 50mg tablet once daily" means a max of 1 tablet in 24 hours.
-    Pay close attention to phrases like "max," "no more than," "twice a day," "three times daily," etc.
-
-2.  **Calculate Total Taken:** Sum the \`quantity\` of all doses taken from the \`dosesTaken\` array.
-
-3.  **Compare and Warn:**
-    *   If the total quantity taken is **greater than** the maximum daily dose you inferred from the prescription, you MUST generate a polite warning message.
-    *   The warning should be clear and encourage the user to double-check. For example: "It looks like you have taken more than the prescribed daily dose of [X] tablets. Please double-check the instructions or consult your doctor."
-    *   If the total taken is within the prescribed limit, you MUST return an empty response with no warning.
+1.  **Identify the Medication:** The medication you are checking is "{{{medicationName}}}".
+2.  **Analyze the Prescription:** Review the instruction "{{{prescriptionDose}}}" to determine the maximum number of pills/units of {{{medicationName}}} allowed in a 24-hour period.
+    *   Examples: "One tablet twice a day" means a max of 2 tablets. "Two pills every 4 hours, no more than 6 in 24 hours" means a max of 6 pills. "One 50mg tablet once daily" means a max of 1 tablet.
+3.  **Calculate Total Taken:** Sum the \`quantity\` of all doses for "{{{medicationName}}}" from the provided \`dosesTaken\` log.
+4.  **Compare and Warn:**
+    *   If the total calculated quantity taken is **greater than** the maximum daily dose you inferred from the prescription instruction, you MUST generate a polite warning message.
+    *   The warning should be clear and encourage the user to double-check. For example: "It looks like you have taken more than the prescribed daily dose of [X] tablets for {{{medicationName}}}. Please double-check the instructions or consult your doctor."
+    *   If the total taken is within the prescribed limit, you MUST return an empty response with no 'warning' field.
 
 **Data:**
+*   **Medication to Check:** "{{{medicationName}}}"
 *   **Prescription Instruction:** "{{{prescriptionDose}}}"
-*   **Log of Doses Taken Today:**
+*   **Log of Doses Taken Today for this Medication:**
     {{#each dosesTaken}}
     - Quantity: {{quantity}} at {{time}}
     {{/each}}

@@ -14,6 +14,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -141,7 +142,7 @@ function AddMedicationByPhotoDialog({ onPhotoAnalyzed }: { onPhotoAnalyzed: (det
             <DialogFooter>
                  <DialogClose asChild>
                     <Button id="close-photo-dialog" variant="ghost">Cancel</Button>
-                </DialogClose>
+                 </DialogClose>
                 <Button onClick={handleCaptureAndAnalyze} disabled={!hasCameraPermission || isAnalyzing}>
                     {isAnalyzing ? <Loader2 className="animate-spin mr-2"/> : <Camera className="mr-2"/>}
                     Capture & Analyze

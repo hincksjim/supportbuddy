@@ -368,19 +368,6 @@ function MedicationCard({ medication, onSave, onDelete, onRecheck, isAnalyzingAn
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{medication.issuedBy}</p>
                     </div>
                 )}
-                 {(medication.maxDose || medication.frequency) && (
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                        <div className="space-y-1">
-                            <h4 className="font-semibold text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-destructive" /> Max Daily Dose</h4>
-                            <p className="text-sm text-muted-foreground">{medication.maxDose ? `${medication.maxDose} tablets` : 'N/A'}</p>
-                        </div>
-                        <div className="space-y-1">
-                            <h4 className="font-semibold text-sm flex items-center gap-2"><CalendarClock className="w-4 h-4 text-primary"/> Frequency</h4>
-                            <p className="text-sm text-muted-foreground">{medication.frequency || 'N/A'}</p>
-                        </div>
-                    </div>
-                )}
-
 
                 {/* AI Analysis Section */}
                 <div className="space-y-4 pt-4 border-t mt-4">
@@ -399,9 +386,22 @@ function MedicationCard({ medication, onSave, onDelete, onRecheck, isAnalyzingAn
                     ) : medication.summary ? (
                         <>
                             <p className="text-sm text-muted-foreground">{medication.summary}</p>
+
+                             {(medication.maxDose || medication.frequency) && (
+                                <div className="grid grid-cols-2 gap-4 pt-4">
+                                    <div className="space-y-1">
+                                        <h4 className="font-semibold text-xs flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-destructive" /> Max Daily Dose</h4>
+                                        <p className="text-sm text-muted-foreground">{medication.maxDose ? `${medication.maxDose} units` : 'Not specified'}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h4 className="font-semibold text-xs flex items-center gap-2"><CalendarClock className="w-4 h-4 text-primary"/> Frequency</h4>
+                                        <p className="text-sm text-muted-foreground">{medication.frequency || 'Not specified'}</p>
+                                    </div>
+                                </div>
+                            )}
                             
                             {medication.interactionWarning && (
-                                 <Alert variant="destructive">
+                                 <Alert variant="destructive" className="mt-4">
                                     <AlertCircle className="h-4 w-4" />
                                     <AlertTitle>Potential Interaction</AlertTitle>
                                     <AlertDescription>{medication.interactionWarning}</AlertDescription>
@@ -409,14 +409,14 @@ function MedicationCard({ medication, onSave, onDelete, onRecheck, isAnalyzingAn
                             )}
                             
                             {medication.sideEffects && (
-                                <div className="space-y-1">
+                                <div className="space-y-1 mt-4">
                                     <h5 className="font-semibold text-xs">Common Side Effects</h5>
                                     <p className="text-xs text-muted-foreground whitespace-pre-wrap">{medication.sideEffects}</p>
                                 </div>
                             )}
 
                              {medication.disclaimer && (
-                                <p className="text-xs text-muted-foreground/80 italic">{medication.disclaimer}</p>
+                                <p className="text-xs text-muted-foreground/80 italic mt-4">{medication.disclaimer}</p>
                             )}
                         </>
                     ) : (
@@ -637,5 +637,3 @@ export default function MedicationPage() {
         </div>
     )
 }
-
-    

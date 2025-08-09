@@ -56,6 +56,7 @@ interface UserData {
   income?: string;
   savings?: string;
   benefits?: string[];
+  initialDiagnosis?: string;
 }
 
 export default function SummaryPage() {
@@ -206,6 +207,7 @@ export default function SummaryPage() {
 
             const result = await generatePersonalSummary({
                 userName: userData.name || "User",
+                initialDiagnosis: userData.initialDiagnosis || 'Not specified',
                 age: userData.age || "",
                 gender: userData.gender || "",
                 postcode: userData.postcode || "",
@@ -503,5 +505,3 @@ export default function SummaryPage() {
     </div>
   )
 }
-
-    

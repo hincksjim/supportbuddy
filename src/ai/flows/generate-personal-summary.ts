@@ -64,6 +64,7 @@ const MedicationSchema = z.object({
 
 const GeneratePersonalSummaryInputSchema = z.object({
     userName: z.string().describe("The user's first name."),
+    initialDiagnosis: z.string().optional().describe("The user's primary diagnosis selected at signup."),
     age: z.string().describe("The user's age."),
     gender: z.string().describe("The user's gender."),
     postcode: z.string().describe("The user's postcode."),
@@ -165,7 +166,12 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 ---
 **FIRST, REVIEW ALL AVAILABLE INFORMATION SOURCES TO USE:**
 
-**1. Source Documents (High Importance for Factual Data):**
+**1. Primary Diagnosis (from user profile):**
+*   {{{initialDiagnosis}}}
+
+---
+
+**2. Source Documents (High Importance for Factual Data):**
 {{#each sourceDocuments}}
 *   **Source ID (for citation):** D{{@index}}
 *   **Document Title:** "{{title}}" (Analyzed: {{date}})
@@ -174,7 +180,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 ---
 {{/each}}
 
-**2. Source Conversations (Primary Source of Narrative and Details):**
+**3. Source Conversations (Primary Source of Narrative and Details):**
 {{#each sourceConversations}}
 *   **Source ID (for citation):** C{{@index}}
 *   **Conversation Title:** "{{title}}" (Summarized: {{date}})
@@ -185,24 +191,24 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 ---
 {{/each}}
 
-**3. Diary Entries (For Wellness Trends, Symptoms, and Daily Feelings):**
+**4. Diary Entries (For Wellness Trends, Symptoms, and Daily Feelings):**
 {{#each diaryData}}
 *   **Source Date (for citation):** Diary - {{date}}
 *   **Content:** Mood: {{mood}}, Pain: {{painScore}}, Worried About: "{{worriedAbout}}", Positive About: "{{positiveAbout}}", Notes: "{{notes}}"
 ---
 {{/each}}
 
-**4. Medication List (For Current Prescriptions):**
+**5. Medication List (For Current Prescriptions):**
 {{#each medicationData}}
 *   **Medication:** {{name}} {{strength}}, Dose: {{dose}}
 ---
 {{/each}}
 
-**5. User's Timeline (For Milestones):**
+**6. User's Timeline (For Milestones):**
 *   Use the timeline data to understand planned and completed steps.
 ---
 
-**6. Pre-Formatted Potential Benefits (MUST USE THIS TEXT EXACTLY):**
+**7. Pre-Formatted Potential Benefits (MUST USE THIS TEXT EXACTLY):**
 {{{potentialBenefitsText}}}
 ---
 
@@ -226,7 +232,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 *   [Example: Dr. Smith, Consultant Oncologist] [D1]
 
 ### **Diagnosis & Condition Summary**
-*(Synthesize the key medical details from ALL data sources into a concise summary. Include cancer type, stage, dates, and key test results. Cite your sources for each key finding using a reference marker like [D0] or [C1].)*
+*(Synthesize the key medical details from ALL data sources into a concise summary. Start with the user's self-reported primary diagnosis and then add details from documents and conversations. Include cancer type, stage, dates, and key test results. Cite your sources for each key finding using a reference marker like [D0] or [C1].)*
 
 ### **Current Medications**
 *(List all medications from the 'medicationData' source. If none, state "No medications listed.")*

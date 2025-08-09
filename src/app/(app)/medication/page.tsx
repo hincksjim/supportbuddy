@@ -24,10 +24,11 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { PlusCircle, Loader2, Pill, Trash2, Download, Bot, AlertCircle, RefreshCw, Camera, Edit } from "lucide-react"
+import { PlusCircle, Loader2, Pill, Trash2, Download, Bot, AlertCircle, RefreshCw, Camera, Edit, CalendarClock, AlertTriangle } from "lucide-react"
 import jsPDF from "jspdf"
 import { analyzeMedication } from "@/ai/flows/analyze-medication"
 import { analyzeMedicationPhoto, AnalyzeMedicationPhotoOutput } from "@/ai/flows/analyze-medication-photo"
+import { getMaxDailyDose } from "@/ai/flows/get-max-daily-dose"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 
@@ -45,6 +46,8 @@ export interface Medication {
   sideEffects?: string;
   disclaimer?: string;
   isAnalyzing?: boolean;
+  maxDose?: number;
+  frequency?: string;
 }
 
 function AddMedicationByPhotoDialog({ onPhotoAnalyzed, onOpenChange, open }: { onPhotoAnalyzed: (details: AnalyzeMedicationPhotoOutput) => void, open: boolean, onOpenChange: (open: boolean) => void }) {
@@ -365,6 +368,19 @@ function MedicationCard({ medication, onSave, onDelete, onRecheck, isAnalyzingAn
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{medication.issuedBy}</p>
                     </div>
                 )}
+                 {(medication.maxDose || medication.frequency) && (
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                        <div className="space-y-1">
+                            <h4 className="font-semibold text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-destructive" /> Max Daily Dose</h4>
+                            <p className="text-sm text-muted-foreground">{medication.maxDose ? `${medication.maxDose} tablets` : 'N/A'}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <h4 className="font-semibold text-sm flex items-center gap-2"><CalendarClock className="w-4 h-4 text-primary"/> Frequency</h4>
+                            <p className="text-sm text-muted-foreground">{medication.frequency || 'N/A'}</p>
+                        </div>
+                    </div>
+                )}
+
 
                 {/* AI Analysis Section */}
                 <div className="space-y-4 pt-4 border-t mt-4">
@@ -491,11 +507,11 @@ function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues
         saveMedications(updatedMeds);
 
         if (isNew) {
-            triggerMedicationAnalysis(medication.id);
+            triggerMedicationAnalysis(medication.id, medication.dose);
         }
     };
 
-    const triggerMedicationAnalysis = async (medicationId: string) => {
+    const triggerMedicationAnalysis = async (medicationId: string, dose: string) => {
         const currentMeds = medicationsRef.current;
         const medIndex = currentMeds.findIndex(m => m.id === medicationId);
         if (medIndex === -1) return;
@@ -506,20 +522,26 @@ function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues
             .map(m => m.name);
 
         try {
-            const result = await analyzeMedication({
-                medicationName: medicationToAnalyze.name,
-                existingMedications,
-            });
+            // Run analyses in parallel
+            const [analysisResult, doseResult] = await Promise.all([
+                analyzeMedication({
+                    medicationName: medicationToAnalyze.name,
+                    existingMedications,
+                }),
+                getMaxDailyDose({ prescriptionDose: dose })
+            ]);
 
             setMedications(prevMeds => {
                 const updatedMeds = prevMeds.map(m => {
                     if (m.id === medicationId) {
                         return {
                             ...m,
-                            summary: result.summary,
-                            interactionWarning: result.interactionWarning,
-                            sideEffects: result.sideEffects,
-                            disclaimer: result.disclaimer,
+                            summary: analysisResult.summary,
+                            interactionWarning: analysisResult.interactionWarning,
+                            sideEffects: analysisResult.sideEffects,
+                            disclaimer: analysisResult.disclaimer,
+                            maxDose: doseResult.maxDose,
+                            frequency: doseResult.frequency,
                             isAnalyzing: false,
                         };
                     }
@@ -539,10 +561,13 @@ function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues
     };
 
     const handleRecheckAnalysis = (medicationId: string) => {
-        setMedications(prevMeds => 
-            prevMeds.map(m => m.id === medicationId ? { ...m, isAnalyzing: true } : m)
-        );
-        triggerMedicationAnalysis(medicationId);
+        setMedications(prevMeds => {
+            const medToRecheck = prevMeds.find(m => m.id === medicationId);
+            if (medToRecheck) {
+                triggerMedicationAnalysis(medicationId, medToRecheck.dose);
+            }
+            return prevMeds.map(m => m.id === medicationId ? { ...m, isAnalyzing: true } : m)
+        });
     };
 
     const handleDeleteMedication = (id: string) => {
@@ -612,5 +637,3 @@ export default function MedicationPage() {
         </div>
     )
 }
-
-    

@@ -72,7 +72,7 @@ const initialDiagnosisOptions = [
     "Coronary Artery Disease",
     "Chronic Pain Syndromes",
     "Sleep Apnea (Severe)"
-]
+];
 
 
 export default function SignupPage() {
@@ -117,7 +117,7 @@ export default function SignupPage() {
     setSelectedBenefits(prev => ({ ...prev, [benefitId]: checked }))
   }
 
-  const allBenefitsSelected = Object.values(selectedBenefits).every(Boolean) && Object.values(selectedBenefits).length === benefits.length;
+  const allBenefitsSelected = Object.keys(selectedBenefits).length > 0 && Object.values(selectedBenefits).every(Boolean) && Object.keys(selectedBenefits).length === benefits.length;
   const someBenefitsSelected = Object.values(selectedBenefits).some(Boolean) && !allBenefitsSelected;
 
 
@@ -186,7 +186,7 @@ export default function SignupPage() {
             </div>
              <div className="space-y-2">
                 <Label htmlFor="initial-diagnosis">Primary Health Condition</Label>
-                <Select name="initial-diagnosis" onValueChange={setInitialDiagnosis} value={initialDiagnosis}>
+                <Select onValueChange={setInitialDiagnosis} value={initialDiagnosis}>
                     <SelectTrigger>
                         <SelectValue placeholder="Select your main condition" />
                     </SelectTrigger>
@@ -281,3 +281,5 @@ export default function SignupPage() {
     </div>
   )
 }
+
+    

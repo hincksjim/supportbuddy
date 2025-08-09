@@ -75,6 +75,11 @@ interface ProfileUpdateActivity {
   date: string;
 }
 
+interface StoredConversation {
+    id: string;
+    messages: object[];
+}
+
 type ActivityItem = 
   | { type: 'conversation', data: ConversationSummary }
   | { type: 'analysis', data: AnalysisResult }
@@ -539,6 +544,14 @@ export default function DashboardPage() {
             const items: (ConversationSummary | SavedMessage | ProfileUpdateActivity)[] = stored ? JSON.parse(stored) : [];
             const updatedItems = items.filter(item => item.id !== id);
             localStorage.setItem(key, JSON.stringify(updatedItems));
+
+            if (type === 'conversation') {
+                const allConvosKey = `allConversations_${currentUserEmail}`;
+                const storedConvos = localStorage.getItem(allConvosKey);
+                const convos: StoredConversation[] = storedConvos ? JSON.parse(storedConvos) : [];
+                const updatedConvos = convos.filter(c => c.id !== id);
+                localStorage.setItem(allConvosKey, JSON.stringify(updatedConvos));
+            }
         } else if (type === 'analysis') {
             const key = `analysisResults_${currentUserEmail}`;
             const stored = localStorage.getItem(key);

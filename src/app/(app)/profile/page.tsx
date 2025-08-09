@@ -39,6 +39,10 @@ const benefitsList = [
     { id: 'income_support', label: 'Income Support' },
 ] as const
 
+const initialDiagnosisOptions = [
+    "Cancer", "Heart Condition", "Diabetes", "Autoimmune Condition"
+];
+
 interface UserData {
     name?: string;
     lastName?: string;
@@ -50,6 +54,7 @@ interface UserData {
     income?: string;
     savings?: string;
     benefits?: string[];
+    initialDiagnosis?: string;
 }
 
 export default function ProfilePage() {
@@ -60,6 +65,8 @@ export default function ProfilePage() {
     const [isLoading, setIsLoading] = useState(true);
 
     const [selectedBenefits, setSelectedBenefits] = useState<Record<string, boolean>>({});
+    const [diagnosisSelection, setDiagnosisSelection] = useState('');
+    const [otherDiagnosis, setOtherDiagnosis] = useState('');
 
     const loadUserData = useCallback(() => {
         setIsLoading(true);
@@ -70,6 +77,19 @@ export default function ProfilePage() {
             if (storedData) {
                 const parsedData: UserData = JSON.parse(storedData);
                 setUserData(parsedData);
+
+                // Set up diagnosis fields
+                if (parsedData.initialDiagnosis) {
+                    const isOther = !initialDiagnosisOptions.includes(parsedData.initialDiagnosis);
+                    if (isOther) {
+                        setDiagnosisSelection('other');
+                        setOtherDiagnosis(parsedData.initialDiagnosis);
+                    } else {
+                        setDiagnosisSelection(parsedData.initialDiagnosis);
+                        setOtherDiagnosis('');
+                    }
+                }
+
                  // Initialize selectedBenefits from user data
                 const initialSelected: Record<string, boolean> = {};
                 benefitsList.forEach(b => {
@@ -97,6 +117,14 @@ export default function ProfilePage() {
     const handleSelectChange = (name: keyof UserData, value: string) => {
         setUserData(prev => ({ ...prev, [name]: value }));
     }
+    
+    const handleDiagnosisSelectChange = (value: string) => {
+        setDiagnosisSelection(value);
+        if (value !== 'other') {
+            setOtherDiagnosis('');
+            setUserData(prev => ({...prev, initialDiagnosis: value}));
+        }
+    }
 
     const handleBenefitChange = (benefitId: string, checked: boolean) => {
         setSelectedBenefits(prev => ({ ...prev, [benefitId]: checked }))
@@ -110,9 +138,14 @@ export default function ProfilePage() {
             .map(([id]) => benefitsList.find(b => b.id === id)?.label)
             .filter((l): l is string => l !== undefined); // Filter out undefined
 
-        const finalUserData = { ...userData, benefits: updatedBenefits };
+        const finalUserData = { 
+            ...userData, 
+            benefits: updatedBenefits,
+            initialDiagnosis: diagnosisSelection === 'other' ? otherDiagnosis : diagnosisSelection,
+        };
 
         localStorage.setItem(`userData_${currentUserEmail}`, JSON.stringify(finalUserData));
+        setUserData(finalUserData);
         toast({
             title: "Profile Saved",
             description: "Your information has been updated successfully.",
@@ -194,6 +227,26 @@ export default function ProfilePage() {
                           <Input id="postcode" name="postcode" placeholder="Your postcode" value={userData.postcode || ''} onChange={handleInputChange}/>
                         </div>
                     </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="initial-diagnosis">Primary Health Condition</Label>
+                        <Select onValueChange={handleDiagnosisSelectChange} value={diagnosisSelection}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select your main condition" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {initialDiagnosisOptions.map(opt => (
+                                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                ))}
+                                <SelectItem value="other">Other...</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     {diagnosisSelection === 'other' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="other-diagnosis">Please specify your condition</Label>
+                            <Input id="other-diagnosis" name="other-diagnosis" placeholder="e.g., Chronic Kidney Disease" value={otherDiagnosis} onChange={e => setOtherDiagnosis(e.target.value)} />
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
@@ -272,3 +325,5 @@ export default function ProfilePage() {
         </div>
     )
 }
+
+    

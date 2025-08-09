@@ -72,6 +72,7 @@ interface UserData {
   savings?: string;
   benefits?: string[];
   responseMood?: string;
+  initialDiagnosis?: string;
 }
 
 const avatars: { [key: string]: React.ElementType } = {
@@ -172,6 +173,7 @@ function SupportChatPageContent() {
     try {
       const flowInput: AiConversationalSupportInput = { 
         userName: userData.name || "User", 
+        initialDiagnosis: userData.initialDiagnosis || 'Not specified',
         age: userData.age || "",
         gender: userData.gender || "",
         postcode: userData.postcode || "",
@@ -664,3 +666,5 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
+
+    

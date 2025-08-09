@@ -46,6 +46,7 @@ export default function SignupPage() {
   const router = useRouter()
   const [employmentStatus, setEmploymentStatus] = React.useState<string>("")
   const [selectedBenefits, setSelectedBenefits] = React.useState<Record<string, boolean>>({})
+  const [initialDiagnosis, setInitialDiagnosis] = React.useState('');
 
 
   const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
@@ -65,7 +66,10 @@ export default function SignupPage() {
         savings: formData.get('savings') as string,
         benefits: Object.entries(selectedBenefits)
             .filter(([, checked]) => checked)
-            .map(([id]) => benefits.find(b => b.id === id)?.label)
+            .map(([id]) => benefits.find(b => b.id === id)?.label),
+        initialDiagnosis: initialDiagnosis === 'other' 
+            ? formData.get('other-diagnosis') as string 
+            : initialDiagnosis,
     };
     
     if (typeof window !== "undefined" && email) {
@@ -147,6 +151,28 @@ export default function SignupPage() {
               <Label htmlFor="postcode">Postcode</Label>
               <Input id="postcode" name="postcode" placeholder="Your postcode" required />
             </div>
+             <div className="space-y-2">
+                <Label htmlFor="initial-diagnosis">Primary Health Condition</Label>
+                <Select name="initial-diagnosis" onValueChange={setInitialDiagnosis} value={initialDiagnosis}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select your main condition" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="Cancer">Cancer</SelectItem>
+                        <SelectItem value="Heart Condition">Heart Condition</SelectItem>
+                        <SelectItem value="Diabetes">Diabetes</SelectItem>
+                        <SelectItem value="Autoimmune Condition">Autoimmune Condition</SelectItem>
+                        <SelectItem value="other">Other...</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {initialDiagnosis === 'other' && (
+                <div className="space-y-2">
+                    <Label htmlFor="other-diagnosis">Please specify your condition</Label>
+                    <Input id="other-diagnosis" name="other-diagnosis" placeholder="e.g., Chronic Kidney Disease" required />
+                </div>
+            )}
             <div className="space-y-2">
                 <Label htmlFor="employment-status">Employment Status</Label>
                  <Select name="employment-status" onValueChange={setEmploymentStatus} value={employmentStatus}>
@@ -223,3 +249,5 @@ export default function SignupPage() {
     </div>
   )
 }
+
+    

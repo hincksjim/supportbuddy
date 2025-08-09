@@ -86,6 +86,14 @@ interface UserData {
     initialDiagnosis?: string;
 }
 
+interface ProfileUpdateActivity {
+  id: string;
+  type: 'profileUpdate';
+  title: string;
+  content: string;
+  date: string;
+}
+
 export default function ProfilePage() {
     const router = useRouter()
     const { toast } = useToast()
@@ -152,6 +160,9 @@ export default function ProfilePage() {
         if (value !== 'other') {
             setOtherDiagnosis('');
             setUserData(prev => ({...prev, initialDiagnosis: value}));
+        } else {
+            // If switching to 'other', we might want to clear the old diagnosis or keep it
+            // For now, we wait for text input.
         }
     }
     
@@ -185,6 +196,22 @@ export default function ProfilePage() {
             title: "Profile Saved",
             description: "Your information has been updated successfully.",
         });
+
+        // Create and save an activity item
+        const activityKey = `conversationSummaries_${currentUserEmail}`;
+        const storedActivities = localStorage.getItem(activityKey);
+        const activities: (object | ProfileUpdateActivity)[] = storedActivities ? JSON.parse(storedActivities) : [];
+
+        const newActivity: ProfileUpdateActivity = {
+            id: new Date().toISOString(),
+            type: 'profileUpdate',
+            title: "Profile Updated",
+            content: "Your personal and financial information was updated.",
+            date: new Date().toISOString(),
+        };
+
+        activities.unshift(newActivity);
+        localStorage.setItem(activityKey, JSON.stringify(activities));
     }
 
     const allBenefitsSelected = Object.keys(selectedBenefits).length > 0 && Object.values(selectedBenefits).every(Boolean) && Object.keys(selectedBenefits).length === benefitsList.length;

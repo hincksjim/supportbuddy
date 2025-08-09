@@ -40,7 +40,36 @@ const benefitsList = [
 ] as const
 
 const initialDiagnosisOptions = [
-    "Cancer", "Heart Condition", "Diabetes", "Autoimmune Condition"
+    "Cancer (All Types)",
+    "Heart Disease and Cardiac Arrhythmias",
+    "Stroke and Cerebrovascular Disease",
+    "Neurological Disorders (Multiple Sclerosis, Epilepsy, Parkinson's)",
+    "Kidney Disease and Renal Failure",
+    "Liver Disease and Cirrhosis",
+    "Inflammatory Bowel Disease",
+    "Rheumatoid Arthritis and Autoimmune Diseases",
+    "Diabetes with Complications",
+    "Chronic Obstructive Pulmonary Disease (Severe)",
+    "Asthma (Severe/Brittle)",
+    "Mental Health Conditions (Severe/Complex)",
+    "Spinal Disorders Requiring Surgery",
+    "Joint Replacement Surgery",
+    "Cataracts and Glaucoma",
+    "Thyroid Cancer and Complex Thyroid Disorders",
+    "Endometriosis (Severe)",
+    "Uterine Fibroids Requiring Surgery",
+    "Prostate Disease (Benign and Malignant)",
+    "Breast Disease and Cancer",
+    "Gastroesophageal Reflux Disease (Severe)",
+    "Peptic Ulcer Disease (Complicated)",
+    "Gallbladder Disease",
+    "Hernias Requiring Surgery",
+    "Peripheral Vascular Disease",
+    "Aortic Aneurysm",
+    "Heart Valve Disease",
+    "Coronary Artery Disease",
+    "Chronic Pain Syndromes",
+    "Sleep Apnea (Severe)"
 ];
 
 interface UserData {
@@ -325,5 +354,3 @@ export default function ProfilePage() {
         </div>
     )
 }
-
-    

@@ -41,6 +41,39 @@ const benefits = [
     { id: 'income_support', label: 'Income Support' },
 ] as const
 
+const initialDiagnosisOptions = [
+    "Cancer (All Types)",
+    "Heart Disease and Cardiac Arrhythmias",
+    "Stroke and Cerebrovascular Disease",
+    "Neurological Disorders (Multiple Sclerosis, Epilepsy, Parkinson's)",
+    "Kidney Disease and Renal Failure",
+    "Liver Disease and Cirrhosis",
+    "Inflammatory Bowel Disease",
+    "Rheumatoid Arthritis and Autoimmune Diseases",
+    "Diabetes with Complications",
+    "Chronic Obstructive Pulmonary Disease (Severe)",
+    "Asthma (Severe/Brittle)",
+    "Mental Health Conditions (Severe/Complex)",
+    "Spinal Disorders Requiring Surgery",
+    "Joint Replacement Surgery",
+    "Cataracts and Glaucoma",
+    "Thyroid Cancer and Complex Thyroid Disorders",
+    "Endometriosis (Severe)",
+    "Uterine Fibroids Requiring Surgery",
+    "Prostate Disease (Benign and Malignant)",
+    "Breast Disease and Cancer",
+    "Gastroesophageal Reflux Disease (Severe)",
+    "Peptic Ulcer Disease (Complicated)",
+    "Gallbladder Disease",
+    "Hernias Requiring Surgery",
+    "Peripheral Vascular Disease",
+    "Aortic Aneurysm",
+    "Heart Valve Disease",
+    "Coronary Artery Disease",
+    "Chronic Pain Syndromes",
+    "Sleep Apnea (Severe)"
+]
+
 
 export default function SignupPage() {
   const router = useRouter()
@@ -158,10 +191,9 @@ export default function SignupPage() {
                         <SelectValue placeholder="Select your main condition" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="Cancer">Cancer</SelectItem>
-                        <SelectItem value="Heart Condition">Heart Condition</SelectItem>
-                        <SelectItem value="Diabetes">Diabetes</SelectItem>
-                        <SelectItem value="Autoimmune Condition">Autoimmune Condition</SelectItem>
+                        {initialDiagnosisOptions.map(opt => (
+                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
                         <SelectItem value="other">Other...</SelectItem>
                     </SelectContent>
                 </Select>
@@ -249,5 +281,3 @@ export default function SignupPage() {
     </div>
   )
 }
-
-    

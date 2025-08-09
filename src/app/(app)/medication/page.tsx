@@ -24,7 +24,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { PlusCircle, Loader2, Pill, Trash2, Download, Bot, AlertCircle, RefreshCw, Camera, Edit, CalendarClock, AlertTriangle } from "lucide-react"
+import { PlusCircle, Loader2, Pill, Trash2, Download, Bot, AlertCircle, RefreshCw, Camera, Edit, CalendarClock, AlertTriangle, Tablets, Repeat } from "lucide-react"
 import jsPDF from "jspdf"
 import { analyzeMedication } from "@/ai/flows/analyze-medication"
 import { analyzeMedicationPhoto, AnalyzeMedicationPhotoOutput } from "@/ai/flows/analyze-medication-photo"
@@ -46,7 +46,8 @@ export interface Medication {
   sideEffects?: string;
   disclaimer?: string;
   isAnalyzing?: boolean;
-  maxDose?: number;
+  maxDosePerDay?: number;
+  dosePerIntake?: number;
   frequency?: string;
 }
 
@@ -387,18 +388,20 @@ function MedicationCard({ medication, onSave, onDelete, onRecheck, isAnalyzingAn
                         <>
                             <p className="text-sm text-muted-foreground">{medication.summary}</p>
 
-                             {(medication.maxDose || medication.frequency) && (
-                                <div className="grid grid-cols-2 gap-4 pt-4">
-                                    <div className="space-y-1">
-                                        <h4 className="font-semibold text-xs flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-destructive" /> Max Daily Dose</h4>
-                                        <p className="text-sm text-muted-foreground">{medication.maxDose ? `${medication.maxDose} units` : 'Not specified'}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <h4 className="font-semibold text-xs flex items-center gap-2"><CalendarClock className="w-4 h-4 text-primary"/> Frequency</h4>
-                                        <p className="text-sm text-muted-foreground">{medication.frequency || 'Not specified'}</p>
-                                    </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+                                <div className="space-y-1">
+                                    <h4 className="font-semibold text-xs flex items-center gap-2"><Tablets className="w-4 h-4 text-primary"/> Dose Per Intake</h4>
+                                    <p className="text-sm text-muted-foreground">{medication.dosePerIntake ? `${medication.dosePerIntake} units` : 'Not specified'}</p>
                                 </div>
-                            )}
+                                <div className="space-y-1">
+                                    <h4 className="font-semibold text-xs flex items-center gap-2"><Repeat className="w-4 h-4 text-primary"/> Frequency</h4>
+                                    <p className="text-sm text-muted-foreground">{medication.frequency || 'Not specified'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <h4 className="font-semibold text-xs flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-destructive" /> Max Daily Dose</h4>
+                                    <p className="text-sm text-muted-foreground">{medication.maxDosePerDay ? `${medication.maxDosePerDay} units` : 'Not specified'}</p>
+                                </div>
+                            </div>
                             
                             {medication.interactionWarning && (
                                  <Alert variant="destructive" className="mt-4">
@@ -540,8 +543,9 @@ function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues
                             interactionWarning: analysisResult.interactionWarning,
                             sideEffects: analysisResult.sideEffects,
                             disclaimer: analysisResult.disclaimer,
-                            maxDose: doseResult.maxDose,
+                            dosePerIntake: doseResult.dosePerIntake,
                             frequency: doseResult.frequency,
+                            maxDosePerDay: doseResult.maxDosePerDay,
                             isAnalyzing: false,
                         };
                     }

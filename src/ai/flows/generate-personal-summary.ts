@@ -221,6 +221,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 *   **Name:** {{{userName}}}
 *   **Age:** {{{age}}}
 *   **Gender:** {{{gender}}}
+*   **Primary Health Condition:** {{{initialDiagnosis}}}
 *   **Location:** {{{locationInfo.city}}} (Postcode: {{{postcode}}})
 *   **Local Health Authority:** {{{locationInfo.nhs_ha}}}
 *   **NHS Number:** [Extract from sources, e.g., 123 456 7890] [C1]

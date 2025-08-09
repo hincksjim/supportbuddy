@@ -154,6 +154,12 @@ export default function ProfilePage() {
             setUserData(prev => ({...prev, initialDiagnosis: value}));
         }
     }
+    
+    const handleOtherDiagnosisChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const { value } = e.target;
+        setOtherDiagnosis(value);
+        setUserData(prev => ({...prev, initialDiagnosis: value}));
+    }
 
     const handleBenefitChange = (benefitId: string, checked: boolean) => {
         setSelectedBenefits(prev => ({ ...prev, [benefitId]: checked }))
@@ -273,7 +279,7 @@ export default function ProfilePage() {
                      {diagnosisSelection === 'other' && (
                         <div className="space-y-2">
                             <Label htmlFor="other-diagnosis">Please specify your condition</Label>
-                            <Input id="other-diagnosis" name="other-diagnosis" placeholder="e.g., Chronic Kidney Disease" value={otherDiagnosis} onChange={e => setOtherDiagnosis(e.target.value)} />
+                            <Input id="other-diagnosis" name="other-diagnosis" placeholder="e.g., Chronic Kidney Disease" value={otherDiagnosis} onChange={handleOtherDiagnosisChange} />
                         </div>
                     )}
                 </CardContent>

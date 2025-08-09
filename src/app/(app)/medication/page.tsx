@@ -23,10 +23,12 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { PlusCircle, Loader2, Pill, Trash2, Download, Bot, AlertCircle, RefreshCw } from "lucide-react"
+import { PlusCircle, Loader2, Pill, Trash2, Download, Bot, AlertCircle, RefreshCw, Camera } from "lucide-react"
 import jsPDF from "jspdf"
 import { analyzeMedication } from "@/ai/flows/analyze-medication"
+import { analyzeMedicationPhoto, AnalyzeMedicationPhotoOutput } from "@/ai/flows/analyze-medication-photo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useToast } from "@/hooks/use-toast"
 
 
 // Data structure for a medication entry
@@ -44,7 +46,113 @@ export interface Medication {
   isAnalyzing?: boolean;
 }
 
-function MedicationDialog({ onSave, existingMedication }: { onSave: (med: Medication, isNew: boolean) => void; existingMedication?: Medication | null; }) {
+function AddMedicationByPhotoDialog({ onPhotoAnalyzed }: { onPhotoAnalyzed: (details: AnalyzeMedicationPhotoOutput) => void }) {
+    const { toast } = useToast();
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [hasCameraPermission, setHasCameraPermission] = useState(true);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    useEffect(() => {
+        const getCameraPermission = async () => {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                setHasCameraPermission(false);
+                return;
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+                setHasCameraPermission(true);
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                setHasCameraPermission(false);
+                toast({
+                    variant: 'destructive',
+                    title: 'Camera Access Denied',
+                    description: 'Please enable camera permissions in your browser settings to use this feature.',
+                });
+            }
+        };
+        getCameraPermission();
+
+        return () => {
+            // Cleanup: stop video stream when component unmounts or dialog closes
+            if (videoRef.current && videoRef.current.srcObject) {
+                const stream = videoRef.current.srcObject as MediaStream;
+                stream.getTracks().forEach(track => track.stop());
+            }
+        }
+    }, [toast]);
+
+    const handleCaptureAndAnalyze = async () => {
+        if (!videoRef.current || !canvasRef.current) return;
+        setIsAnalyzing(true);
+
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        context?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+
+        const photoDataUri = canvas.toDataURL('image/jpeg');
+
+        try {
+            const result = await analyzeMedicationPhoto({ photoDataUri });
+            onPhotoAnalyzed(result);
+            document.getElementById('close-photo-dialog')?.click();
+        } catch (error) {
+            console.error("Failed to analyze medication photo:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Analysis Failed',
+                description: 'Could not read details from the photo. Please try again or enter manually.',
+            });
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+    
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+            <Button variant="outline"><Camera className="mr-2"/> Add with Photo</Button>
+        </DialogTrigger>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Add Medication with Photo</DialogTitle>
+                <DialogDescription>
+                    Point your camera at the medication box. Ensure the text is clear and well-lit.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                 <div className="relative">
+                    <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted playsInline />
+                    <canvas ref={canvasRef} className="hidden" />
+                    {!hasCameraPermission && (
+                         <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md">
+                            <p className="text-white text-center">Camera access is required.</p>
+                         </div>
+                    )}
+                </div>
+            </div>
+            <DialogFooter>
+                 <DialogClose asChild>
+                    <Button id="close-photo-dialog" variant="ghost">Cancel</Button>
+                </DialogClose>
+                <Button onClick={handleCaptureAndAnalyze} disabled={!hasCameraPermission || isAnalyzing}>
+                    {isAnalyzing ? <Loader2 className="animate-spin mr-2"/> : <Camera className="mr-2"/>}
+                    Capture & Analyze
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
+}
+
+function MedicationDialog({ onSave, existingMedication, initialValues }: { onSave: (med: Medication, isNew: boolean) => void; existingMedication?: Medication | null; initialValues?: Partial<Medication> | null }) {
     const [name, setName] = useState('');
     const [strength, setStrength] = useState('');
     const [dose, setDose] = useState('');
@@ -52,17 +160,27 @@ function MedicationDialog({ onSave, existingMedication }: { onSave: (med: Medica
     const [issuedDate, setIssuedDate] = useState(new Date().toISOString().split('T')[0]);
     const [isSaving, setIsSaving] = useState(false);
     const [id, setId] = useState(new Date().toISOString());
+    const [isOpen, setIsOpen] = useState(false);
 
     const isNew = !existingMedication;
 
     const resetForm = () => {
         setId(new Date().toISOString());
-        setName('');
-        setStrength('');
-        setDose('');
-        setIssuedBy('');
-        setIssuedDate(new Date().toISOString().split('T')[0]);
+        setName(initialValues?.name || '');
+        setStrength(initialValues?.strength || '');
+        setDose(initialValues?.dose || '');
+        setIssuedBy(initialValues?.issuedBy || '');
+        setIssuedDate(initialValues?.issuedDate || new Date().toISOString().split('T')[0]);
     }
+    
+    useEffect(() => {
+        if(initialValues) {
+             setName(initialValues.name || '');
+             setStrength(initialValues.strength || '');
+             setDose(initialValues.dose || '');
+             setIsOpen(true); // Open the dialog automatically
+        }
+    }, [initialValues]);
 
     useEffect(() => {
         if (existingMedication) {
@@ -75,12 +193,13 @@ function MedicationDialog({ onSave, existingMedication }: { onSave: (med: Medica
         } else {
             resetForm();
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [existingMedication]);
 
     const handleSave = () => {
         setIsSaving(true);
         const medication: Medication = {
-            id,
+            id: initialValues?.id || id,
             name,
             strength,
             dose,
@@ -90,10 +209,12 @@ function MedicationDialog({ onSave, existingMedication }: { onSave: (med: Medica
         };
         onSave(medication, isNew);
         setIsSaving(false);
+        setIsOpen(false);
         document.getElementById(`close-med-dialog-${id}`)?.click();
     };
 
     const onOpenChange = (open: boolean) => {
+        setIsOpen(open);
         if (open) {
             if (existingMedication) {
                 // Pre-fill form for editing
@@ -104,14 +225,14 @@ function MedicationDialog({ onSave, existingMedication }: { onSave: (med: Medica
                 setIssuedBy(existingMedication.issuedBy);
                 setIssuedDate(new Date(existingMedication.issuedDate).toISOString().split('T')[0]);
             } else {
-                // Reset form for new entry
+                // Reset form for new entry, keeping any initial values from photo analysis
                 resetForm();
             }
         }
     }
     
     return (
-        <Dialog onOpenChange={onOpenChange}>
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
              <DialogTrigger asChild>
                 {existingMedication ? (
                      <Button variant="outline" size="sm">Edit</Button>
@@ -126,7 +247,7 @@ function MedicationDialog({ onSave, existingMedication }: { onSave: (med: Medica
                 <DialogHeader>
                     <DialogTitle>{existingMedication ? 'Edit' : 'Add'} Medication</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                <div className="space-y-4 py-4 max-h-[70vh] overflow-y-a_uto pr-4">
                     <div className="space-y-2">
                         <Label htmlFor="med-name">Medication Name</Label>
                         <Input id="med-name" placeholder="e.g., Paracetamol" value={name} onChange={(e) => setName(e.target.value)} />
@@ -252,6 +373,7 @@ export default function MedicationPage() {
     const [medications, setMedications] = useState<Medication[]>([]);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [photoData, setPhotoData] = useState<Partial<Medication> | null>(null);
     const medicationsRef = useRef(medications);
 
     useEffect(() => {
@@ -287,6 +409,13 @@ export default function MedicationPage() {
             console.error("Could not save medications to localStorage", error);
         }
     }
+    
+    const handlePhotoAnalyzed = (details: AnalyzeMedicationPhotoOutput) => {
+        setPhotoData({
+            id: new Date().toISOString(),
+            ...details
+        });
+    }
 
     useEffect(() => {
         if (currentUserEmail) {
@@ -317,6 +446,7 @@ export default function MedicationPage() {
         updatedMeds.sort((a, b) => new Date(b.issuedDate).getTime() - new Date(a.issuedDate).getTime());
         setMedications(updatedMeds);
         saveMedications(updatedMeds);
+        setPhotoData(null); // Clear photo data after save
 
         if (isNew) {
             triggerMedicationAnalysis(medication.id);
@@ -482,15 +612,18 @@ export default function MedicationPage() {
 
     return (
         <div className="p-4 md:p-6 space-y-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-3xl font-bold font-headline">My Medications</h1>
                     <p className="text-muted-foreground">A list of your current and past prescriptions.</p>
                 </div>
-                 <Button onClick={handleDownloadPdf} disabled={isDownloading || medications.length === 0} variant="outline">
-                    {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                    Download PDF
-                </Button>
+                 <div className="flex items-center gap-2 mt-4 sm:mt-0">
+                    <AddMedicationByPhotoDialog onPhotoAnalyzed={handlePhotoAnalyzed} />
+                    <Button onClick={handleDownloadPdf} disabled={isDownloading || medications.length === 0} variant="outline">
+                        {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        Download PDF
+                    </Button>
+                </div>
             </div>
 
             {medications.length > 0 ? (
@@ -513,7 +646,7 @@ export default function MedicationPage() {
                 </div>
             )}
             
-            <MedicationDialog onSave={handleSaveMedication} />
+            <MedicationDialog onSave={handleSaveMedication} initialValues={photoData} />
         </div>
     )
 }

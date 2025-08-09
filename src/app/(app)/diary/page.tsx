@@ -126,7 +126,7 @@ const bodyParts = [
 ];
 
 
-function LogMedicationDialog({ onLog, prescribedMeds, existingMedsTaken, onDoseWarning }: { onLog: (med: MedsTaken) => void; prescribedMeds: Medication[]; existingMedsTaken: MedsTaken[], onDoseWarning: (warning: string) => void; }) {
+function LogMedicationDialog({ onLog, prescribedMeds, existingMedsTaken, onDoseWarning, entryDate }: { onLog: (med: MedsTaken) => void; prescribedMeds: Medication[]; existingMedsTaken: MedsTaken[], onDoseWarning: (warning: string) => void; entryDate: string }) {
     const [medName, setMedName] = useState("");
     const [isPrescribed, setIsPrescribed] = useState<boolean | null>(null);
     const [time, setTime] = useState(new Date().toTimeString().substring(0,5));
@@ -503,7 +503,8 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
                                 onLog={handleLogMedication} 
                                 prescribedMeds={prescribedMeds} 
                                 existingMedsTaken={medsTaken} 
-                                onDoseWarning={handleDoseWarning} 
+                                onDoseWarning={handleDoseWarning}
+                                entryDate={date}
                              />
                            </div>
                         </div>
@@ -799,5 +800,3 @@ export default function DiaryPage() {
         </div>
     )
 }
-
-    

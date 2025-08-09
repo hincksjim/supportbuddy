@@ -34,7 +34,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
-import { getMaxDailyDose } from "@/ai/flows/get-max-daily-dose"
 
 // Data structure for meds taken
 export interface MedsTaken {
@@ -147,29 +146,23 @@ function LogMedicationDialog({ onLog, prescribedMeds, existingMedsTaken, onDoseW
         // --- Dose Checking Logic ---
         if (newMedLog.isPrescribed) {
             const prescription = prescribedMeds.find(p => p.name === newMedLog.name);
-            if (prescription && prescription.dose) {
-                try {
-                    // Step 1: Use AI to get the max daily dose from the prescription string
-                    const maxDoseResult = await getMaxDailyDose({ prescriptionDose: prescription.dose });
-                    const maxDose = maxDoseResult.maxDose;
+            if (prescription && prescription.maxDosePerDay) {
+                const maxDose = prescription.maxDosePerDay;
 
-                    if (maxDose > 0) {
-                        // Step 2: Count tablets of THIS medication taken today
-                        const todaysTakesForThisMed = existingMedsTaken
-                            .filter(m => m.name === newMedLog.name)
-                            .reduce((sum, m) => sum + m.quantity, 0);
-                        
-                        // Add the quantity from the new log entry
-                        const totalTakenToday = todaysTakesForThisMed + newMedLog.quantity;
-                        
-                        // Step 3: Compare in code
-                        if (totalTakenToday > maxDose) {
-                            const warning = `It looks like you have taken more than the prescribed daily dose of ${maxDose} tablets for ${newMedLog.name}. Please double-check the instructions or consult your doctor.`;
-                            onDoseWarning(warning);
-                        }
+                if (maxDose > 0) {
+                    // Count tablets of THIS medication taken today
+                    const todaysTakesForThisMed = existingMedsTaken
+                        .filter(m => m.name === newMedLog.name)
+                        .reduce((sum, m) => sum + m.quantity, 0);
+                    
+                    // Add the quantity from the new log entry
+                    const totalTakenToday = todaysTakesForThisMed + newMedLog.quantity;
+                    
+                    // Compare in code
+                    if (totalTakenToday > maxDose) {
+                        const warning = `It looks like you have taken more than the prescribed daily dose of ${maxDose} units for ${newMedLog.name}. Please double-check the instructions or consult your doctor.`;
+                        onDoseWarning(warning);
                     }
-                } catch (error) {
-                    console.error("Dose check failed:", error);
                 }
             }
         }
@@ -803,5 +796,3 @@ export default function DiaryPage() {
         </div>
     )
 }
-
-    

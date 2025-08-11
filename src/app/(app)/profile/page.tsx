@@ -77,6 +77,11 @@ interface UserData {
     lastName?: string;
     age?: string;
     gender?: string;
+    address1?: string;
+    address2?: string;
+    townCity?: string;
+    countyState?: string;
+    country?: string;
     postcode?: string;
     dob?: string;
     employmentStatus?: string;
@@ -279,15 +284,37 @@ export default function ProfilePage() {
                             </RadioGroup>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div className="space-y-2">
+                        <Label htmlFor="address1">House Number/Name & Street</Label>
+                        <Input id="address1" name="address1" placeholder="e.g., 10 Downing Street" value={userData.address1 || ''} onChange={handleInputChange} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="address2">Address Line 2 (optional)</Label>
+                        <Input id="address2" name="address2" value={userData.address2 || ''} onChange={handleInputChange}/>
+                    </div>
+                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                         <div className="space-y-2">
+                            <Label htmlFor="townCity">Town/City</Label>
+                            <Input id="townCity" name="townCity" placeholder="e.g., London" value={userData.townCity || ''} onChange={handleInputChange} />
+                        </div>
                         <div className="space-y-2">
-                            <Label htmlFor="dob">Date of Birth</Label>
-                            <Input id="dob" name="dob" type="date" value={userData.dob ? new Date(userData.dob).toISOString().split('T')[0] : ''} onChange={handleInputChange} />
+                            <Label htmlFor="countyState">County/State</Label>
+                            <Input id="countyState" name="countyState" placeholder="e.g., Greater London" value={userData.countyState || ''} onChange={handleInputChange} />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                         <div className="space-y-2">
+                            <Label htmlFor="country">Country</Label>
+                            <Input id="country" name="country" placeholder="e.g., United Kingdom" value={userData.country || ''} onChange={handleInputChange}/>
                         </div>
                          <div className="space-y-2">
                           <Label htmlFor="postcode">Postcode</Label>
                           <Input id="postcode" name="postcode" placeholder="Your postcode" value={userData.postcode || ''} onChange={handleInputChange}/>
                         </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="dob">Date of Birth</Label>
+                        <Input id="dob" name="dob" type="date" value={userData.dob ? new Date(userData.dob).toISOString().split('T')[0] : ''} onChange={handleInputChange} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="initial-diagnosis">Primary Health Condition</Label>

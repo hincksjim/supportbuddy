@@ -1,4 +1,3 @@
-
 "use client"
 
 import Link from "next/link"
@@ -92,6 +91,11 @@ export default function SignupPage() {
         lastName: formData.get('last-name') as string,
         age: formData.get('age') as string,
         gender: formData.get('gender') as string,
+        address1: formData.get('address1') as string,
+        address2: formData.get('address2') as string,
+        townCity: formData.get('townCity') as string,
+        countyState: formData.get('countyState') as string,
+        country: formData.get('country') as string,
         postcode: formData.get('postcode') as string,
         dob: formData.get('dob') as string,
         employmentStatus: employmentStatus,
@@ -176,13 +180,37 @@ export default function SignupPage() {
                     </RadioGroup>
                 </div>
             </div>
+            <div className="space-y-2">
+                <Label htmlFor="address1">House Number/Name & Street</Label>
+                <Input id="address1" name="address1" placeholder="e.g., 10 Downing Street" required />
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="address2">Address Line 2 (optional)</Label>
+                <Input id="address2" name="address2" />
+            </div>
+             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                 <div className="space-y-2">
+                    <Label htmlFor="townCity">Town/City</Label>
+                    <Input id="townCity" name="townCity" placeholder="e.g., London" required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="countyState">County/State</Label>
+                    <Input id="countyState" name="countyState" placeholder="e.g., Greater London" required />
+                </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Input id="country" name="country" placeholder="e.g., United Kingdom" required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="postcode">Postcode</Label>
+                    <Input id="postcode" name="postcode" placeholder="Your postcode" required />
+                </div>
+            </div>
              <div className="space-y-2">
                 <Label htmlFor="dob">Date of Birth</Label>
                 <Input id="dob" name="dob" type="date" required />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="postcode">Postcode</Label>
-              <Input id="postcode" name="postcode" placeholder="Your postcode" required />
             </div>
              <div className="space-y-2">
                 <Label htmlFor="initial-diagnosis">Primary Health Condition</Label>
@@ -281,5 +309,3 @@ export default function SignupPage() {
     </div>
   )
 }
-
-    

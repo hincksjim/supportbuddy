@@ -73,7 +73,12 @@ const AiConversationalSupportInputSchema = z.object({
   initialDiagnosis: z.string().optional().describe("The user's primary diagnosis selected at signup (e.g., 'Cancer', 'Heart Condition')."),
   age: z.string().describe("The user's age."),
   gender: z.string().describe("The user's gender."),
-  postcode: z.string().describe("The user's postcode."),
+  address1: z.string().describe("The user's street address (line 1)."),
+  address2: z.string().describe("The user's street address (line 2)."),
+  townCity: z.string().describe("The user's town or city."),
+  countyState: z.string().describe("The user's county or state."),
+  country: z.string().describe("The user's country of residence."),
+  postcode: z.string().describe("The user's postcode or ZIP code."),
   dob: z.string().describe("The user's date of birth."),
   employmentStatus: z.string().describe("The user's current employment status."),
   income: z.string().optional().describe("The user's annual income, if provided."),
@@ -134,7 +139,7 @@ const prompt = ai.definePrompt({
   - Name: {{{userName}}}
   - Age: {{{age}}}
   - Gender: {{{gender}}}
-  - Postcode: {{{postcode}}}
+  - Address: {{{address1}}}, {{{address2}}}, {{{townCity}}}, {{{countyState}}}, {{{postcode}}}, {{{country}}}
   - Date of Birth: {{{dob}}}
   - Employment Status: {{{employmentStatus}}}
   - Annual Income: {{{income}}}

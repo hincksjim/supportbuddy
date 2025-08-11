@@ -80,6 +80,11 @@ const GeneratePersonalSummaryInputSchema = z.object({
     sourceConversations: z.array(SourceConversation).describe('An array of summaries and full transcripts from previous conversations.'),
     diaryData: z.array(DiaryEntrySchema).describe('An array of the user\'s diary entries.'),
     medicationData: z.array(MedicationSchema).describe('An array of the user\'s prescribed medications.'),
+    address1: z.string().optional(),
+    address2: z.string().optional(),
+    townCity: z.string().optional(),
+    countyState: z.string().optional(),
+    country: z.string().optional(),
 });
 export type GeneratePersonalSummaryInput = z.infer<
   typeof GeneratePersonalSummaryInputSchema
@@ -221,8 +226,8 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 *   **Name:** {{{userName}}}
 *   **Age:** {{{age}}}
 *   **Gender:** {{{gender}}}
+*   **Address:** {{{address1}}}, {{{address2}}}, {{{townCity}}}, {{{countyState}}}, {{{postcode}}}, {{{country}}}
 *   **Primary Health Condition:** {{{initialDiagnosis}}}
-*   **Location:** {{{locationInfo.city}}} (Postcode: {{{postcode}}})
 *   **Local Health Authority:** {{{locationInfo.nhs_ha}}}
 *   **NHS Number:** [Extract from sources, e.g., 123 456 7890] [C1]
 *   **Hospital Number:** [Extract from sources] [D0]

@@ -11,8 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { lookupLocation } from '@/services/location-lookup';
-import { findLocalHospitals } from '@/services/hospital-lookup';
+import { lookupPostcode } from '@/services/postcode-lookup';
 
 
 // Schemas for external data sources
@@ -135,11 +134,11 @@ const prompt = ai.definePrompt({
   name: 'aiConversationalSupportPrompt',
   input: {schema: AiConversationalSupportInputSchema},
   output: {schema: AiConversationalSupportOutputSchema},
-  tools: [lookupLocation, findLocalHospitals],
+  tools: [lookupPostcode],
   prompt: `You are a caring, friendly, and very supportive AI health companion. Your role is to be a direct, factual, and helpful assistant. You are here to support all elements of their care, including their mental, physical, and financial well-being. Be empathetic, but prioritize providing clear, actionable information.
 
   **CORE INSTRUCTIONS (MUST FOLLOW):**
-  1.  **Prioritize Tool Use for Location Questions:** If the user asks about local services, hospitals, clinics, or their health board, you **MUST** use the 'findLocalHospitals' or 'lookupLocation' tools. Use the postcode from their profile: **{{{postcode}}}**. Do not claim you cannot access this information. Provide the information from the tool directly.
+  1.  **Prioritize Tool Use for Location Questions:** If the user asks about local services, hospitals, clinics, or their health board, you **MUST** use the 'lookupPostcode' tools. Use the postcode from their profile: **{{{postcode}}}**. Do not claim you cannot access this information. Provide the information from the tool directly.
   2.  **Synthesize All Provided Data:** Before answering, you **MUST** review all context provided below: Profile, Documents, Timeline, Diary, and Medications. Use this information to provide a truly personalized and informed response. Reference specific details you find to show you are paying attention (e.g., "I saw in your diary you were feeling...").
   3.  **Be a Specialist & Ask One Question at a Time:** Adapt your persona based on the user's 'initialDiagnosis'. If it's 'Cancer', you are a consultant oncologist. If 'Heart', a cardiologist, etc. When you need more information, ask only one clarifying question and wait for the response.
   4.  **Explain Simply & Define Terms:** All explanations should be clear and easy to understand. If you must use a medical term, define it simply.
@@ -219,3 +218,6 @@ const aiConversationalSupportFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    
+    

@@ -226,7 +226,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 *   **Name:** {{{userName}}}
 *   **Age:** {{{age}}}
 *   **Gender:** {{{gender}}}
-*   **Address:** {{{address1}}}, {{{address2}}}, {{{townCity}}}, {{{countyState}}}, {{{postcode}}}, {{{country}}}
+*   **Address:** {{#if address1}}{{{address1}}}{{/if}}{{#if address2}}, {{{address2}}}{{/if}}{{#if townCity}}, {{{townCity}}}{{/if}}{{#if countyState}}, {{{countyState}}}{{/if}}{{#if postcode}}, {{{postcode}}}{{/if}}{{#if country}}, {{{country}}}{{/if}}
 *   **Primary Health Condition:** {{{initialDiagnosis}}}
 *   **Local Health Authority:** {{{locationInfo.nhs_ha}}}
 *   **NHS Number:** [Extract from sources, e.g., 123 456 7890] [C1]

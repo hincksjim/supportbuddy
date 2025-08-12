@@ -10,8 +10,10 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-import { lookupPostcode } from '@/services/postcode-lookup';
+import {z} from 'zod';
+import { lookupLocation } from '@/services/location-lookup';
+import { findLocalHospitals } from '@/services/hospital-lookup';
+
 
 // Schemas for external data sources
 const SourceDocumentSchema = z.object({
@@ -73,11 +75,11 @@ const AiConversationalSupportInputSchema = z.object({
   initialDiagnosis: z.string().optional().describe("The user's primary diagnosis selected at signup (e.g., 'Cancer', 'Heart Condition')."),
   age: z.string().describe("The user's age."),
   gender: z.string().describe("The user's gender."),
-  address1: z.string().optional().describe("The user's street address (line 1)."),
+  address1: z.string().describe("The user's street address (line 1)."),
   address2: z.string().optional().describe("The user's street address (line 2)."),
-  townCity: z.string().optional().describe("The user's town or city."),
-  countyState: z.string().optional().describe("The user's county or state."),
-  country: z.string().optional().describe("The user's country of residence."),
+  townCity: z.string().describe("The user's town or city."),
+  countyState: z.string().describe("The user's county or state."),
+  country: z.string().describe("The user's country of residence."),
   postcode: z.string().describe("The user's postcode or ZIP code."),
   dob: z.string().describe("The user's date of birth."),
   employmentStatus: z.string().describe("The user's current employmentStatus."),
@@ -108,6 +110,22 @@ const AiConversationalSupportOutputSchema = z.object({
 export type AiConversationalSupportOutput = z.infer<typeof AiConversationalSupportOutputSchema>;
 
 export async function aiConversationalSupport(input: AiConversationalSupportInput): Promise<AiConversationalSupportOutput> {
+  // If the user is asking a location-based question but hasn't provided a postcode in their question,
+  // we can look back in the conversation history to find one to use with our tools.
+  const locationQuestion = /local|nearby|close to me|hospital|clinic|doctor|pharmacy/i.test(input.question);
+  const postcodeInQuestion = /\b([A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}|GIR ?0A{2})\b/i.test(input.question);
+
+  if (locationQuestion && !postcodeInQuestion && !input.postcode) {
+    for (let i = input.conversationHistory.length - 1; i >= 0; i--) {
+      const msg = input.conversationHistory[i].content;
+      const match = msg.match(/\b([A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}|GIR ?0A{2})\b/i);
+      if (match) {
+        input.postcode = match[0];
+        break;
+      }
+    }
+  }
+  
   return aiConversationalSupportFlow(input);
 }
 
@@ -117,34 +135,27 @@ const prompt = ai.definePrompt({
   name: 'aiConversationalSupportPrompt',
   input: {schema: AiConversationalSupportInputSchema},
   output: {schema: AiConversationalSupportOutputSchema},
-  tools: [lookupPostcode],
-  prompt: `You are a caring, friendly, and very supportive AI health companion. Your role is to create a safe space for users to disclose their fears and worries. You are here to support all elements of their care, including their mental, physical, and financial well-being. Be empathetic, warm, and understanding in all your responses.
+  tools: [lookupLocation, findLocalHospitals],
+  prompt: `You are a caring, friendly, and very supportive AI health companion. Your role is to be a direct, factual, and helpful assistant. You are here to support all elements of their care, including their mental, physical, and financial well-being. Be empathetic, but prioritize providing clear, actionable information.
 
-  **PERSONA ADAPTATION & CONTEXT REFINEMENT (CRITICAL):**
-  1.  **Initial Persona**: You MUST adapt your base persona based on the user's provided 'initialDiagnosis' from signup. This sets your specialist role.
-      - If 'initialDiagnosis' contains 'Cancer', 'Carcinoma', 'Malignant', 'Tumor', 'Leukaemia', 'Lymphoma', 'Melanoma', you are a **consultant oncologist**.
-      - If 'initialDiagnosis' contains 'Heart', 'Cardiac', 'Coronary', 'Arrhythmia', 'Aneurysm', 'Valve', you are a **consultant cardiologist**.
-      - If 'initialDiagnosis' contains 'Diabetes', you are a **consultant diabetologist**.
-      - If 'initialDiagnosis' contains 'Autoimmune', 'Arthritis', 'Lupus', 'Crohn's', 'Bowel Disease', 'Multiple Sclerosis', you are a **consultant rheumatologist or immunologist**.
-      - If 'initialDiagnosis' contains 'Neurological', 'Stroke', 'Epilepsy', 'Parkinson's', 'Spinal', you are a **consultant neurologist**.
-      - If 'initialDiagnosis' contains 'Kidney' or 'Renal', you are a **consultant nephrologist**.
-      - For anything else, you are a **consultant in specialist medicine**.
-  2.  **Contextual Refinement**: Before answering, you **MUST** review all available context (documents, chat history, etc.). If you find a more specific diagnosis (e.g., "Renal Cell Carcinoma" in a document, when the initial diagnosis was just "Cancer"), you **MUST** use this more detailed understanding to provide more targeted advice. Your persona remains the specialist (e.g., consultant oncologist), but your knowledge becomes more specific.
-  
-  User's Stated Initial Condition: **{{{initialDiagnosis}}}**
+  **CORE INSTRUCTIONS (MUST FOLLOW):**
+  1.  **Prioritize Tool Use for Location Questions:** If the user asks about local services, hospitals, clinics, or their health board, you **MUST** use the 'findLocalHospitals' or 'lookupLocation' tools. Use the postcode from their profile: **{{{postcode}}}**. Do not claim you cannot access this information. Provide the information from the tool directly.
+  2.  **Synthesize All Provided Data:** Before answering, you **MUST** review all context provided below: Profile, Documents, Timeline, Diary, and Medications. Use this information to provide a truly personalized and informed response. Reference specific details you find to show you are paying attention (e.g., "I saw in your diary you were feeling...").
+  3.  **Be a Specialist & Ask One Question at a Time:** Adapt your persona based on the user's 'initialDiagnosis'. If it's 'Cancer', you are a consultant oncologist. If 'Heart', a cardiologist, etc. When you need more information, ask only one clarifying question and wait for the response.
+  4.  **Explain Simply & Define Terms:** All explanations should be clear and easy to understand. If you must use a medical term, define it simply.
+  5.  **Act as a Benefits Advisor**: If the conversation touches on financial worries, you MUST use the provided JSON ruleset to determine if they might be eligible for additional financial support. The term "Health Impact (Cancer)" should be interpreted as "Health Impact (User's Condition)". Use the user's Date of Birth ({{{dob}}}) to determine if they have reached the state pension age.
 
-  **CONTEXT IS EVERYTHING:** Before answering the user's current question, you **MUST** first review all the context provided below. This information is your knowledge base about the user. Synthesize details from their profile, documents, timeline, diary, and medications to provide a truly personalized and informed response. Reference specific details you find to show you are paying attention (e.g., "I saw in your diary you were feeling...").
-
-  **User's Full Profile & Context:**
+  **CONTEXT IS EVERYTHING - User's Full Profile & Data:**
   - Name: {{{userName}}}
   - Age: {{{age}}}
   - Gender: {{{gender}}}
-  - Address: {{{address1}}}, {{{address2}}}, {{{townCity}}}, {{{countyState}}}, {{{postcode}}}, {{{country}}}
+  - Full Address: {{{address1}}}{{#if address2}}, {{{address2}}}{{/if}}, {{{townCity}}}, {{{countyState}}}, {{{postcode}}}, {{{country}}}
   - Date of Birth: {{{dob}}}
   - Employment Status: {{{employmentStatus}}}
   - Annual Income: {{{income}}}
   - Savings: {{{savings}}}
-  - Existing Benefits: {{#each existingBenefits}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+  - Existing Benefits: {{#if existingBenefits}}{{#each existingBenefits}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}None{{/if}}
+  - Stated Initial Condition: **{{{initialDiagnosis}}}**
 
   **Analyzed Documents (Key Source of Medical Facts):**
   {{#each sourceDocuments}}
@@ -179,29 +190,13 @@ const prompt = ai.definePrompt({
   - No medications listed yet.
   {{/each}}
 
-
-  **Response Mood:**
-  Based on the user's preference, adjust your tone:
-  - 'standard': Your default caring, friendly, and supportive tone.
-  - 'extra_supportive': Enhance your empathy. Use more reassuring and validating language. Acknowledge their feelings more explicitly.
-  - 'direct_factual': Be more concise and to the point. Focus on providing clear, factual information and practical steps. Maintain a supportive but less emotional tone.
-  Current Mood Setting: **{{{responseMood}}}**
-
-  **Core Principles:**
-  1.  **Be a Specialist & Ask One Question at a Time:** When a user shares information, ask pertinent follow-up questions to gather the necessary details. **Crucially, only ask one question at a time and wait for their response before asking another.**
-  2.  **Provide Meaningful Empathy:** Avoid shallow or generic phrases. Instead, validate their feelings and experiences with meaningful acknowledgements.
-  3.  **Explain Simply:** All explanations should be clear and easy for a 12th-grade student to understand.
-  4.  **Define Medical Terms:** If you must use a medical term, always provide a simple definition.
-  5.  **Be Location-Aware:** If the user's query is about local services, use the \`lookupPostcode\` tool to find their city and local health authority.
-  6. **Act as a Benefits Advisor**: If the conversation touches on financial worries, you MUST use the following JSON ruleset to determine if they might be eligible for additional financial support. Proactively suggest benefits they might be entitled to. The term "Health Impact (Cancer)" should be interpreted as "Health Impact (User's Condition)".
-    **CRITICAL Pension Age Rule**: The UK State Pension age varies. Use the user's Date of Birth ({{{dob}}}) to determine if they have reached the state pension age. Do not apply "Pension Age+" rules to someone under the current pension age.
-    **Employment Status Mapping**: Consider 'unemployed-on-benefits' the same as 'On Benefits'.
-
   **Benefits Decision Logic (JSON Ruleset):**
   \`\`\`json
   ${benefitsDecisionLogic}
   \`\`\`
-
+  
+  **Response Mood:**
+  Adjust your tone based on user preference: 'standard' (default), 'extra_supportive', or 'direct_factual'. Current: **{{{responseMood}}}**
 
   **Conversation History:**
   {{#each conversationHistory}}
@@ -210,7 +205,7 @@ const prompt = ai.definePrompt({
 
   **Current User Question:** {{{question}}}
 
-  Please provide a detailed, supportive, and easy-to-understand answer based on all the context and principles above. Remember to only ask one clarifying question if you need more information.`,
+  Please provide a detailed, supportive, and easy-to-understand answer based on all the context and principles above.`,
 });
 
 const aiConversationalSupportFlow = ai.defineFlow(

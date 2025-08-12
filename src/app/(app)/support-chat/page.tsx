@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useRef, useEffect, Suspense } from "react"
+import { useState, useRef, useEffect, Suspense, useCallback } from "react"
 import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX, PlusCircle, Download, Bookmark, ChevronDown, Settings } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 
@@ -62,8 +62,14 @@ interface StoredConversation {
 
 interface UserData {
   name?: string;
+  lastName?: string;
   age?: string;
   gender?: string;
+  address1?: string;
+  address2?: string;
+  townCity?: string;
+  countyState?: string;
+  country?: string;
   postcode?: string;
   avatar?: string;
   dob?: string;
@@ -127,13 +133,18 @@ function SupportChatPageContent() {
   }, [messages]);
 
   // Function to load all necessary context from localStorage
-  const loadAppContext = () => {
+  const loadAppContext = useCallback(() => {
     if (!currentUserEmail) return;
     try {
         const storedTimeline = localStorage.getItem(`treatmentTimeline_${currentUserEmail}`);
         const storedDiary = localStorage.getItem(`diaryEntries_${currentUserEmail}`);
         const storedMeds = localStorage.getItem(`medications_${currentUserEmail}`);
         const storedDocs = localStorage.getItem(`analysisResults_${currentUserEmail}`);
+        const storedUserData = localStorage.getItem(`userData_${currentUserEmail}`);
+
+        if (storedUserData) {
+          setUserData(JSON.parse(storedUserData));
+        }
 
         setAppContextData({
             timelineData: storedTimeline ? JSON.parse(storedTimeline) : null,
@@ -145,7 +156,7 @@ function SupportChatPageContent() {
         console.error("Failed to load app context data:", e);
         toast({ title: "Error Loading Data", description: "Could not load all your saved context.", variant: "destructive" });
     }
-  };
+  }, [currentUserEmail, toast]);
   
   const speakMessage = async (text: string) => {
     if (!isTtsEnabled) return;
@@ -176,6 +187,11 @@ function SupportChatPageContent() {
         initialDiagnosis: userData.initialDiagnosis || 'Not specified',
         age: userData.age || "",
         gender: userData.gender || "",
+        address1: userData.address1 || "",
+        address2: userData.address2 || "",
+        townCity: userData.townCity || "",
+        countyState: userData.countyState || "",
+        country: userData.country || "",
         postcode: userData.postcode || "",
         dob: userData.dob || "",
         employmentStatus: userData.employmentStatus || "",
@@ -328,31 +344,24 @@ function SupportChatPageContent() {
 
   useEffect(() => {
     const email = localStorage.getItem("currentUserEmail");
-    setCurrentUserEmail(email);
-
     if (email) {
-      const storedData = localStorage.getItem(`userData_${email}`);
-      if (storedData) {
-        setUserData(JSON.parse(storedData));
-      }
-      const ttsSetting = localStorage.getItem('ttsEnabled');
-      setIsTtsEnabled(ttsSetting !== 'false');
-      const voiceSetting = localStorage.getItem('ttsVoice');
-      if (voiceSetting) {
-          setSelectedVoice(voiceSetting);
-      }
-
+      setCurrentUserEmail(email);
     } else {
       router.push("/login");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
   
   useEffect(() => {
     if (!currentUserEmail) return;
     
-    // Load all context data when user is identified
     loadAppContext();
+
+    const ttsSetting = localStorage.getItem('ttsEnabled');
+    setIsTtsEnabled(ttsSetting !== 'false');
+    const voiceSetting = localStorage.getItem('ttsVoice');
+    if (voiceSetting) {
+        setSelectedVoice(voiceSetting);
+    }
 
     const conversationId = searchParams.get("id");
 
@@ -410,8 +419,7 @@ function SupportChatPageContent() {
              localStorage.setItem(`conversationHistory_${currentUserEmail}`, JSON.stringify(messagesRef.current));
         }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserEmail, searchParams, userData.name]);
+  }, [currentUserEmail, searchParams, userData.name, loadAppContext]);
 
   useEffect(() => {
     if (audioRef.current && audioDataUri) {

@@ -195,7 +195,7 @@ const prompt = ai.definePrompt({
   \`\`\`
   
   **Response Mood:**
-  Adjust your tone based on user preference: 'standard' (default), 'extra_supportive', or 'direct_factual'. Current: **{{{responseMood}}}**
+  Adjust your tone based on user preference: 'standard' (default), 'extra_supportive', 'direct_factual'. Current: **{{{responseMood}}}**
 
   **Conversation History:**
   {{#each conversationHistory}}

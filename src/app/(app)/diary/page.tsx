@@ -34,6 +34,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
+import { checkMedicationDose } from "@/ai/flows/check-medication-dose"
 
 // Data structure for meds taken
 export interface MedsTaken {
@@ -135,6 +136,29 @@ function LogMedicationDialog({ onLog, prescribedMeds, existingMedsTaken, onDoseW
     const handleLog = async () => {
         if (!medName || quantity <= 0) return;
         setIsSaving(true);
+        
+        // --- AI Dose Checking Logic ---
+        const dosesTakenToday = existingMedsTaken
+            .filter(m => m.name === medName)
+            .map(m => ({ time: m.time, quantity: m.quantity }));
+
+        try {
+            const checkResult = await checkMedicationDose({
+                medicationName: medName,
+                dosesTakenToday: dosesTakenToday,
+                newDoseQuantity: quantity,
+            });
+
+            if (checkResult.isOverdose && checkResult.warning) {
+                onDoseWarning(checkResult.warning);
+                // We still log the med but show a warning. The user can then remove it.
+            }
+        } catch (error) {
+            console.error("AI Dose Check failed:", error);
+            // Non-fatal error, we can still log the medication
+        }
+        // --- End AI Dose Checking ---
+
         const newMedLog: MedsTaken = {
             id: new Date().toISOString(),
             name: medName,
@@ -143,31 +167,6 @@ function LogMedicationDialog({ onLog, prescribedMeds, existingMedsTaken, onDoseW
             isPrescribed: !!isPrescribed
         };
 
-        // --- Dose Checking Logic ---
-        if (newMedLog.isPrescribed) {
-            const prescription = prescribedMeds.find(p => p.name === newMedLog.name);
-            if (prescription && prescription.maxDosePerDay) {
-                const maxDose = prescription.maxDosePerDay;
-
-                if (maxDose > 0) {
-                    // Count tablets of THIS medication taken today
-                    const todaysTakesForThisMed = existingMedsTaken
-                        .filter(m => m.name === newMedLog.name)
-                        .reduce((sum, m) => sum + m.quantity, 0);
-                    
-                    // Add the quantity from the new log entry
-                    const totalTakenToday = todaysTakesForThisMed + newMedLog.quantity;
-                    
-                    // Compare in code
-                    if (totalTakenToday > maxDose) {
-                        const warning = `It looks like you have taken more than the prescribed daily dose of ${maxDose} units for ${newMedLog.name}. Please double-check the instructions or consult your doctor.`;
-                        onDoseWarning(warning);
-                    }
-                }
-            }
-        }
-        // --- End Dose Checking ---
-        
         onLog(newMedLog);
         setIsSaving(false);
         document.getElementById('close-log-med-dialog')?.click();

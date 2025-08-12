@@ -68,6 +68,11 @@ const GeneratePersonalSummaryInputSchema = z.object({
     age: z.string().describe("The user's age."),
     gender: z.string().describe("The user's gender."),
     postcode: z.string().describe("The user's postcode."),
+    address1: z.string().optional().describe("The user's street address (line 1)."),
+    address2: z.string().optional().describe("The user's street address (line 2)."),
+    townCity: z.string().optional().describe("The user's town or city."),
+    countyState: z.string().optional().describe("The user's county or state."),
+    country: z.string().optional().describe("The user's country."),
     employmentStatus: z.string().describe("The user's current employment status."),
     income: z.string().optional().describe("The user's annual income, if provided."),
     savings: z.string().optional().describe("The user's savings, if provided."),
@@ -80,11 +85,6 @@ const GeneratePersonalSummaryInputSchema = z.object({
     sourceConversations: z.array(SourceConversation).describe('An array of summaries and full transcripts from previous conversations.'),
     diaryData: z.array(DiaryEntrySchema).describe('An array of the user\'s diary entries.'),
     medicationData: z.array(MedicationSchema).describe('An array of the user\'s prescribed medications.'),
-    address1: z.string().optional(),
-    address2: z.string().optional(),
-    townCity: z.string().optional(),
-    countyState: z.string().optional(),
-    country: z.string().optional(),
 });
 export type GeneratePersonalSummaryInput = z.infer<
   typeof GeneratePersonalSummaryInputSchema
@@ -167,6 +167,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 7.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources (especially conversations and documents) for any mention of doctor names, nurse names, hospital names, contact details (including phone numbers), **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections.
 8.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents and conversations you were provided, using the title, date, and ID for each, along with their citation marker.
 9.  **INJECT BENEFITS TEXT:** The "Potential Additional Benefits" section MUST be populated *only* by inserting the exact pre-formatted text provided in the \`potentialBenefitsText\` input field. Do not modify, re-calculate, or summarize it.
+10. **FORMAT ADDRESS CORRECTLY**: When creating the address line, you MUST only include fields that have a value. You must join them with a comma and a space, but do not add a comma if a field is missing or for the last item in the address. For example, if address2 is missing, the format should be "address1, townCity, countyState, postcode, country".
 
 ---
 **FIRST, REVIEW ALL AVAILABLE INFORMATION SOURCES TO USE:**

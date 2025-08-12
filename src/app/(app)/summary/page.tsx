@@ -57,6 +57,11 @@ interface UserData {
   savings?: string;
   benefits?: string[];
   initialDiagnosis?: string;
+  address1?: string;
+  address2?: string;
+  townCity?: string;
+  countyState?: string;
+  country?: string;
 }
 
 export default function SummaryPage() {
@@ -210,6 +215,11 @@ export default function SummaryPage() {
                 initialDiagnosis: userData.initialDiagnosis || 'Not specified',
                 age: userData.age || "",
                 gender: userData.gender || "",
+                address1: userData.address1 || "",
+                address2: userData.address2 || "",
+                townCity: userData.townCity || "",
+                countyState: userData.countyState || "",
+                country: userData.country || "",
                 postcode: userData.postcode || "",
                 employmentStatus: userData.employmentStatus || "",
                 income: userData.income || "",

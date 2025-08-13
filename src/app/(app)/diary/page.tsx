@@ -661,23 +661,6 @@ export default function DiaryPage() {
         setCurrentUserEmail(email);
     }, []);
 
-    const loadEntries = () => {
-        if (!currentUserEmail) return;
-        try {
-            const storedEntries = localStorage.getItem(`diaryEntries_${currentUserEmail}`);
-            if (storedEntries) {
-                const parsedEntries: DiaryEntry[] = JSON.parse(storedEntries);
-                // Sort by date descending
-                parsedEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                setEntries(parsedEntries);
-            } else {
-                setEntries([]);
-            }
-        } catch (error) {
-            console.error("Could not load diary entries from localStorage", error);
-        }
-    }
-
     const saveEntries = (updatedEntries: DiaryEntry[]) => {
         if (!currentUserEmail) return;
         try {
@@ -689,7 +672,31 @@ export default function DiaryPage() {
 
     useEffect(() => {
         if (currentUserEmail) {
-            loadEntries();
+            try {
+                const storedEntries = localStorage.getItem(`diaryEntries_${currentUserEmail}`);
+                if (storedEntries) {
+                    const parsedEntries: DiaryEntry[] = JSON.parse(storedEntries);
+                    parsedEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                    setEntries(parsedEntries);
+                } else {
+                    setEntries([]);
+                }
+            } catch (error) {
+                console.error("Could not load diary entries from localStorage", error);
+            }
+        }
+        
+        const handleSaveOnExit = () => {
+            if (currentUserEmail && entriesRef.current) {
+                saveEntries(entriesRef.current);
+            }
+        };
+
+        window.addEventListener('beforeunload', handleSaveOnExit);
+
+        return () => {
+            handleSaveOnExit();
+            window.removeEventListener('beforeunload', handleSaveOnExit);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUserEmail]);
@@ -711,14 +718,14 @@ export default function DiaryPage() {
         
         updatedEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setEntries(updatedEntries);
-        saveEntries(updatedEntries);
+        // Data is saved on exit, or when the component unmounts.
     };
 
     const handleDeleteEntry = (id: string) => {
         if (!currentUserEmail) return;
         const updatedEntries = entries.filter(e => e.id !== id);
         setEntries(updatedEntries);
-        saveEntries(updatedEntries);
+        // Data is saved on exit, or when the component unmounts.
     };
 
     const handleDownloadPdf = async () => {
@@ -795,3 +802,5 @@ export default function DiaryPage() {
         </div>
     )
 }
+
+    

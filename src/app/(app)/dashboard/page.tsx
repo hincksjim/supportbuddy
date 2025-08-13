@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { marked } from "marked"
@@ -473,12 +473,7 @@ export default function DashboardPage() {
     const [activity, setActivity] = useState<ActivityItem[]>([]);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
-    useEffect(() => {
-        const email = localStorage.getItem("currentUserEmail");
-        setCurrentUserEmail(email);
-    }, []);
-
-    const loadActivity = () => {
+    const loadActivity = useCallback(() => {
         if (!currentUserEmail) return;
 
         let allActivity: ActivityItem[] = [];
@@ -517,13 +512,29 @@ export default function DashboardPage() {
         } catch (error) {
             console.error("Could not load activity from localStorage", error);
         }
-    }
+    }, [currentUserEmail]);
+
+    useEffect(() => {
+        const email = localStorage.getItem("currentUserEmail");
+        setCurrentUserEmail(email);
+
+        // Add event listener to refresh data on focus
+        // This helps when data changes in another tab
+        const handleFocus = () => {
+            loadActivity();
+        };
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, [loadActivity]);
 
     useEffect(() => {
         if(currentUserEmail) {
             loadActivity();
         }
-    }, [currentUserEmail]);
+    }, [currentUserEmail, loadActivity]);
 
     const handleNewVoiceNote = (newNote: VoiceNote) => {
         if (!currentUserEmail) return;
@@ -622,5 +633,3 @@ export default function DashboardPage() {
         </div>
     )
 }
-
-    

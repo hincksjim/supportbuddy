@@ -161,22 +161,18 @@ export default function SummaryPage() {
   useEffect(() => {
     if (hasLoaded && !report) {
       const hasContent = analysisData.length > 0 || sourceConversationsData.length > 0;
-      if (hasContent) {
-          handleGenerateReport(true); // Auto-generate if there's content and no report
-      } else {
-          setError("You need to have a conversation or analyze a document first to generate a summary report.");
+      if (!hasContent) {
+        setError("You need to have a conversation or analyze a document first to generate a summary report.");
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLoaded, analysisData, sourceConversationsData, report]);
+  }, [hasLoaded, report]);
 
 
-  const handleGenerateReport = async (isInitialLoad = false) => {
+  const handleGenerateReport = async () => {
     if (!currentUserEmail) return;
 
-    if (!isInitialLoad) {
-        loadPrerequisites(); // Force a refresh of all data
-    }
+    loadPrerequisites(); // Force a refresh of all data
     
     // Give UI time to update before blocking with AI call
     setTimeout(async () => {
@@ -400,7 +396,7 @@ export default function SummaryPage() {
           </p>
         </div>
         <div className="flex gap-2">
-            <Button onClick={() => handleGenerateReport(false)} disabled={isLoading}>
+            <Button onClick={handleGenerateReport} disabled={isLoading}>
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Refresh Report
             </Button>
@@ -524,3 +520,5 @@ export default function SummaryPage() {
     </div>
   )
 }
+
+    

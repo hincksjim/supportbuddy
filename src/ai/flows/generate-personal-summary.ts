@@ -11,7 +11,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { generateBenefitsMatrix } from '@/ai/flows/generate-benefits-matrix';
 import { SourceConversation, SourceDocument } from './types';
 
 
@@ -88,6 +87,7 @@ const GeneratePersonalSummaryInputSchema = z.object({
         city: z.string(),
         nhs_ha: z.string(),
     }).describe("The pre-fetched location information based on the user's postcode."),
+    potentialBenefitsText: z.string().describe("A pre-formatted, Markdown-ready string listing potential benefits."),
 });
 export type GeneratePersonalSummaryInput = z.infer<
   typeof GeneratePersonalSummaryInputSchema
@@ -104,12 +104,6 @@ export type GeneratePersonalSummaryOutput = z.infer<
 export async function generatePersonalSummary(
   input: GeneratePersonalSummaryInput
 ): Promise<GeneratePersonalSummaryOutput> {
-  // Step 1: Call benefits matrix flow first
-  const benefitsResult = await generateBenefitsMatrix({
-      age: input.age,
-      employmentStatus: input.employmentStatus,
-      existingBenefits: input.existingBenefits || [],
-  });
 
   const currentDate = new Date().toLocaleDateString('en-GB', {
     year: 'numeric',
@@ -117,36 +111,17 @@ export async function generatePersonalSummary(
     day: 'numeric',
     weekday: 'long',
   });
-
-  // Step 2: Pre-format the benefits list into a simple string.
-  // We take the first scenario from the matrix, which represents the "current situation".
-  let potentialBenefitsText = "*   No additional benefits were identified at this time.";
-  if (benefitsResult.scenarios && benefitsResult.scenarios.length > 0) {
-      const currentSituationBenefits = benefitsResult.scenarios[0].benefits;
-      const suggestions = currentSituationBenefits
-          .filter(b => b.isEligible && !b.isCurrent)
-          .map(b => `*   **${b.name}:** ${b.reason}`);
-      
-      if (suggestions.length > 0) {
-          potentialBenefitsText = suggestions.join('\n');
-      }
-  }
-
-
-  // Step 3: Prepare the input for the main summary prompt
+  
   const extendedInput = { 
     ...input, 
     currentDate,
-    potentialBenefitsText, // Pass the pre-formatted string
   };
   
-  // Step 4: Call the main summarization flow
   return generatePersonalSummaryFlow(extendedInput);
 }
 
 const EnrichedGeneratePersonalSummaryInputSchema = GeneratePersonalSummaryInputSchema.extend({
     currentDate: z.string().describe("The current date in 'Weekday, Day Month Year' format. For calculating dates from relative terms like 'tomorrow'."),
-    potentialBenefitsText: z.string().describe("A pre-formatted, Markdown-ready string listing potential benefits."),
 });
 
 

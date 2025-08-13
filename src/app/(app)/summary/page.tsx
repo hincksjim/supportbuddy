@@ -73,6 +73,14 @@ interface CachedLocationInfo {
     }
 }
 
+interface BenefitSuggestion {
+    name: string;
+    reason: string;
+    url: string;
+    potentialAmount?: string;
+}
+
+
 export default function SummaryPage() {
   const [report, setReport] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -214,7 +222,21 @@ export default function SummaryPage() {
                 const newCache: CachedLocationInfo = { postcode: userData.postcode!, data: locationInfo };
                 localStorage.setItem(locationCacheKey, JSON.stringify(newCache));
             }
-             // --- End Caching Logic ---
+            // --- End Caching Logic ---
+            
+            // --- Benefits Caching Logic ---
+            let potentialBenefitsText = "*   No additional benefits were identified at this time. Visit the Finance page to check.";
+            const benefitsCacheKey = `financialSuggestions_${currentUserEmail}`;
+            const cachedBenefits = localStorage.getItem(benefitsCacheKey);
+            if(cachedBenefits) {
+                const suggestions: BenefitSuggestion[] = JSON.parse(cachedBenefits);
+                 if (suggestions.length > 0) {
+                    potentialBenefitsText = suggestions
+                        .map(b => `*   **${b.name}:** ${b.reason}`)
+                        .join('\n');
+                }
+            }
+            // --- End Benefits Logic ---
 
 
             const sourceDocuments: SourceDocument[] = analysisData.map(a => ({
@@ -258,7 +280,8 @@ export default function SummaryPage() {
                 sourceConversations,
                 diaryData: diaryEntries,
                 medicationData: medicationData,
-                locationInfo: locationInfo, // Pass the cached/new location info
+                locationInfo: locationInfo,
+                potentialBenefitsText: potentialBenefitsText,
             });
 
             setReport(result.report);

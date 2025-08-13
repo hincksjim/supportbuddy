@@ -509,10 +509,17 @@ function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues
             loadMedications();
         }
         
-        return () => {
-            if (currentUserEmail) {
-                saveMedications(medicationsRef.current);
+        const saveOnExit = () => {
+            if (medicationsRef.current.length > 0) {
+              saveMedications(medicationsRef.current);
             }
+        };
+
+        window.addEventListener('beforeunload', saveOnExit);
+
+        return () => {
+            saveOnExit();
+            window.removeEventListener('beforeunload', saveOnExit);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUserEmail]);

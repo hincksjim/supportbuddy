@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import { FileUp, Loader2, PlusCircle, FileText, X } from "lucide-react"
 import { marked } from "marked"
@@ -235,22 +235,38 @@ export default function DocumentAnalysisPage() {
   const [results, setResults] = useState<AnalysisResult[]>([])
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
+  const loadResults = useCallback(() => {
+    if (!currentUserEmail) return;
+    try {
+        const storedResults = localStorage.getItem(`analysisResults_${currentUserEmail}`);
+        if (storedResults) {
+            const parsedResults = JSON.parse(storedResults);
+            parsedResults.sort((a: AnalysisResult, b: AnalysisResult) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            setResults(parsedResults);
+        }
+    } catch (error) {
+        console.error("Could not load analysis results from localStorage", error);
+    }
+  }, [currentUserEmail]);
+
   useEffect(() => {
     const email = localStorage.getItem("currentUserEmail");
     setCurrentUserEmail(email);
   }, []);
   
   useEffect(() => {
-    if (!currentUserEmail) return;
-    try {
-      const storedResults = localStorage.getItem(`analysisResults_${currentUserEmail}`)
-      if (storedResults) {
-        setResults(JSON.parse(storedResults))
-      }
-    } catch (error) {
-      console.error("Could not load analysis results from localStorage", error)
+    if (currentUserEmail) {
+        loadResults();
     }
-  }, [currentUserEmail])
+  }, [currentUserEmail, loadResults])
+
+  useEffect(() => {
+    window.addEventListener('focus', loadResults);
+    return () => {
+        window.removeEventListener('focus', loadResults);
+    }
+  }, [loadResults]);
+
 
   const handleNewAnalysis = (newAnalysis: AnalysisResult) => {
     if (!currentUserEmail) return;
@@ -336,5 +352,3 @@ export default function DocumentAnalysisPage() {
     </div>
   )
 }
-
-    

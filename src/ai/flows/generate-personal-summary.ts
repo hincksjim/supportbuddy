@@ -244,7 +244,14 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 {{/if}}
 
 ### **Wellness & Diary Insights**
+{{#if diaryData}}
 *(Review the last 5 diary entries. You MUST create a Markdown bulleted list. Each bullet point MUST represent one single day and start on a new line. For example: * August 5th, 2025: Mood: bad, Pain: 0, Worried about MDT outcome. [Diary])*
+{{#each diaryData}}
+*   **{{date}}**: Mood: {{mood}}, Pain: {{painScore}}, Worried about: "{{worriedAbout}}", Positive about: "{{positiveAbout}}".
+{{/each}}
+{{else}}
+*   (No diary entries provided)
+{{/if}}
 
 ### **Timeline & Milestones**
 **Completed Milestones:**

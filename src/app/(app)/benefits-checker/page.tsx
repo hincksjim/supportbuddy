@@ -31,6 +31,11 @@ interface UserData {
     benefits?: string[];
 }
 
+interface CachedMatrixData {
+    fingerprint: string;
+    matrix: GenerateBenefitsMatrixOutput;
+}
+
 export default function BenefitsCheckerPage() {
     const [matrixData, setMatrixData] = useState<GenerateBenefitsMatrixOutput | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +45,8 @@ export default function BenefitsCheckerPage() {
     const [userData, setUserData] = useState<UserData>({});
     const matrixRef = useRef<HTMLDivElement>(null);
 
-    const getStorageKey = (email: string) => `benefitsMatrix_${email}`;
+    const getStorageKey = (email: string) => `benefitsMatrixCache_${email}`;
+    const createFingerprint = (data: UserData) => JSON.stringify({ age: data.age, employmentStatus: data.employmentStatus, benefits: data.benefits?.sort() });
 
     const loadUserData = () => {
         const email = localStorage.getItem("currentUserEmail");
@@ -49,9 +55,11 @@ export default function BenefitsCheckerPage() {
             const storedData = localStorage.getItem(`userData_${email}`);
             if (storedData) {
                 const parsedData = JSON.parse(storedData);
-                let formattedStatus = parsedData.employmentStatus?.charAt(0).toUpperCase() + parsedData.employmentStatus?.slice(1).replace(/-/g, ' ');
-                if (formattedStatus === 'Unemployed not on benefits') formattedStatus = 'Unemployed';
-                if (formattedStatus === 'Unemployed on benefits') formattedStatus = 'On Benefits';
+                let formattedStatus = parsedData.employmentStatus;
+                // Don't format here, use raw value for fingerprint
+                // let formattedStatus = parsedData.employmentStatus?.charAt(0).toUpperCase() + parsedData.employmentStatus?.slice(1).replace(/-/g, ' ');
+                // if (formattedStatus === 'Unemployed not on benefits') formattedStatus = 'Unemployed';
+                // if (formattedStatus === 'Unemployed on benefits') formattedStatus = 'On Benefits';
                 
                 setUserData({ ...parsedData, employmentStatus: formattedStatus });
                 return { email, userData: { ...parsedData, employmentStatus: formattedStatus } };
@@ -76,7 +84,11 @@ export default function BenefitsCheckerPage() {
                 existingBenefits: currentUserData.benefits || [],
             });
             setMatrixData(result);
-            localStorage.setItem(getStorageKey(userEmail), JSON.stringify(result));
+            const cache: CachedMatrixData = {
+                fingerprint: createFingerprint(currentUserData),
+                matrix: result,
+            };
+            localStorage.setItem(getStorageKey(userEmail), JSON.stringify(cache));
         } catch (err: any) {
             console.error("Failed to generate benefits matrix:", err);
             if (err.message && err.message.includes("503")) {
@@ -103,11 +115,22 @@ export default function BenefitsCheckerPage() {
         const loadResult = loadUserData();
         if(loadResult) {
             const { email, userData } = loadResult;
-            const savedMatrix = localStorage.getItem(getStorageKey(email));
-            if (savedMatrix) {
-                setMatrixData(JSON.parse(savedMatrix));
-                setIsLoading(false);
+            const savedCache = localStorage.getItem(getStorageKey(email));
+            
+            if (savedCache) {
+                const parsedCache: CachedMatrixData = JSON.parse(savedCache);
+                const currentFingerprint = createFingerprint(userData);
+
+                if (parsedCache.fingerprint === currentFingerprint) {
+                    // Data is up to date, use cache
+                    setMatrixData(parsedCache.matrix);
+                    setIsLoading(false);
+                } else {
+                    // Data has changed, regenerate
+                    generateMatrix(userData, email);
+                }
             } else {
+                // No cache, generate
                 generateMatrix(userData, email);
             }
         } else {

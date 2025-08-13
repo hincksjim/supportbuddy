@@ -11,7 +11,7 @@ import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
 
 
-import { generatePersonalSummary, SourceDocument, SourceConversation } from "@/ai/flows/generate-personal-summary"
+import { generatePersonalSummary, GeneratePersonalSummaryOutput, SourceConversation, SourceDocument } from "@/ai/flows/generate-personal-summary"
 import type { GenerateTreatmentTimelineOutput } from "@/ai/flows/generate-treatment-timeline"
 import { DiaryEntry } from "@/app/(app)/diary/page"
 import { Medication } from "@/app/(app)/medication/page"
@@ -210,7 +210,7 @@ export default function SummaryPage() {
                 }
             });
 
-            const result = await generatePersonalSummary({
+            const result: GeneratePersonalSummaryOutput = await generatePersonalSummary({
                 userName: userData.name || "User",
                 initialDiagnosis: userData.initialDiagnosis || 'Not specified',
                 age: userData.age || "",
@@ -231,8 +231,17 @@ export default function SummaryPage() {
                 diaryData: diaryEntries,
                 medicationData: medicationData
             });
+
             setReport(result.report);
             localStorage.setItem(`personalSummaryReport_${currentUserEmail}`, result.report);
+
+            // Automatically update the user's diagnosis in their profile if it has changed.
+            if (result.updatedDiagnosis && result.updatedDiagnosis !== userData.initialDiagnosis) {
+                const updatedUserData = { ...userData, initialDiagnosis: result.updatedDiagnosis };
+                setUserData(updatedUserData);
+                localStorage.setItem(`userData_${currentUserEmail}`, JSON.stringify(updatedUserData));
+            }
+
         } catch (err) {
             console.error("Failed to generate report:", err);
             setError("Sorry, there was an error generating your report. Please try again.");

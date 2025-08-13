@@ -92,6 +92,7 @@ export type GeneratePersonalSummaryInput = z.infer<
 
 const GeneratePersonalSummaryOutputSchema = z.object({
   report: z.string().describe('A comprehensive summary report formatted in Markdown.'),
+  updatedDiagnosis: z.string().describe("The latest, most specific diagnosis found in the source documents or conversations."),
 });
 export type GeneratePersonalSummaryOutput = z.infer<
   typeof GeneratePersonalSummaryOutputSchema
@@ -152,27 +153,33 @@ const prompt = ai.definePrompt({
   name: 'generatePersonalSummaryPrompt',
   input: {schema: EnrichedGeneratePersonalSummaryInputSchema},
   output: {schema: GeneratePersonalSummaryOutputSchema},
-  prompt: `You are an AI assistant tasked with creating a comprehensive "Personal Summary Report" for a user navigating their cancer journey.
+  prompt: `You are an AI assistant tasked with creating a comprehensive "Personal Summary Report" for a user navigating their health journey.
 
 **TASK:**
-Your primary goal is to synthesize ALL information provided into a clear, organized, and factual Markdown report. You MUST populate the report template below. You are a meticulous personal health assistant; your job is to find and collate every relevant detail from all the sources provided.
+Your primary goal is to synthesize ALL information provided into a clear, organized, factual Markdown report and to identify the user's most current diagnosis.
 
 **CRITICAL INSTRUCTIONS:**
-1.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources (Documents, Conversations, Diary, Medications, Timeline, Financials) to build the report. The saved conversation transcripts are a primary source of truth for the user's narrative.
-2.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, a date, or a feeling), you **MUST** cite where you found it using a reference marker, like **[D0]** for the first document or **[C1]** for the second conversation. The letter indicates the type (D for Document, C for Conversation) and the number is the index from the source list.
-3.  **FORMAT WITH MARKDOWN:** The entire output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes as defined in the template.
-4.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details or make medical predictions.
-5.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow," you MUST calculate the specific date. If a timeframe is ambiguous (e.g., "in two weeks"), state it exactly as provided.
-6.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
-7.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources (especially conversations and documents) for any mention of doctor names, nurse names, hospital names, contact details (including phone numbers), **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections.
-8.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents and conversations you were provided, using the title, date, and ID for each, along with their citation marker.
-9.  **INJECT BENEFITS TEXT:** The "Potential Additional Benefits" section MUST be populated *only* by inserting the exact pre-formatted text provided in the \`potentialBenefitsText\` input field. Do not modify, re-calculate, or summarize it.
-10. **FORMAT ADDRESS CORRECTLY**: When creating the address line, you MUST only include fields that have a value. You must join them with a comma and a space, but do not add a comma if a field is missing or for the last item in the address. For example, if address2 is missing, the format should be "address1, townCity, countyState, postcode, country".
+1.  **IDENTIFY THE LATEST DIAGNOSIS (Most Important Task):**
+    *   Review all provided source documents and conversations chronologically.
+    *   Identify the most specific and recent diagnosis mentioned. For example, if the user's initial diagnosis is "Cancer (All Types)" but a recent document [D1] specifies "Renal Cell Carcinoma, 7cm", then "Renal Cell Carcinoma, 7cm" is the latest diagnosis.
+    *   You **MUST** populate the \`updatedDiagnosis\` field in the output JSON with this single, most specific diagnosis string.
+
+2.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources (Documents, Conversations, Diary, Medications, Timeline, Financials) to build the report. The saved conversation transcripts are a primary source of truth for the user's narrative.
+3.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, a date, or a feeling), you **MUST** cite where you found it using a reference marker, like **[D0]** for the first document or **[C1]** for the second conversation. The letter indicates the type (D for Document, C for Conversation) and the number is the index from the source list.
+4.  **FORMAT WITH MARKDOWN:** The entire report output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes as defined in the template.
+5.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details or make medical predictions.
+6.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow," you MUST calculate the specific date. If a timeframe is ambiguous (e.g., "in two weeks"), state it exactly as provided.
+7.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
+8.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, contact details, **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections.
+9.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents and conversations you were provided, using the title, date, and ID for each, along with their citation marker.
+10. **INJECT BENEFITS TEXT:** The "Potential Additional Benefits" section MUST be populated *only* by inserting the exact pre-formatted text provided in the \`potentialBenefitsText\` input field.
+11. **FORMAT ADDRESS CORRECTLY**: When creating the address line, you MUST only include fields that have a value. Join them with a comma and a space, but do not add a comma if a field is missing or for the last item in the address.
+12. **USE UPDATED DIAGNOSIS IN REPORT**: In the "Primary Health Condition" field of the report, you MUST use the value you determined for \`updatedDiagnosis\`.
 
 ---
 **FIRST, REVIEW ALL AVAILABLE INFORMATION SOURCES TO USE:**
 
-**1. Primary Diagnosis (from user profile):**
+**1. Initial Diagnosis (from user profile):**
 *   {{{initialDiagnosis}}}
 
 ---
@@ -197,25 +204,8 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 ---
 {{/each}}
 
-**4. Diary Entries (For Wellness Trends, Symptoms, and Daily Feelings):**
-{{#each diaryData}}
-*   **Source Date (for citation):** Diary - {{date}}
-*   **Content:** Mood: {{mood}}, Pain: {{painScore}}, Worried About: "{{worriedAbout}}", Positive About: "{{positiveAbout}}", Notes: "{{notes}}"
----
-{{/each}}
-
-**5. Medication List (For Current Prescriptions):**
-{{#each medicationData}}
-*   **Medication:** {{name}} {{strength}}, Dose: {{dose}}
----
-{{/each}}
-
-**6. User's Timeline (For Milestones):**
-*   Use the timeline data to understand planned and completed steps.
----
-
-**7. Pre-Formatted Potential Benefits (MUST USE THIS TEXT EXACTLY):**
-{{{potentialBenefitsText}}}
+**4. Other Data Sources:**
+*   Diary Entries, Medication Lists, and Timelines are available for context.
 ---
 
 **NOW, POPULATE THE REPORT TEMPLATE BELOW:**
@@ -228,18 +218,16 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 *   **Age:** {{{age}}}
 *   **Gender:** {{{gender}}}
 *   **Address:** {{#if address1}}{{{address1}}}{{/if}}{{#if address2}}, {{{address2}}}{{/if}}{{#if townCity}}, {{{townCity}}}{{/if}}{{#if countyState}}, {{{countyState}}}{{/if}}{{#if postcode}}, {{{postcode}}}{{/if}}{{#if country}}, {{{country}}}{{/if}}
-*   **Primary Health Condition:** {{{initialDiagnosis}}}
+*   **Primary Health Condition:** {{{updatedDiagnosis}}}
 *   **Local Health Authority:** {{{locationInfo.nhs_ha}}}
 *   **NHS Number:** [Extract from sources, e.g., 123 456 7890] [C1]
 *   **Hospital Number:** [Extract from sources] [D0]
 
 ### **Medical Team & Contacts**
-*(This section should be a bulleted list of any and all medical contacts found in the data sources. Extract any mentioned doctors, specialist teams (e.g., "urology cancer team"), nurses, or hospitals, along with their contact details. If none are mentioned, state "No information provided yet.")*
-*   [Example: Urology Cancer Team at Wrexham Maelor Hospital - Phone: 03000857868] [C0]
-*   [Example: Dr. Smith, Consultant Oncologist] [D1]
+*(This section should be a bulleted list of any and all medical contacts found in the data sources. Extract any mentioned doctors, specialist teams, nurses, or hospitals, along with their contact details. If none are mentioned, state "No information provided yet.")*
 
 ### **Diagnosis & Condition Summary**
-*(Synthesize the key medical details from ALL data sources into a concise summary. Start with the user's self-reported primary diagnosis and then add details from documents and conversations. Include cancer type, stage, dates, and key test results. Cite your sources for each key finding using a reference marker like [D0] or [C1].)*
+*(Synthesize the key medical details from ALL data sources into a concise summary. Start with the user's most specific diagnosis and then add details from documents and conversations. Include cancer type, stage, dates, and key test results. Cite your sources for each key finding using a reference marker like [D0] or [C1].)*
 
 ### **Current Medications**
 *(List all medications from the 'medicationData' source. If none, state "No medications listed.")*
@@ -256,9 +244,8 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 
 ### **Timeline & Milestones**
 **Completed Milestones:**
-*(Review ALL data sources—documents, chats, and the user's timeline—to identify completed events. List them here with dates if available and cite the source.)*
+*(Review ALL data sources to identify completed events. List them here with dates if available and cite the source.)*
 *   [Example: Initial Diagnosis Confirmed (Renal Cell Carcinoma)] [D0]
-*   [Example: MDT Meeting Held (Discussed treatment options)] [C2]
 
 **Next Expected Milestone(s):**
 *(Based on all available information, identify the next logical step. Use the current date ({{{currentDate}}}) to calculate specific dates where possible. Cite the source.)*
@@ -271,7 +258,6 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 *   **Existing Benefits:** {{#if existingBenefits}}{{#each existingBenefits}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}None listed{{/if}}
 
 ### **Potential Additional Benefits**
-(This section is now populated from the pre-formatted string. You MUST Insert the exact text from potentialBenefitsText here.)
 {{{potentialBenefitsText}}}
 
 ---
@@ -294,7 +280,24 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     outputSchema: GeneratePersonalSummaryOutputSchema,
   },
   async input => {
+    // The prompt is now expected to return the `updatedDiagnosis` in the output object.
+    // That same output object also contains the `report`, which the prompt has been instructed
+    // to build using the `updatedDiagnosis` it just determined.
     const {output} = await prompt(input);
+
+    // We need to re-compose the output to inject the determined diagnosis into the report string,
+    // as the Handlebars template inside the prompt doesn't have access to other output fields.
+     if (output && output.report && output.updatedDiagnosis) {
+        const finalReport = output.report.replace(
+            /{{{updatedDiagnosis}}}/g,
+            output.updatedDiagnosis
+        );
+        return {
+            ...output,
+            report: finalReport,
+        };
+    }
+    
     return output!;
   }
 );

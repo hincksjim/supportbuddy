@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { marked } from "marked"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
+import { useToast } from "@/hooks/use-toast"
 
 
 import { generatePersonalSummary, GeneratePersonalSummaryOutput, SourceConversation, SourceDocument } from "@/ai/flows/generate-personal-summary"
@@ -86,6 +87,7 @@ export default function SummaryPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isChartLoading, setIsChartLoading] = useState(false);
   const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
   
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
@@ -260,6 +262,21 @@ export default function SummaryPage() {
                 }
             });
 
+            // --- Fingerprint Caching Logic ---
+            const dataToFingerprint = {
+                userData, timelineData, analysisData, sourceConversationsData, diaryEntries, medicationData, locationInfo, potentialBenefitsText
+            };
+            const currentFingerprint = JSON.stringify(dataToFingerprint);
+            const fingerprintKey = `personalSummaryFingerprint_${currentUserEmail}`;
+            const savedFingerprint = localStorage.getItem(fingerprintKey);
+
+            if (savedFingerprint === currentFingerprint && report) {
+                toast({ title: "Report is up-to-date", description: "No new information was found to add to the report." });
+                setIsLoading(false);
+                return;
+            }
+            // --- End Fingerprint Caching ---
+
             const result: GeneratePersonalSummaryOutput = await generatePersonalSummary({
                 userName: userData.name || "User",
                 initialDiagnosis: userData.initialDiagnosis || 'Not specified',
@@ -286,6 +303,7 @@ export default function SummaryPage() {
 
             setReport(result.report);
             localStorage.setItem(`personalSummaryReport_${currentUserEmail}`, result.report);
+            localStorage.setItem(fingerprintKey, currentFingerprint); // Save the new fingerprint
 
             // Automatically update the user's diagnosis in their profile if it has changed.
             if (result.updatedDiagnosis && result.updatedDiagnosis !== userData.initialDiagnosis) {

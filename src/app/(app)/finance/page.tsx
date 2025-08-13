@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react"
 import { Landmark, Briefcase, HandCoins, PiggyBank, Wallet, Lightbulb, Loader2, RefreshCw, AlertCircle, Download } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { generateBenefitsMatrix } from "@/ai/flows/generate-benefits-matrix"
+import { generateBenefitsMatrix, GenerateBenefitsMatrixOutput } from "@/ai/flows/generate-benefits-matrix"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import jsPDF from "jspdf"
@@ -27,6 +27,11 @@ interface BenefitSuggestion {
     potentialAmount?: string;
 }
 
+interface CachedSuggestions {
+    fingerprint: string;
+    suggestions: BenefitSuggestion[];
+}
+
 export default function FinancePage() {
     const [userData, setUserData] = useState<UserData>({});
     const [suggestedBenefits, setSuggestedBenefits] = useState<BenefitSuggestion[]>([]);
@@ -36,7 +41,15 @@ export default function FinancePage() {
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
     const contentRef = useRef<HTMLDivElement>(null);
 
-    const getStorageKey = (email: string) => `financialSuggestions_${email}`;
+    const getStorageKey = (email: string) => `financialSuggestionsCache_${email}`;
+    const createFingerprint = (data: UserData) => JSON.stringify({ 
+        age: data.age, 
+        employmentStatus: data.employmentStatus, 
+        income: data.income,
+        savings: data.savings,
+        benefits: data.benefits?.sort() 
+    });
+
 
     const loadData = () => {
         const email = localStorage.getItem("currentUserEmail");
@@ -73,12 +86,9 @@ export default function FinancePage() {
                 employmentStatus: currentUserData.employmentStatus,
                 existingBenefits: currentUserData.benefits || [],
             });
-
-            const currentSituationScenario = {
-                 scenario: "Current Situation",
-                 description: "Your current financial state.",
-                 benefits: matrixResult.scenarios[0].benefits
-            };
+            
+            // Assuming the first scenario is always the "current situation" from the matrix prompt
+            const currentSituationScenario = matrixResult.scenarios[0];
             
             const newSuggestions = currentSituationScenario.benefits
                 .filter(b => b.isEligible && !b.isCurrent)
@@ -90,7 +100,12 @@ export default function FinancePage() {
                 }));
 
             setSuggestedBenefits(newSuggestions);
-            localStorage.setItem(getStorageKey(userEmail), JSON.stringify(newSuggestions));
+            
+            const cache: CachedSuggestions = {
+                fingerprint: createFingerprint(currentUserData),
+                suggestions: newSuggestions
+            };
+            localStorage.setItem(getStorageKey(userEmail), JSON.stringify(cache));
 
         } catch (error: any) {
             console.error("Failed to fetch benefit suggestions:", error);
@@ -108,11 +123,22 @@ export default function FinancePage() {
         const loadResult = loadData();
         if (loadResult) {
             const { userData, email } = loadResult;
-            const cachedSuggestions = localStorage.getItem(getStorageKey(email));
-            if (cachedSuggestions) {
-                setSuggestedBenefits(JSON.parse(cachedSuggestions));
-                setIsLoadingSuggestions(false);
+            const savedCache = localStorage.getItem(getStorageKey(email));
+            
+            if (savedCache) {
+                const parsedCache: CachedSuggestions = JSON.parse(savedCache);
+                const currentFingerprint = createFingerprint(userData);
+
+                if (parsedCache.fingerprint === currentFingerprint) {
+                    // Data is up to date, use cache
+                    setSuggestedBenefits(parsedCache.suggestions);
+                    setIsLoadingSuggestions(false);
+                } else {
+                    // Data has changed, regenerate
+                    fetchSuggestions(userData, email);
+                }
             } else {
+                // No cache, generate
                 fetchSuggestions(userData, email);
             }
         } else {
@@ -306,6 +332,5 @@ export default function FinancePage() {
             </div>
         </div>
     )
-}
 
     

@@ -128,21 +128,19 @@ export async function aiConversationalSupport(input: AiConversationalSupportInpu
   return aiConversationalSupportFlow(input);
 }
 
-const benefitsDecisionLogic = `[{"Age Range":"Under 16","Employment Status":"N/A","Existing Benefits":"Any","Income/Savings":"N/A","Health Impact (Cancer)":"Has cancer","Additional or Replacement Benefits":"Disability Living Allowance (DLA), Carer's Allowance (for parent), NHS travel/prescription support"},{"Age Range":"16-Pension Age","Employment Status":"Employed","Existing Benefits":"None or any","Income/Savings":"Any","Health Impact (Cancer)":"Cannot work (cancer)","Additional or Replacement Benefits":"Statutory Sick Pay (SSP), Personal Independence Payment (PIP), New Style Employment and Support Allowance (ESA), Universal Credit (with LCWRA element)"},{"Age Range":"16-Pension Age","Employment Status":"Employed","Existing Benefits":"SSP ended","Income/Savings":"Low income/savings < £16K","Health Impact (Cancer)":"Ongoing illness (cancer)","Additional or Replacement Benefits":"New Style ESA, PIP, Universal Credit (with LCWRA element), Blue Badge"},{"Age Range":"16-Pension Age","Employment Status":"Unemployed","Existing Benefits":"JSA","Income/Savings":"Low income","Health Impact (Cancer)":"Diagnosed with cancer","Additional or Replacement Benefits":"Replace JSA with New Style ESA, claim PIP, Universal Credit (with LCWRA element)"},{"Age Range":"16-Pension Age","Health Impact (Cancer)":"Any","Additional or Replacement Benefits":"Universal Credit (with LCWRA element)"},{"Age Range":"16-Pension Age","Employment Status":"Self-employed","Existing Benefits":"None","Income/Savings":"Income affected","Health Impact (Cancer)":"Cancer limits work","Additional or Replacement Benefits":"Universal Credit (UC) with LCWRA element, PIP, ESA (New Style), Council Tax Support"},{"Age Range":"16-Pension Age","Employment Status":"On Benefits","Existing Benefits":"Universal Credit (UC)","Income/Savings":"Low income","Health Impact (Cancer)":"Health worsens","Additional or Replacement Benefits":"Add Limited Capability for Work (LCWRA) element, PIP, Council Tax Support"},{"Age Range":"Pension Age+","Employment Status":"Retired or any","Existing Benefits":"State Pension","Income/Savings":"Low income","Health Impact (Cancer)":"Diagnosed with cancer","Additional or Replacement Benefits":"Attendance Allowance, Pension Credit with Severe Disability Premium, Blue Badge, Free NHS travel/prescriptions"},{"Age Range":"Pension Age+","Employment Status":"Retired or any","Existing Benefits":"Pension Credit","Income/Savings":"Low income","Health Impact (Cancer)":"Cancer diagnosis","Additional or Replacement Benefits":"Attendance Allowance, Carer's Allowance (for spouse if caring), Housing Benefit/Council Tax Support"},{"Age Range":"Any","Employment Status":"Any","Existing Benefits":"Caring for someone with cancer","Income/Savings":"Any","Health Impact (Cancer)":"Caring 35+ hours/week","Additional or Replacement Benefits":"Carer's Allowance, Council Tax discount for carers"},{"Age Range":"Terminal","Employment Status":"Any","Existing Benefits":"Any","Income/Savings":"Any","Health Impact (Cancer)":"Terminal (expected < 12 months)","Additional or Replacement Benefits":"Fast-track: PIP (highest rate), Attendance Allowance, DLA, Universal Credit (with LCWRA element), ESA with no work requirements"}]`;
-
 const prompt = ai.definePrompt({
   name: 'aiConversationalSupportPrompt',
   input: {schema: AiConversationalSupportInputSchema},
   output: {schema: AiConversationalSupportOutputSchema},
   tools: [lookupPostcode],
-  prompt: `You are a caring, friendly, and very supportive AI health companion. Your role is to be a direct, factual, and helpful assistant. You are here to support all elements of their care, including their mental, physical, and financial well-being. Be empathetic, but prioritize providing clear, actionable information.
+  prompt: `You are a caring, friendly, and very supportive AI health companion. Your role is to be a direct, factual, and helpful assistant. You are here to support all elements of their care, including their mental and physical well-being. Be empathetic, but prioritize providing clear, actionable information.
 
   **CORE INSTRUCTIONS (MUST FOLLOW):**
-  1.  **Prioritize Tool Use for Location Questions:** If the user asks about local services, hospitals, clinics, or their health board, you **MUST** use the 'lookupPostcode' tools. Use the postcode from their profile: **{{{postcode}}}**. Do not claim you cannot access this information. Provide the information from the tool directly.
+  1.  **Prioritize Tool Use for Location Questions:** If the user asks about local services, hospitals, clinics, or their health board, you **MUST** use the 'lookupPostcode' tool. Use the postcode from their profile: **{{{postcode}}}**. Do not claim you cannot access this information. Provide the information from the tool directly.
   2.  **Synthesize All Provided Data:** Before answering, you **MUST** review all context provided below: Profile, Documents, Timeline, Diary, and Medications. Use this information to provide a truly personalized and informed response. Reference specific details you find to show you are paying attention (e.g., "I saw in your diary you were feeling...").
   3.  **Be a Specialist & Ask One Question at a Time:** Adapt your persona based on the user's 'initialDiagnosis'. If it's 'Cancer', you are a consultant oncologist. If 'Heart', a cardiologist, etc. When you need more information, ask only one clarifying question and wait for the response.
   4.  **Explain Simply & Define Terms:** All explanations should be clear and easy to understand. If you must use a medical term, define it simply.
-  5.  **Act as a Benefits Advisor**: If the conversation touches on financial worries, you MUST use the provided JSON ruleset to determine if they might be eligible for additional financial support. The term "Health Impact (Cancer)" should be interpreted as "Health Impact (User's Condition)". Use the user's Date of Birth ({{{dob}}}) to determine if they have reached the state pension age.
+  5.  **Financial Questions**: If the conversation touches on financial worries or benefits, gently guide the user to the dedicated "Finance" or "Benefits" pages in the app for detailed information, as you are a health expert, not a financial advisor.
 
   **CONTEXT IS EVERYTHING - User's Full Profile & Data:**
   - Name: {{{userName}}}
@@ -189,11 +187,6 @@ const prompt = ai.definePrompt({
   - No medications listed yet.
   {{/each}}
 
-  **Benefits Decision Logic (JSON Ruleset):**
-  \`\`\`json
-  ${benefitsDecisionLogic}
-  \`\`\`
-  
   **Response Mood:**
   Adjust your tone based on user preference: 'standard' (default), 'extra_supportive', 'direct_factual'. Current: **{{{responseMood}}}**
 
@@ -218,5 +211,3 @@ const aiConversationalSupportFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

@@ -11,7 +11,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { lookupPostcode } from '@/services/postcode-lookup';
 import { generateBenefitsMatrix } from '@/ai/flows/generate-benefits-matrix';
 import { SourceConversation, SourceDocument } from './types';
 
@@ -85,6 +84,10 @@ const GeneratePersonalSummaryInputSchema = z.object({
     sourceConversations: z.array(SourceConversation).describe('An array of summaries and full transcripts from previous conversations.'),
     diaryData: z.array(DiaryEntrySchema).describe('An array of the user\'s diary entries.'),
     medicationData: z.array(MedicationSchema).describe('An array of the user\'s prescribed medications.'),
+    locationInfo: z.object({
+        city: z.string(),
+        nhs_ha: z.string(),
+    }).describe("The pre-fetched location information based on the user's postcode."),
 });
 export type GeneratePersonalSummaryInput = z.infer<
   typeof GeneratePersonalSummaryInputSchema
@@ -101,8 +104,7 @@ export type GeneratePersonalSummaryOutput = z.infer<
 export async function generatePersonalSummary(
   input: GeneratePersonalSummaryInput
 ): Promise<GeneratePersonalSummaryOutput> {
-  // Step 1: Call dependent flows first
-  const locationInfo = await lookupPostcode({ postcode: input.postcode });
+  // Step 1: Call benefits matrix flow first
   const benefitsResult = await generateBenefitsMatrix({
       age: input.age,
       employmentStatus: input.employmentStatus,
@@ -134,7 +136,6 @@ export async function generatePersonalSummary(
   // Step 3: Prepare the input for the main summary prompt
   const extendedInput = { 
     ...input, 
-    locationInfo, 
     currentDate,
     potentialBenefitsText, // Pass the pre-formatted string
   };
@@ -144,10 +145,6 @@ export async function generatePersonalSummary(
 }
 
 const EnrichedGeneratePersonalSummaryInputSchema = GeneratePersonalSummaryInputSchema.extend({
-    locationInfo: z.object({
-        city: z.string(),
-        nhs_ha: z.string(),
-    }),
     currentDate: z.string().describe("The current date in 'Weekday, Day Month Year' format. For calculating dates from relative terms like 'tomorrow'."),
     potentialBenefitsText: z.string().describe("A pre-formatted, Markdown-ready string listing potential benefits."),
 });

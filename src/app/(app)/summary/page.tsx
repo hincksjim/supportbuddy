@@ -16,6 +16,7 @@ import type { GenerateTreatmentTimelineOutput } from "@/ai/flows/generate-treatm
 import { DiaryEntry } from "@/app/(app)/diary/page"
 import { Medication } from "@/app/(app)/medication/page"
 import { DiaryChart } from "@/components/diary-chart"
+import { lookupPostcode } from "@/services/postcode-lookup"
 
 interface Message {
   role: "user" | "assistant"
@@ -62,6 +63,14 @@ interface UserData {
   townCity?: string;
   countyState?: string;
   country?: string;
+}
+
+interface CachedLocationInfo {
+    postcode: string;
+    data: {
+        city: string;
+        nhs_ha: string;
+    }
 }
 
 export default function SummaryPage() {
@@ -170,7 +179,10 @@ export default function SummaryPage() {
 
 
   const handleGenerateReport = async () => {
-    if (!currentUserEmail) return;
+    if (!currentUserEmail || !userData.postcode) {
+        setError("Please ensure your postcode is set in your profile.");
+        return;
+    };
 
     loadPrerequisites(); // Force a refresh of all data
     
@@ -185,6 +197,26 @@ export default function SummaryPage() {
         setIsLoading(true);
         setError(null);
         try {
+            // --- Postcode Caching Logic ---
+            let locationInfo;
+            const locationCacheKey = `locationInfo_${currentUserEmail}`;
+            const cachedLocation = localStorage.getItem(locationCacheKey);
+            if (cachedLocation) {
+                const parsedCache: CachedLocationInfo = JSON.parse(cachedLocation);
+                if (parsedCache.postcode === userData.postcode) {
+                    locationInfo = parsedCache.data; // Use cache
+                }
+            }
+            
+            if (!locationInfo) {
+                // Fetch new data and update cache
+                locationInfo = await lookupPostcode({ postcode: userData.postcode! });
+                const newCache: CachedLocationInfo = { postcode: userData.postcode!, data: locationInfo };
+                localStorage.setItem(locationCacheKey, JSON.stringify(newCache));
+            }
+             // --- End Caching Logic ---
+
+
             const sourceDocuments: SourceDocument[] = analysisData.map(a => ({
                 id: a.id,
                 title: a.title,
@@ -225,7 +257,8 @@ export default function SummaryPage() {
                 sourceDocuments,
                 sourceConversations,
                 diaryData: diaryEntries,
-                medicationData: medicationData
+                medicationData: medicationData,
+                locationInfo: locationInfo, // Pass the cached/new location info
             });
 
             setReport(result.report);
@@ -520,5 +553,3 @@ export default function SummaryPage() {
     </div>
   )
 }
-
-    

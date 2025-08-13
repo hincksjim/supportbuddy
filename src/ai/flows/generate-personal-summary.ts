@@ -12,7 +12,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { lookupPostcode } from '@/services/postcode-lookup';
-import { generateBenefitsSuggestion } from '@/ai/flows/generate-benefits-suggestion';
+import { generateBenefitsMatrix } from '@/ai/flows/generate-benefits-matrix';
 import { SourceConversation, SourceDocument } from './types';
 
 
@@ -103,11 +103,9 @@ export async function generatePersonalSummary(
 ): Promise<GeneratePersonalSummaryOutput> {
   // Step 1: Call dependent flows first
   const locationInfo = await lookupPostcode({ postcode: input.postcode });
-  const benefitsResult = await generateBenefitsSuggestion({
+  const benefitsResult = await generateBenefitsMatrix({
       age: input.age,
       employmentStatus: input.employmentStatus,
-      income: input.income,
-      savings: input.savings,
       existingBenefits: input.existingBenefits || [],
   });
 
@@ -119,11 +117,17 @@ export async function generatePersonalSummary(
   });
 
   // Step 2: Pre-format the benefits list into a simple string.
+  // We take the first scenario from the matrix, which represents the "current situation".
   let potentialBenefitsText = "*   No additional benefits were identified at this time.";
-  if (benefitsResult.suggestions && benefitsResult.suggestions.length > 0) {
-      potentialBenefitsText = benefitsResult.suggestions
-          .map(b => `*   **${b.name}:** ${b.reason}`)
-          .join('\n');
+  if (benefitsResult.scenarios && benefitsResult.scenarios.length > 0) {
+      const currentSituationBenefits = benefitsResult.scenarios[0].benefits;
+      const suggestions = currentSituationBenefits
+          .filter(b => b.isEligible && !b.isCurrent)
+          .map(b => `*   **${b.name}:** ${b.reason}`);
+      
+      if (suggestions.length > 0) {
+          potentialBenefitsText = suggestions.join('\n');
+      }
   }
 
 

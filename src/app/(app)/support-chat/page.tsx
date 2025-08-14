@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import type { GenerateTreatmentTimelineOutput } from "@/ai/flows/generate-treatment-timeline"
+import type { GenerateTreatmentTimelineOutput } from "@/app/(app)/timeline/page"
 import type { DiaryEntry } from "@/app/(app)/diary/page"
 import type { Medication } from "@/app/(app)/medication/page"
 import type { AnalysisResult } from "@/app/(app)/document-analysis/page"
@@ -255,20 +255,47 @@ function SupportChatPageContent() {
     }
   }
 
-  const handleSaveSummary = async (messagesToSave: Message[], isAutomaticSave: boolean = false) => {
+  // New function to just archive the chat without AI summary
+  const archiveChatLocally = (messagesToSave: Message[], specialistOfChat: Specialist) => {
+    if (!currentUserEmail || messagesToSave.length <= 1) return;
+
+    const conversationIdToSave = new Date().toISOString();
+    
+    // Save to all conversations (raw transcript)
+    const allConversationsKey = `allConversations_${currentUserEmail}`;
+    const storedConversations = localStorage.getItem(allConversationsKey) || '[]';
+    const allConversations: StoredConversation[] = JSON.parse(storedConversations);
+    allConversations.push({ id: conversationIdToSave, messages: messagesToSave });
+    localStorage.setItem(allConversationsKey, JSON.stringify(allConversations));
+
+    // Save a placeholder summary to the activity feed
+    const summariesKey = `conversationSummaries_${currentUserEmail}`;
+    const storedSummaries = localStorage.getItem(summariesKey) || '[]';
+    const summaries: ConversationSummary[] = JSON.parse(storedSummaries);
+
+    const newSummary: ConversationSummary = {
+        id: conversationIdToSave,
+        date: new Date().toISOString(),
+        specialist: specialistOfChat,
+        title: `Chat with ${specialistConfig[specialistOfChat].name}`,
+        summary: `A conversation about ${messagesToSave.length > 1 ? `"${messagesToSave[1].content.substring(0, 50)}..."` : 'various topics.'}`,
+    };
+    summaries.unshift(newSummary);
+    localStorage.setItem(summariesKey, JSON.stringify(summaries));
+  }
+
+
+  const handleSaveSummary = async (messagesToSave: Message[]) => {
     if (!currentUserEmail || messagesToSave.length < 2) {
-         if (!isAutomaticSave) {
-            toast({
-                title: "Not enough conversation",
-                description: "Have a bit more of a chat before saving a summary.",
-            });
-         }
+        toast({
+            title: "Not enough conversation",
+            description: "Have a bit more of a chat before saving a summary.",
+        });
         return;
     }
 
     setIsSaving(true);
     try {
-      // Use the conversation ID from the chat that's being saved, not necessarily the current one
       const conversationIdToSave = new Date().toISOString();
       const result = await generateConversationSummary({ conversationHistory: messagesToSave });
       
@@ -301,12 +328,10 @@ function SupportChatPageContent() {
       allConversations.push(newConversation);
       localStorage.setItem(allConversationsKey, JSON.stringify(allConversations));
 
-      if (!isAutomaticSave) {
-        toast({
-            title: "Conversation Saved",
-            description: "Your summary has been saved to your activity feed.",
-        });
-      }
+      toast({
+          title: "Conversation Saved",
+          description: "Your summary has been saved to your activity feed.",
+      });
 
     } catch (error) {
       console.error("Failed to generate or save summary:", error);
@@ -397,6 +422,9 @@ function SupportChatPageContent() {
     if (newSpecialist === activeSpecialist || isHistoricChat) {
         return;
     }
+
+    // Archive the current chat before switching
+    archiveChatLocally(messages, activeSpecialist);
 
     // Start a new chat with the new specialist
     setActiveSpecialist(newSpecialist);
@@ -489,7 +517,7 @@ function SupportChatPageContent() {
     if (currentUserEmail) {
         if (messages.length > 1) {
              if (!isHistoricChat) {
-                handleSaveSummary(messages, true);
+                archiveChatLocally(messages, activeSpecialist);
              }
         }
         localStorage.removeItem(`conversationHistory_${currentUserEmail}`);
@@ -580,7 +608,7 @@ function SupportChatPageContent() {
                     <span className="sr-only">Settings</span>
                 </Link>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => handleSaveSummary(messages, false)} disabled={isSaving || isHistoricChat || messages.length < 2}>
+            <Button variant="outline" size="sm" onClick={() => handleSaveSummary(messages)} disabled={isSaving || isHistoricChat || messages.length < 2}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save
             </Button>
@@ -724,5 +752,3 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
-
-    

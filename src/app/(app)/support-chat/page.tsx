@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea, ScrollViewport } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { aiConversationalSupport, AiConversationalSupportInput } from "@/ai/flows/conversational-support"
 import { generateConversationSummary } from "@/ai/flows/generate-conversation-summary"
@@ -125,7 +125,7 @@ function SupportChatPageContent() {
   const searchParams = useSearchParams();
   const { toast } = useToast()
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef(messages);
 
   useEffect(() => {
@@ -429,13 +429,8 @@ function SupportChatPageContent() {
   }, [audioDataUri]);
 
   useEffect(() => {
-    if (scrollAreaRef.current) {
-        setTimeout(() => {
-            const scrollElement = scrollAreaRef.current?.children[0] as HTMLDivElement;
-            if(scrollElement) {
-                scrollElement.scrollTop = scrollElement.scrollHeight;
-            }
-        }, 100);
+    if (viewportRef.current) {
+        viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
     }
   }, [messages]);
   
@@ -549,70 +544,72 @@ function SupportChatPageContent() {
           </div>
 
       <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full" ref={scrollAreaRef}>
-          <div className="p-4 md:p-6 space-y-6">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "flex items-start gap-4 group",
-                  message.role === "user" ? "justify-end" : "justify-start"
-                )}
-              >
-                {message.role === "assistant" && (
-                    <div className="flex items-end gap-2">
-                         <Avatar className="w-8 h-8 border bg-accent/50">
-                            <AvatarFallback className="bg-transparent text-foreground">
-                                <BuddyAvatarIcon className="w-8 h-8" />
-                            </AvatarFallback>
-                          </Avatar>
-                        <div
-                        className="max-w-xl rounded-xl p-3 shadow-md bg-card"
-                        >
+        <ScrollArea className="h-full">
+            <ScrollViewport ref={viewportRef}>
+              <div className="p-4 md:p-6 space-y-6">
+                {messages.map((message, index) => (
+                  <div
+                    key={index}
+                    className={cn(
+                      "flex items-start gap-4 group",
+                      message.role === "user" ? "justify-end" : "justify-start"
+                    )}
+                  >
+                    {message.role === "assistant" && (
+                        <div className="flex items-end gap-2">
+                             <Avatar className="w-8 h-8 border bg-accent/50">
+                                <AvatarFallback className="bg-transparent text-foreground">
+                                    <BuddyAvatarIcon className="w-8 h-8" />
+                                </AvatarFallback>
+                              </Avatar>
+                            <div
+                            className="max-w-xl rounded-xl p-3 shadow-md bg-card"
+                            >
+                                <p className="whitespace-pre-wrap">{message.content}</p>
+                            </div>
+                             <div className="flex-col gap-1 self-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownloadMessage(message.content)}>
+                                    <Download className="w-4 h-4"/>
+                                </Button>
+                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleSaveMessage(message, index)}>
+                                    <Bookmark className="w-4 h-4"/>
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                     {message.role === "user" && (
+                        <>
+                            <div
+                            className={cn(
+                                "max-w-xl rounded-xl p-3 shadow-md",
+                                "bg-primary text-primary-foreground"
+                            )}
+                            >
                             <p className="whitespace-pre-wrap">{message.content}</p>
-                        </div>
-                         <div className="flex-col gap-1 self-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownloadMessage(message.content)}>
-                                <Download className="w-4 h-4"/>
-                            </Button>
-                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleSaveMessage(message, index)}>
-                                <Bookmark className="w-4 h-4"/>
-                            </Button>
-                        </div>
-                    </div>
-                )}
-                 {message.role === "user" && (
-                    <>
-                        <div
-                        className={cn(
-                            "max-w-xl rounded-xl p-3 shadow-md",
-                            "bg-primary text-primary-foreground"
-                        )}
-                        >
-                        <p className="whitespace-pre-wrap">{message.content}</p>
-                        </div>
-                        <Avatar className="w-8 h-8 border">
-                        <AvatarFallback className="bg-secondary text-secondary-foreground">
-                            <User className="w-5 h-5" />
+                            </div>
+                            <Avatar className="w-8 h-8 border">
+                            <AvatarFallback className="bg-secondary text-secondary-foreground">
+                                <User className="w-5 h-5" />
+                            </AvatarFallback>
+                            </Avatar>
+                        </>
+                    )}
+                  </div>
+                ))}
+                {isLoading && (
+                  <div className="flex items-start gap-4 justify-start">
+                    <Avatar className="w-8 h-8 border bg-accent/50">
+                       <AvatarFallback className="bg-transparent text-foreground">
+                            <BuddyAvatarIcon className="w-8 h-8" />
                         </AvatarFallback>
-                        </Avatar>
-                    </>
+                    </Avatar>
+                    <div className="max-w-xl rounded-xl p-3 shadow-md bg-card flex items-center">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    </div>
+                  </div>
                 )}
               </div>
-            ))}
-            {isLoading && (
-              <div className="flex items-start gap-4 justify-start">
-                <Avatar className="w-8 h-8 border bg-accent/50">
-                   <AvatarFallback className="bg-transparent text-foreground">
-                        <BuddyAvatarIcon className="w-8 h-8" />
-                    </AvatarFallback>
-                </Avatar>
-                <div className="max-w-xl rounded-xl p-3 shadow-md bg-card flex items-center">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                </div>
-              </div>
-            )}
-          </div>
+            </ScrollViewport>
         </ScrollArea>
       </div>
 
@@ -674,5 +671,3 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
-
-    

@@ -152,24 +152,7 @@ const financialPrompt = `You are a caring, friendly, and very supportive AI heal
 3.  **Use Postcode Tool for Local Info:** If the user asks about local financial support or Citizen's Advice, you **MUST** use the 'lookupPostcode' tool to provide relevant local information.
 4.  **Do Not Give Medical or Mental Health Advice:** You are not a doctor or a therapist. If the user asks for medical information or expresses significant emotional distress, you **MUST** gently refer them to your teammates, the **Medical Expert** or the **Mental Health Nurse**.`;
 
-
-const prompt = ai.definePrompt({
-  name: 'aiConversationalSupportPrompt',
-  input: {schema: AiConversationalSupportInputSchema},
-  output: {schema: AiConversationalSupportOutputSchema},
-  tools: [lookupPostcode],
-  prompt: `
-  {{#if (eq specialist 'medical')}}
-  ${medicalPrompt}
-  {{/if}}
-  {{#if (eq specialist 'mental_health')}}
-  ${mentalHealthPrompt}
-  {{/if}}
-  {{#if (eq specialist 'financial')}}
-  ${financialPrompt}
-  {{/if}}
-
-  ---
+const sharedContextPrompt = `---
   **SHARED CONTEXT - User's Full Profile & Data:**
   - Name: {{{userName}}}
   - Age: {{{age}}}
@@ -225,7 +208,19 @@ const prompt = ai.definePrompt({
 
   **Current User Question:** {{{question}}}
 
-  Please provide a detailed, supportive, and easy-to-understand answer based on your specialist role and all the context and principles above. Your final output MUST be a valid JSON object matching the provided schema, with your response contained within the "answer" field.`,
+  Please provide a detailed, supportive, and easy-to-understand answer based on your specialist role and all the context and principles above. Your final output MUST be a valid JSON object matching the provided schema, with your response contained within the "answer" field.`;
+
+
+const EnrichedInputSchema = AiConversationalSupportInputSchema.extend({
+    systemPrompt: z.string(),
+});
+
+const prompt = ai.definePrompt({
+  name: 'aiConversationalSupportPrompt',
+  input: {schema: EnrichedInputSchema},
+  output: {schema: AiConversationalSupportOutputSchema},
+  tools: [lookupPostcode],
+  prompt: `{{{systemPrompt}}}`,
 });
 
 const aiConversationalSupportFlow = ai.defineFlow(
@@ -235,7 +230,23 @@ const aiConversationalSupportFlow = ai.defineFlow(
     outputSchema: AiConversationalSupportOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    let specialistPrompt;
+    switch (input.specialist) {
+        case 'mental_health':
+            specialistPrompt = mentalHealthPrompt;
+            break;
+        case 'financial':
+            specialistPrompt = financialPrompt;
+            break;
+        case 'medical':
+        default:
+            specialistPrompt = medicalPrompt;
+            break;
+    }
+
+    const systemPrompt = `${specialistPrompt}\n${sharedContextPrompt}`;
+
+    const {output} = await prompt({...input, systemPrompt});
     return output!;
   }
 );

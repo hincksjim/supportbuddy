@@ -159,13 +159,13 @@ const prompt = ai.definePrompt({
   output: {schema: AiConversationalSupportOutputSchema},
   tools: [lookupPostcode],
   prompt: `
-  {{#if (eq specialist "medical")}}
+  {{#if (eq specialist 'medical')}}
   ${medicalPrompt}
   {{/if}}
-  {{#if (eq specialist "mental_health")}}
+  {{#if (eq specialist 'mental_health')}}
   ${mentalHealthPrompt}
   {{/if}}
-  {{#if (eq specialist "financial")}}
+  {{#if (eq specialist 'financial')}}
   ${financialPrompt}
   {{/if}}
 

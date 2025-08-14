@@ -393,14 +393,9 @@ function SupportChatPageContent() {
     setCurrentConversationId(null);
   }
 
-  const handleSpecialistChange = async (newSpecialist: Specialist) => {
+  const handleSpecialistChange = (newSpecialist: Specialist) => {
     if (newSpecialist === activeSpecialist || isHistoricChat) {
         return;
-    }
-
-    // Save the previous conversation if it's meaningful
-    if (messages.length > 1) {
-        await handleSaveSummary(messages, true);
     }
 
     // Start a new chat with the new specialist
@@ -729,3 +724,5 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
+
+    

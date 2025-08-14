@@ -254,63 +254,54 @@ function SupportChatPageContent() {
     }
   }
 
-  const handleSaveSummary = async () => {
-    if (!currentUserEmail || messages.length < 2 || isHistoricChat) {
-         toast({
-            title: isHistoricChat ? "Cannot Save" : "Not enough conversation",
-            description: isHistoricChat ? "This is a past conversation and cannot be re-saved." : "Have a bit more of a chat before saving a summary.",
-            variant: isHistoricChat ? "destructive" : "default"
-        });
+  const handleSaveSummary = async (messagesToSave: Message[], isAutomaticSave: boolean = false) => {
+    if (!currentUserEmail || messagesToSave.length < 2) {
+         if (!isAutomaticSave) {
+            toast({
+                title: "Not enough conversation",
+                description: "Have a bit more of a chat before saving a summary.",
+            });
+         }
         return;
     }
 
     setIsSaving(true);
     try {
-      const result = await generateConversationSummary({ conversationHistory: messages });
-      const summaryId = currentConversationId || new Date().toISOString();
-      if (!currentConversationId) {
-        setCurrentConversationId(summaryId);
-      }
-
+      // Use the conversation ID from the chat that's being saved, not necessarily the current one
+      const conversationIdToSave = new Date().toISOString();
+      const result = await generateConversationSummary({ conversationHistory: messagesToSave });
+      
       const summariesKey = `conversationSummaries_${currentUserEmail}`;
       const storedSummaries = localStorage.getItem(summariesKey);
       const summaries: ConversationSummary[] = storedSummaries ? JSON.parse(storedSummaries) : [];
       
-      const existingSummaryIndex = summaries.findIndex(s => s.id === summaryId);
       const newSummary: ConversationSummary = {
-        id: summaryId,
+        id: conversationIdToSave,
         date: new Date().toISOString(),
         ...result,
       };
 
-      if (existingSummaryIndex > -1) {
-        summaries[existingSummaryIndex] = newSummary;
-      } else {
-        summaries.unshift(newSummary);
-      }
+      summaries.unshift(newSummary);
       localStorage.setItem(summariesKey, JSON.stringify(summaries));
 
       const allConversationsKey = `allConversations_${currentUserEmail}`;
       const storedConversations = localStorage.getItem(allConversationsKey);
       const allConversations: StoredConversation[] = storedConversations ? JSON.parse(storedConversations) : [];
       
-      const existingConversationIndex = allConversations.findIndex(c => c.id === summaryId);
       const newConversation: StoredConversation = {
-        id: summaryId,
-        messages: messages
+        id: conversationIdToSave,
+        messages: messagesToSave
       };
 
-      if (existingConversationIndex > -1) {
-          allConversations[existingConversationIndex] = newConversation;
-      } else {
-          allConversations.push(newConversation);
-      }
+      allConversations.push(newConversation);
       localStorage.setItem(allConversationsKey, JSON.stringify(allConversations));
 
-      toast({
-        title: "Conversation Saved",
-        description: "Your summary has been saved to your activity feed.",
-      });
+      if (!isAutomaticSave) {
+        toast({
+            title: "Conversation Saved",
+            description: "Your summary has been saved to your activity feed.",
+        });
+      }
 
     } catch (error) {
       console.error("Failed to generate or save summary:", error);
@@ -371,6 +362,47 @@ function SupportChatPageContent() {
       return avatars[avatarId] || avatars['female-30s'];
   }
 
+  const getWelcomeMessage = (specialist: Specialist) => {
+      const userName = userData.name || 'there';
+      switch(specialist) {
+          case 'medical':
+              return `Hello ${userName}! I'm your Medical Expert. How can I help you today with your health or treatment?`;
+          case 'mental_health':
+              return `Hi ${userName}, I'm your Mental Health Nurse. It's a safe space to talk about how you're feeling. What's on your mind?`;
+          case 'financial':
+              return `Hello ${userName}, I'm your Financial Advisor. Let's talk about any money worries or questions you might have.`;
+          default:
+              return `Hello ${userName}! How can I help you today?`;
+      }
+  }
+
+  const startNewChat = (specialist: Specialist) => {
+    const welcomeMessageText = getWelcomeMessage(specialist);
+    const initialMessage: Message = { 
+        role: "assistant", 
+        content: welcomeMessageText, 
+        metadata: { specialist } 
+    };
+    setMessages([initialMessage]);
+    speakMessage(welcomeMessageText, specialist);
+    setCurrentConversationId(null);
+  }
+
+  const handleSpecialistChange = async (newSpecialist: Specialist) => {
+    if (newSpecialist === activeSpecialist || isHistoricChat) {
+        return;
+    }
+
+    // Save the previous conversation if it's meaningful
+    if (messages.length > 1) {
+        await handleSaveSummary(messages, true);
+    }
+
+    // Start a new chat with the new specialist
+    setActiveSpecialist(newSpecialist);
+    startNewChat(newSpecialist);
+  };
+
   useEffect(() => {
     if (!currentUserEmail) return;
     
@@ -391,6 +423,11 @@ function SupportChatPageContent() {
                 const conversation = allConversations.find(c => c.id === conversationId);
                 if (conversation) {
                     setMessages(conversation.messages);
+                    // Set the active specialist based on the last assistant message
+                    const lastAssistantMsg = [...conversation.messages].reverse().find(m => m.role === 'assistant');
+                    if(lastAssistantMsg && lastAssistantMsg.metadata?.specialist) {
+                        setActiveSpecialist(lastAssistantMsg.metadata.specialist);
+                    }
                 } else {
                      setMessages([{ role: 'assistant', content: 'Could not find the requested conversation.' }]);
                 }
@@ -416,16 +453,10 @@ function SupportChatPageContent() {
           } catch (e) {
             console.error("Failed to parse conversation history", e)
             localStorage.removeItem(`conversationHistory_${currentUserEmail}`);
-            const welcomeMessage = `Hello ${userData.name || 'there'}! I'm your Medical Expert. How can I help you today?`
-            const initialMessage: Message = { role: "assistant", content: welcomeMessage, metadata: { specialist: 'medical' } };
-            setMessages([initialMessage]);
-            speakMessage(welcomeMessage, 'medical');
+            startNewChat('medical');
           }
         } else {
-          const welcomeMessage = `Hello ${userData.name || 'there'}! I'm your Medical Expert. How can I help you today?`
-          const initialMessage: Message = { role: "assistant", content: welcomeMessage, metadata: { specialist: 'medical' } };
-          setMessages([initialMessage]);
-          speakMessage(welcomeMessage, 'medical');
+          startNewChat('medical');
         }
     }
     
@@ -434,7 +465,8 @@ function SupportChatPageContent() {
              localStorage.setItem(`conversationHistory_${currentUserEmail}`, JSON.stringify(messagesRef.current));
         }
     }
-  }, [currentUserEmail, searchParams, userData.name, loadAppContext]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserEmail, searchParams, userData.name]); // Removed loadAppContext from here to avoid re-triggering
 
   useEffect(() => {
     if (audioRef.current && audioDataUri) {
@@ -457,7 +489,7 @@ function SupportChatPageContent() {
     if (currentUserEmail) {
         if (messages.length > 1) {
              if (!isHistoricChat) {
-                handleSaveSummary();
+                handleSaveSummary(messages, true);
              }
         }
         localStorage.removeItem(`conversationHistory_${currentUserEmail}`);
@@ -548,7 +580,7 @@ function SupportChatPageContent() {
                     <span className="sr-only">Settings</span>
                 </Link>
             </Button>
-            <Button variant="outline" size="sm" onClick={handleSaveSummary} disabled={isSaving || isHistoricChat}>
+            <Button variant="outline" size="sm" onClick={() => handleSaveSummary(messages, false)} disabled={isSaving || isHistoricChat || messages.length < 2}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save
             </Button>
@@ -629,11 +661,11 @@ function SupportChatPageContent() {
 
       <div className="border-t bg-background p-4 md:p-6">
         <div className="container mx-auto max-w-lg">
-             <Tabs value={activeSpecialist} onValueChange={(v) => setActiveSpecialist(v as Specialist)} className="w-full">
+             <Tabs value={activeSpecialist} onValueChange={(v) => handleSpecialistChange(v as Specialist)} className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="medical"><User className="mr-2"/>Medical</TabsTrigger>
-                    <TabsTrigger value="mental_health"><Heart className="mr-2"/>Mental</TabsTrigger>
-                    <TabsTrigger value="financial"><Landmark className="mr-2"/>Financial</TabsTrigger>
+                    <TabsTrigger value="medical" disabled={isHistoricChat}><User className="mr-2"/>Medical</TabsTrigger>
+                    <TabsTrigger value="mental_health" disabled={isHistoricChat}><Heart className="mr-2"/>Mental</TabsTrigger>
+                    <TabsTrigger value="financial" disabled={isHistoricChat}><Landmark className="mr-2"/>Financial</TabsTrigger>
                 </TabsList>
             </Tabs>
             <form

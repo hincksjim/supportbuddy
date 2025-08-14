@@ -27,10 +27,18 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { MessageSquare, FileText, Mic, PlusCircle, Loader2, StopCircle, X, Bookmark, User } from "lucide-react"
+import { MessageSquare, FileText, Mic, PlusCircle, Loader2, StopCircle, X, Bookmark, User, Heart, Landmark } from "lucide-react"
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
 import { useToast } from "@/hooks/use-toast"
 import { summarizeVoiceNote } from "@/ai/flows/summarize-voice-note"
+
+type Specialist = "medical" | "mental_health" | "financial";
+
+const specialistConfig = {
+    medical: { name: "Medical Expert", icon: User },
+    mental_health: { name: "Mental Health Nurse", icon: Heart },
+    financial: { name: "Financial Advisor", icon: Landmark },
+}
 
 // Interfaces matching the data stored in localStorage
 interface ConversationSummary {
@@ -38,6 +46,7 @@ interface ConversationSummary {
   title: string;
   summary: string;
   date: string; // ISO String
+  specialist?: Specialist;
 }
 
 interface AnalysisResult {
@@ -292,14 +301,21 @@ function RecordVoiceNoteDialog({ onRecordingComplete }: { onRecordingComplete: (
 }
 
 function ConversationCard({ summary, onDelete }: { summary: ConversationSummary, onDelete: (id: string, type: ActivityItem['type']) => void }) {
+    const specialistInfo = summary.specialist ? specialistConfig[summary.specialist] : { name: "Conversation", icon: MessageSquare };
+    const SpecialistIcon = specialistInfo.icon;
+    
     return (
         <Card className="flex flex-col h-full relative group">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                    <MessageSquare className="w-5 h-5 text-primary" />
+                    <SpecialistIcon className="w-5 h-5 text-primary" />
                     {summary.title}
                 </CardTitle>
-                <CardDescription>{new Date(summary.date).toLocaleDateString()}</CardDescription>
+                <CardDescription className="flex items-center gap-2 text-xs">
+                  <span>{new Date(summary.date).toLocaleDateString()}</span>
+                  <span className="text-muted-foreground/80">&bull;</span>
+                  <span>{specialistInfo.name}</span>
+                </CardDescription>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col justify-between">
                  <p className="text-sm text-muted-foreground line-clamp-4">{summary.summary}</p>
@@ -488,6 +504,7 @@ export default function DashboardPage() {
                     } else if ('type' in s && s.type === 'profileUpdate') {
                         allActivity.push({ type: 'profileUpdate', data: s });
                     } else if (!('type' in s)) {
+                         // This is a conversation summary
                         allActivity.push({ type: 'conversation', data: s as ConversationSummary });
                     }
                 });

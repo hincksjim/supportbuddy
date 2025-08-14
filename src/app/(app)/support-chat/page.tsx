@@ -58,6 +58,7 @@ interface ConversationSummary {
   title: string;
   summary: string;
   date: string;
+  specialist?: Specialist;
 }
 
 interface StoredConversation {
@@ -271,6 +272,9 @@ function SupportChatPageContent() {
       const conversationIdToSave = new Date().toISOString();
       const result = await generateConversationSummary({ conversationHistory: messagesToSave });
       
+      const lastAssistantMsg = [...messagesToSave].reverse().find(m => m.role === 'assistant');
+      const specialist = lastAssistantMsg?.metadata?.specialist || activeSpecialist;
+      
       const summariesKey = `conversationSummaries_${currentUserEmail}`;
       const storedSummaries = localStorage.getItem(summariesKey);
       const summaries: ConversationSummary[] = storedSummaries ? JSON.parse(storedSummaries) : [];
@@ -278,6 +282,7 @@ function SupportChatPageContent() {
       const newSummary: ConversationSummary = {
         id: conversationIdToSave,
         date: new Date().toISOString(),
+        specialist: specialist,
         ...result,
       };
 

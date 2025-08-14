@@ -37,7 +37,7 @@ type Specialist = "medical" | "mental_health" | "financial";
 const specialistConfig = {
     medical: { name: "Medical Expert", icon: User },
     mental_health: { name: "Mental Health Nurse", icon: Heart },
-    financial: { name: "Financial Advisor", icon: Landmark },
+    financial: { name: "Financial Support Specialist", icon: Landmark },
 }
 
 // Interfaces matching the data stored in localStorage

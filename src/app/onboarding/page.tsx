@@ -111,7 +111,7 @@ export default function OnboardingPage() {
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="medical"><User className="mr-2"/>Medical Expert</TabsTrigger>
                     <TabsTrigger value="mental_health"><Heart className="mr-2"/>Mental Health</TabsTrigger>
-                    <TabsTrigger value="financial"><Landmark className="mr-2"/>Financial</TabsTrigger>
+                    <TabsTrigger value="financial"><Landmark className="mr-2"/>Financial Support</TabsTrigger>
                 </TabsList>
                 <TabsContent value="medical" className="pt-6">
                     <AvatarSelector onSelect={(id) => handleSelect("medical", id)} selectedAvatar={selections.medical} />

@@ -95,7 +95,7 @@ interface UserData {
 const specialistConfig = {
     medical: { name: "Medical Expert", icon: User },
     mental_health: { name: "Mental Health Nurse", icon: Heart },
-    financial: { name: "Financial Advisor", icon: Landmark },
+    financial: { name: "Financial Support Specialist", icon: Landmark },
 }
 
 const avatars: { [key: string]: React.ElementType } = {
@@ -400,7 +400,7 @@ function SupportChatPageContent() {
           case 'mental_health':
               return `Hi ${userName}, I'm your Mental Health Nurse. It's a safe space to talk about how you're feeling. What's on your mind?`;
           case 'financial':
-              return `Hello ${userName}, I'm your Financial Advisor. Let's talk about any money worries or questions you might have.`;
+              return `Hello ${userName}, I'm your Financial Support Specialist. Let's talk about any money worries or questions you might have.`;
           default:
               return `Hello ${userName}! How can I help you today?`;
       }

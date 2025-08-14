@@ -287,7 +287,7 @@ export default function SettingsPage() {
             <div className="space-y-6">
                 <SpecialistCard specialist="medical" title="Medical Expert" icon={<User />} userData={userData} setUserData={setUserData} />
                 <SpecialistCard specialist="mental_health" title="Mental Health Nurse" icon={<Heart />} userData={userData} setUserData={setUserData} />
-                <SpecialistCard specialist="financial" title="Financial Advisor" icon={<Landmark />} userData={userData} setUserData={setUserData} />
+                <SpecialistCard specialist="financial" title="Financial Support Specialist" icon={<Landmark />} userData={userData} setUserData={setUserData} />
             </div>
 
         </div>

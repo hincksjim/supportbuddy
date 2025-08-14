@@ -197,7 +197,7 @@ const prompt = ai.definePrompt({
 
   **Current User Question:** {{{question}}}
 
-  Please provide a detailed, supportive, and easy-to-understand answer based on all the context and principles above.`,
+  Please provide a detailed, supportive, and easy-to-understand answer based on all the context and principles above. Your final output MUST be a valid JSON object matching the provided schema, with your response contained within the "answer" field.`,
 });
 
 const aiConversationalSupportFlow = ai.defineFlow(

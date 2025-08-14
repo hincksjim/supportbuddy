@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -109,6 +110,15 @@ const AiConversationalSupportOutputSchema = z.object({
 });
 export type AiConversationalSupportOutput = z.infer<typeof AiConversationalSupportOutputSchema>;
 
+// Extend the input schema for the prompt to include boolean flags
+const EnrichedAiConversationalSupportInputSchema = AiConversationalSupportInputSchema.extend({
+    isMedical: z.boolean().optional(),
+    isMentalHealth: z.boolean().optional(),
+    isFinancial: z.boolean().optional(),
+});
+type EnrichedAiConversationalSupportInput = z.infer<typeof EnrichedAiConversationalSupportInputSchema>;
+
+
 export async function aiConversationalSupport(input: AiConversationalSupportInput): Promise<AiConversationalSupportOutput> {
   const locationQuestion = /local|nearby|close to me|hospital|clinic|doctor|pharmacy/i.test(input.question);
   const postcodeInQuestion = /\b([A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}|GIR ?0A{2})\b/i.test(input.question);
@@ -123,17 +133,24 @@ export async function aiConversationalSupport(input: AiConversationalSupportInpu
       }
     }
   }
-  
-  return aiConversationalSupportFlow(input);
-}
 
+  // Create the enriched input with boolean flags for the prompt
+  const enrichedInput: EnrichedAiConversationalSupportInput = {
+    ...input,
+    isMedical: input.specialist === 'medical',
+    isMentalHealth: input.specialist === 'mental_health',
+    isFinancial: input.specialist === 'financial',
+  };
+  
+  return aiConversationalSupportFlow(enrichedInput);
+}
 
 const prompt = ai.definePrompt({
   name: 'aiConversationalSupportPrompt',
-  input: {schema: AiConversationalSupportInputSchema},
+  input: {schema: EnrichedAiConversationalSupportInputSchema},
   output: {schema: AiConversationalSupportOutputSchema},
   tools: [lookupPostcode],
-  prompt: `{{#if (eq specialist "medical")}}
+  prompt: `{{#if isMedical}}
 You are a caring, friendly, and very supportive AI health companion acting as a **Medical Expert**. Your role is to be a direct, factual, and helpful assistant. You are here to support all elements of their care, including their physical well-being. Be empathetic, but prioritize providing clear, actionable medical information.
 
 **CORE INSTRUCTIONS (MUST FOLLOW):**
@@ -144,7 +161,7 @@ You are a caring, friendly, and very supportive AI health companion acting as a 
 5.  **Refer to Teammates:** If the conversation touches on financial worries or emotional distress, gently guide the user to talk to your teammates, the **Financial Advisor** or the **Mental Health Nurse**, who are better equipped to handle those topics.
 {{/if}}
 
-{{#if (eq specialist "mental_health")}}
+{{#if isMentalHealth}}
 You are a caring, friendly, and very supportive AI health companion acting as a **Mental Health Nurse**. Your role is to be an empathetic and listening assistant, supporting the user's emotional and mental well-being throughout their health journey.
 
 **CORE INSTRUCTIONS (MUST FOLLOW):**
@@ -154,7 +171,7 @@ You are a caring, friendly, and very supportive AI health companion acting as a 
 4.  **Do Not Give Medical or Financial Advice:** You are not a medical doctor or financial expert. If the user asks for specific medical details or financial help, you **MUST** gently refer them to your teammates, the **Medical Expert** or the **Financial Advisor**. For example: "That's a really important question for the medical team. I recommend you ask the Medical Expert on our team for the most accurate information."
 {{/if}}
 
-{{#if (eq specialist "financial")}}
+{{#if isFinancial}}
 You are a caring, friendly, and very supportive AI health companion acting as a **Financial Support Specialist**. Your role is to provide clear, helpful information about managing finances during a period of illness and treatment.
 
 **CORE INSTRUCTIONS (MUST FOLLOW):**
@@ -226,11 +243,13 @@ Please provide a detailed, supportive, and easy-to-understand answer based on yo
 const aiConversationalSupportFlow = ai.defineFlow(
   {
     name: 'aiConversationalSupportFlow',
-    inputSchema: AiConversationalSupportInputSchema,
+    inputSchema: EnrichedAiConversationalSupportInputSchema,
     outputSchema: AiConversationalSupportOutputSchema,
   },
-  async input => {
+  async (input) => {
     const {output} = await prompt(input);
     return output!;
   }
 );
+
+    

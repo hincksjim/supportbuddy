@@ -16,10 +16,11 @@ import {
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { 
-    AvatarFemale, AvatarMale,
     AvatarFemale20s, AvatarFemale30s, AvatarFemale40s, AvatarFemale60s,
     AvatarMale20s, AvatarMale30s, AvatarMale40s, AvatarMale60s
 } from "@/components/icons"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { User, Heart, Landmark } from "lucide-react"
 
 const avatars = [
     { id: 'female-20s', Component: AvatarFemale20s, label: "Female, 20s" },
@@ -32,9 +33,35 @@ const avatars = [
     { id: 'male-60s', Component: AvatarMale60s, label: "Male, 60s" },
 ]
 
+type Specialist = "medical" | "mental_health" | "financial";
+
+function AvatarSelector({ onSelect, selectedAvatar }: { onSelect: (id: string) => void, selectedAvatar: string }) {
+    return (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {avatars.map(avatar => (
+                <div
+                    key={avatar.id}
+                    className={cn(
+                    "cursor-pointer rounded-lg p-2 transition-all duration-200 flex flex-col items-center gap-2",
+                    selectedAvatar === avatar.id ? "bg-accent ring-2 ring-primary" : "hover:bg-accent/50"
+                    )}
+                    onClick={() => onSelect(avatar.id)}
+                >
+                    <avatar.Component className="h-24 w-24 text-foreground" />
+                    <Label className="text-sm">{avatar.label}</Label>
+                </div>
+            ))}
+        </div>
+    )
+}
+
 export default function OnboardingPage() {
   const router = useRouter()
-  const [selectedAvatar, setSelectedAvatar] = useState("female-30s")
+  const [selections, setSelections] = useState({
+      medical: "female-30s",
+      mental_health: "male-40s",
+      financial: "female-60s",
+  });
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,12 +73,25 @@ export default function OnboardingPage() {
     }
   }, [router]);
 
+  const handleSelect = (specialist: Specialist, avatarId: string) => {
+      setSelections(prev => ({...prev, [specialist]: avatarId }));
+  }
+
   const handleContinue = () => {
     if (typeof window !== "undefined" && currentUserEmail) {
       const userDataKey = `userData_${currentUserEmail}`;
       const existingData = localStorage.getItem(userDataKey);
       const data = existingData ? JSON.parse(existingData) : {};
-      data.avatar = selectedAvatar;
+      
+      data.avatar_medical = selections.medical;
+      data.avatar_mental_health = selections.mental_health;
+      data.avatar_financial = selections.financial;
+
+      // Set default voices
+      data.voice_medical = "Algenib";
+      data.voice_mental_health = "Enceladus";
+      data.voice_financial = "Leda";
+
       localStorage.setItem(userDataKey, JSON.stringify(data));
     }
     router.push("/support-chat")
@@ -59,31 +99,30 @@ export default function OnboardingPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-2xl shadow-2xl">
+      <Card className="w-full max-w-3xl shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-3xl">Choose Your Buddy</CardTitle>
+          <CardTitle className="font-headline text-3xl">Choose Your Support Team</CardTitle>
           <CardDescription>
-            Select an avatar that feels most supportive to you.
+            Select an avatar for each specialist on your team.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-8">
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {avatars.map(avatar => (
-                <div
-                    key={avatar.id}
-                    className={cn(
-                    "cursor-pointer rounded-lg p-2 transition-all duration-200 flex flex-col items-center gap-2",
-                    selectedAvatar === avatar.id ? "bg-accent ring-2 ring-primary" : "hover:bg-accent/50"
-                    )}
-                    onClick={() => setSelectedAvatar(avatar.id)}
-                >
-                    <avatar.Component className="h-24 w-24 text-foreground" />
-                    <Label className="text-sm">{avatar.label}</Label>
-                </div>
-              ))}
-            </div>
-          </div>
+        <CardContent>
+            <Tabs defaultValue="medical" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="medical"><User className="mr-2"/>Medical Expert</TabsTrigger>
+                    <TabsTrigger value="mental_health"><Heart className="mr-2"/>Mental Health</TabsTrigger>
+                    <TabsTrigger value="financial"><Landmark className="mr-2"/>Financial</TabsTrigger>
+                </TabsList>
+                <TabsContent value="medical" className="pt-6">
+                    <AvatarSelector onSelect={(id) => handleSelect("medical", id)} selectedAvatar={selections.medical} />
+                </TabsContent>
+                <TabsContent value="mental_health" className="pt-6">
+                     <AvatarSelector onSelect={(id) => handleSelect("mental_health", id)} selectedAvatar={selections.mental_health} />
+                </TabsContent>
+                <TabsContent value="financial" className="pt-6">
+                     <AvatarSelector onSelect={(id) => handleSelect("financial", id)} selectedAvatar={selections.financial} />
+                </TabsContent>
+            </Tabs>
         </CardContent>
         <CardFooter>
           <Button className="w-full" onClick={handleContinue}>

@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useRef, useEffect, Suspense, useCallback } from "react"
-import { CornerDownLeft, Loader2, User, Bot, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX, PlusCircle, Download, Bookmark, ChevronDown, Settings } from "lucide-react"
+import { CornerDownLeft, Loader2, User, Heart, Landmark, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX, PlusCircle, Download, Bookmark, ChevronDown, Settings } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -14,7 +14,6 @@ import { generateConversationSummary } from "@/ai/flows/generate-conversation-su
 import { textToSpeech } from "@/ai/flows/text-to-speech"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { 
-    AvatarFemale, AvatarMale,
     AvatarFemale20s, AvatarFemale30s, AvatarFemale40s, AvatarFemale60s,
     AvatarMale20s, AvatarMale30s, AvatarMale40s, AvatarMale60s
 } from "@/components/icons"
@@ -29,15 +28,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { GenerateTreatmentTimelineOutput } from "@/ai/flows/generate-treatment-timeline"
 import type { DiaryEntry } from "@/app/(app)/diary/page"
 import type { Medication } from "@/app/(app)/medication/page"
 import type { AnalysisResult } from "@/app/(app)/document-analysis/page"
 
 
+type Specialist = "medical" | "mental_health" | "financial";
+
 interface Message {
   role: "user" | "assistant"
-  content: string
+  content: string;
+  metadata?: {
+      specialist: Specialist;
+  }
 }
 
 interface SavedMessageActivity {
@@ -71,7 +76,12 @@ interface UserData {
   countyState?: string;
   country?: string;
   postcode?: string;
-  avatar?: string;
+  avatar_medical?: string;
+  avatar_mental_health?: string;
+  avatar_financial?: string;
+  voice_medical?: string;
+  voice_mental_health?: string;
+  voice_financial?: string;
   dob?: string;
   employmentStatus?: string;
   income?: string;
@@ -79,6 +89,12 @@ interface UserData {
   benefits?: string[];
   responseMood?: string;
   initialDiagnosis?: string;
+}
+
+const specialistConfig = {
+    medical: { name: "Medical Expert", icon: User },
+    mental_health: { name: "Mental Health Nurse", icon: Heart },
+    financial: { name: "Financial Advisor", icon: Landmark },
 }
 
 const avatars: { [key: string]: React.ElementType } = {
@@ -90,8 +106,6 @@ const avatars: { [key: string]: React.ElementType } = {
     'male-30s': AvatarMale30s,
     'male-40s': AvatarMale40s,
     'male-60s': AvatarMale60s,
-    'female': AvatarFemale,
-    'male': AvatarMale,
 };
 
 // Define a type for all the contextual data we will load
@@ -118,8 +132,8 @@ function SupportChatPageContent() {
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
   const [isHistoricChat, setIsHistoricChat] = useState(false);
   const [isTtsEnabled, setIsTtsEnabled] = useState(true);
-  const [selectedVoice, setSelectedVoice] = useState('Algenib');
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [activeSpecialist, setActiveSpecialist] = useState<Specialist>("medical");
   
   const router = useRouter()
   const searchParams = useSearchParams();
@@ -132,7 +146,6 @@ function SupportChatPageContent() {
     messagesRef.current = messages;
   }, [messages]);
 
-  // Function to load all necessary context from localStorage
   const loadAppContext = useCallback(() => {
     if (!currentUserEmail) return;
     try {
@@ -158,10 +171,12 @@ function SupportChatPageContent() {
     }
   }, [currentUserEmail, toast]);
   
-  const speakMessage = async (text: string) => {
+  const speakMessage = async (text: string, specialist: Specialist) => {
     if (!isTtsEnabled) return;
     try {
-      const result = await textToSpeech({ text, voice: selectedVoice });
+      const voiceKey = `voice_${specialist}` as keyof UserData;
+      const voice = userData[voiceKey] || 'Algenib';
+      const result = await textToSpeech({ text, voice });
       if (result.audioDataUri) {
         setAudioDataUri(result.audioDataUri);
       }
@@ -183,6 +198,7 @@ function SupportChatPageContent() {
 
     try {
       const flowInput: AiConversationalSupportInput = { 
+        specialist: activeSpecialist,
         userName: userData.name || "User", 
         initialDiagnosis: userData.initialDiagnosis || 'Not specified',
         age: userData.age || "",
@@ -200,7 +216,6 @@ function SupportChatPageContent() {
         conversationHistory: messages,
         question: finalInput,
         
-        // Pass all the contextual data
         timelineData: appContextData.timelineData,
         diaryData: appContextData.diaryData,
         medicationData: appContextData.medicationData,
@@ -212,27 +227,28 @@ function SupportChatPageContent() {
         })),
       };
 
-      if (userData.income) {
-          flowInput.income = userData.income;
-      }
-      if (userData.savings) {
-          flowInput.savings = userData.savings;
-      }
+      if (userData.income) flowInput.income = userData.income;
+      if (userData.savings) flowInput.savings = userData.savings;
 
       const result = await aiConversationalSupport(flowInput)
-      const assistantMessage: Message = { role: "assistant", content: result.answer }
+      const assistantMessage: Message = { 
+          role: "assistant", 
+          content: result.answer,
+          metadata: { specialist: activeSpecialist } 
+      }
       const finalMessages = [...newMessages, assistantMessage];
       setMessages(finalMessages)
-      await speakMessage(result.answer)
+      await speakMessage(result.answer, activeSpecialist)
     } catch (error) {
       console.error("Error from AI support flow: ", error)
       const errorMessageText = "I'm sorry, I encountered an error. Please try again. If the problem persists, please check the server logs."
       const errorMessage: Message = {
         role: "assistant",
         content: errorMessageText,
+        metadata: { specialist: activeSpecialist }
       }
       setMessages((prev) => [...prev, errorMessage])
-      await speakMessage(errorMessageText)
+      await speakMessage(errorMessageText, activeSpecialist)
     } finally {
       setIsLoading(false)
     }
@@ -256,7 +272,6 @@ function SupportChatPageContent() {
         setCurrentConversationId(summaryId);
       }
 
-      // --- Save/Update Summary ---
       const summariesKey = `conversationSummaries_${currentUserEmail}`;
       const storedSummaries = localStorage.getItem(summariesKey);
       const summaries: ConversationSummary[] = storedSummaries ? JSON.parse(storedSummaries) : [];
@@ -275,7 +290,6 @@ function SupportChatPageContent() {
       }
       localStorage.setItem(summariesKey, JSON.stringify(summaries));
 
-      // --- Save/Update Full Conversation ---
       const allConversationsKey = `allConversations_${currentUserEmail}`;
       const storedConversations = localStorage.getItem(allConversationsKey);
       const allConversations: StoredConversation[] = storedConversations ? JSON.parse(storedConversations) : [];
@@ -351,6 +365,12 @@ function SupportChatPageContent() {
     }
   }, [router]);
   
+  const getAvatarForSpecialist = (specialist: Specialist) => {
+      const avatarKey = `avatar_${specialist}` as keyof UserData;
+      const avatarId = userData[avatarKey] || 'female-30s';
+      return avatars[avatarId] || avatars['female-30s'];
+  }
+
   useEffect(() => {
     if (!currentUserEmail) return;
     
@@ -358,10 +378,6 @@ function SupportChatPageContent() {
 
     const ttsSetting = localStorage.getItem('ttsEnabled');
     setIsTtsEnabled(ttsSetting !== 'false');
-    const voiceSetting = localStorage.getItem('ttsVoice');
-    if (voiceSetting) {
-        setSelectedVoice(voiceSetting);
-    }
 
     const conversationId = searchParams.get("id");
 
@@ -400,20 +416,19 @@ function SupportChatPageContent() {
           } catch (e) {
             console.error("Failed to parse conversation history", e)
             localStorage.removeItem(`conversationHistory_${currentUserEmail}`);
-            const welcomeMessage = `Hello ${userData.name || 'there'}! I'm your Support Buddy. I'm here to listen and help you with any questions or worries you might have about your health, treatment, or well-being. Feel free to talk to me about anything at all.`
-            const initialMessage: Message = { role: "assistant", content: welcomeMessage };
+            const welcomeMessage = `Hello ${userData.name || 'there'}! I'm your Medical Expert. How can I help you today?`
+            const initialMessage: Message = { role: "assistant", content: welcomeMessage, metadata: { specialist: 'medical' } };
             setMessages([initialMessage]);
-            speakMessage(welcomeMessage);
+            speakMessage(welcomeMessage, 'medical');
           }
         } else {
-          const welcomeMessage = `Hello ${userData.name || 'there'}! I'm your Support Buddy. I'm here to listen and help you with any questions or worries you might have about your health, treatment, or well-being. Feel free to talk to me about anything at all.`
-          const initialMessage: Message = { role: "assistant", content: welcomeMessage };
+          const welcomeMessage = `Hello ${userData.name || 'there'}! I'm your Medical Expert. How can I help you today?`
+          const initialMessage: Message = { role: "assistant", content: welcomeMessage, metadata: { specialist: 'medical' } };
           setMessages([initialMessage]);
-          speakMessage(welcomeMessage);
+          speakMessage(welcomeMessage, 'medical');
         }
     }
     
-    // Save on exit
     return () => {
         if (currentUserEmail && !isHistoricChat && messagesRef.current.length > 1) {
              localStorage.setItem(`conversationHistory_${currentUserEmail}`, JSON.stringify(messagesRef.current));
@@ -441,7 +456,6 @@ function SupportChatPageContent() {
   const handleNewChat = () => {
     if (currentUserEmail) {
         if (messages.length > 1) {
-             // Save current chat before starting a new one, if not already saved
              if (!isHistoricChat) {
                 handleSaveSummary();
              }
@@ -452,12 +466,10 @@ function SupportChatPageContent() {
     window.location.reload();
   }
 
-  const BuddyAvatarIcon = avatars[userData.avatar || 'female-30s'] || AvatarFemale;
-
   const getPlaceholderText = () => {
     if (isHistoricChat) return "This is a past conversation. You cannot send new messages.";
     if (isListening) return "Listening... Press the mic again to stop.";
-    return "Press the mic to speak, or type here...";
+    return `Ask the ${specialistConfig[activeSpecialist].name}...`;
   }
 
   const toggleTts = () => {
@@ -467,7 +479,6 @@ function SupportChatPageContent() {
       toast({
           title: `Text-to-Speech ${newTtsState ? 'Enabled' : 'Disabled'}`,
       });
-      // If turning off, stop any current playback
       if (!newTtsState && audioRef.current) {
           audioRef.current.pause();
           audioRef.current.src = "";
@@ -547,7 +558,10 @@ function SupportChatPageContent() {
         <ScrollArea className="h-full">
             <ScrollViewport ref={viewportRef}>
               <div className="p-4 md:p-6 space-y-6">
-                {messages.map((message, index) => (
+                {messages.map((message, index) => {
+                   const specialist = message.metadata?.specialist || 'medical';
+                   const BuddyAvatarIcon = getAvatarForSpecialist(specialist);
+                  return (
                   <div
                     key={index}
                     className={cn(
@@ -595,12 +609,12 @@ function SupportChatPageContent() {
                         </>
                     )}
                   </div>
-                ))}
+                  )})}
                 {isLoading && (
                   <div className="flex items-start gap-4 justify-start">
                     <Avatar className="w-8 h-8 border bg-accent/50">
                        <AvatarFallback className="bg-transparent text-foreground">
-                            <BuddyAvatarIcon className="w-8 h-8" />
+                            {(getAvatarForSpecialist(activeSpecialist))({className: "w-8 h-8"})}
                         </AvatarFallback>
                     </Avatar>
                     <div className="max-w-xl rounded-xl p-3 shadow-md bg-card flex items-center">
@@ -614,11 +628,18 @@ function SupportChatPageContent() {
       </div>
 
       <div className="border-t bg-background p-4 md:p-6">
-        <div className="container mx-auto max-w-md">
+        <div className="container mx-auto max-w-lg">
+             <Tabs value={activeSpecialist} onValueChange={(v) => setActiveSpecialist(v as Specialist)} className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="medical"><User className="mr-2"/>Medical</TabsTrigger>
+                    <TabsTrigger value="mental_health"><Heart className="mr-2"/>Mental</TabsTrigger>
+                    <TabsTrigger value="financial"><Landmark className="mr-2"/>Financial</TabsTrigger>
+                </TabsList>
+            </Tabs>
             <form
             id="chat-form"
             onSubmit={handleSubmit}
-            className="relative"
+            className="relative mt-4"
             >
             <Textarea
                 name="input-textarea"

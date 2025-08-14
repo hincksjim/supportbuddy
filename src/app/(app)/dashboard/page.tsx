@@ -595,21 +595,21 @@ export default function DashboardPage() {
             {activity.length > 0 ? (
                  <section>
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {activity.map((item) => {
+                        {activity.map((item, index) => {
                             if (item.type === 'conversation') {
-                                return <ConversationCard key={`convo-${item.data.id}`} summary={item.data} onDelete={handleDelete} />;
+                                return <ConversationCard key={`convo-${item.data.id}-${index}`} summary={item.data} onDelete={handleDelete} />;
                             }
                             if (item.type === 'analysis') {
-                                return <AnalysisCard key={`analysis-${item.data.id}`} result={item.data} onDelete={handleDelete} />;
+                                return <AnalysisCard key={`analysis-${item.data.id}-${index}`} result={item.data} onDelete={handleDelete} />;
                             }
                             if (item.type === 'voiceNote') {
-                                return <VoiceNoteCard key={`note-${item.data.id}`} note={item.data} onDelete={handleDelete} />;
+                                return <VoiceNoteCard key={`note-${item.data.id}-${index}`} note={item.data} onDelete={handleDelete} />;
                             }
                             if (item.type === 'savedMessage') {
-                                return <SavedMessageCard key={`saved-${item.data.id}`} message={item.data} onDelete={handleDelete} />;
+                                return <SavedMessageCard key={`saved-${item.data.id}-${index}`} message={item.data} onDelete={handleDelete} />;
                             }
                             if (item.type === 'profileUpdate') {
-                                return <ProfileUpdateCard key={`profile-${item.data.id}`} activity={item.data} onDelete={handleDelete} />;
+                                return <ProfileUpdateCard key={`profile-${item.data.id}-${index}`} activity={item.data} onDelete={handleDelete} />;
                             }
                             return null;
                         })}

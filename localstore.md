@@ -1,3 +1,4 @@
+
 # Local Storage Usage
 
 This document outlines how the application uses the browser's `localStorage`. All data is stored locally on the user's device and is partitioned by the logged-in user's email address to ensure data isolation between different accounts on the same browser.
@@ -48,6 +49,7 @@ This document outlines how the application uses the browser's `localStorage`. Al
       "savings": "string",
       "benefits": ["string"],
       "initialDiagnosis": "string",
+      "profilePicture": "string (Data URI)",
       "avatar_medical": "string",
       "avatar_mental_health": "string",
       "avatar_financial": "string",

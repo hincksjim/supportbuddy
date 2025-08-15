@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 import { aiConversationalSupport, AiConversationalSupportInput } from "@/ai/flows/conversational-support"
 import { generateConversationSummary } from "@/ai/flows/generate-conversation-summary"
 import { textToSpeech } from "@/ai/flows/text-to-speech"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { 
     AvatarFemale20s, AvatarFemale30s, AvatarFemale40s, AvatarFemale60s,
     AvatarMale20s, AvatarMale30s, AvatarMale40s, AvatarMale60s
@@ -90,6 +90,7 @@ interface UserData {
   benefits?: string[];
   responseMood?: string;
   initialDiagnosis?: string;
+  profilePicture?: string;
 }
 
 const specialistConfig = {
@@ -662,9 +663,12 @@ function SupportChatPageContent() {
                             <p className="whitespace-pre-wrap">{message.content}</p>
                             </div>
                             <Avatar className="w-8 h-8 border">
-                            <AvatarFallback className="bg-secondary text-secondary-foreground">
-                                <User className="w-5 h-5" />
-                            </AvatarFallback>
+                                {userData.profilePicture ? (
+                                    <AvatarImage src={userData.profilePicture} alt="Your profile picture" />
+                                ) : null}
+                                <AvatarFallback className="bg-secondary text-secondary-foreground">
+                                    <User className="w-5 h-5" />
+                                </AvatarFallback>
                             </Avatar>
                         </>
                     )}

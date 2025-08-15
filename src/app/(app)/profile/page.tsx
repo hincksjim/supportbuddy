@@ -1,8 +1,9 @@
 
 "use client"
 
-import { useState, useEffect, useCallback, ChangeEvent } from "react"
+import { useState, useEffect, useCallback, ChangeEvent, useRef } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -20,7 +21,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { IndeterminateCheckbox } from "@/components/ui/indeterminate-checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { User, Save, Mail } from "lucide-react"
+import { User, Save, Mail, Camera } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+
 
 const benefitsList = [
     { id: 'uc', label: 'Universal Credit (UC)' },
@@ -89,6 +92,7 @@ interface UserData {
     savings?: string;
     benefits?: string[];
     initialDiagnosis?: string;
+    profilePicture?: string; // data URI
 }
 
 interface ProfileUpdateActivity {
@@ -109,6 +113,7 @@ export default function ProfilePage() {
     const [selectedBenefits, setSelectedBenefits] = useState<Record<string, boolean>>({});
     const [diagnosisSelection, setDiagnosisSelection] = useState('');
     const [otherDiagnosis, setOtherDiagnosis] = useState('');
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const loadUserData = useCallback(() => {
         setIsLoading(true);
@@ -181,6 +186,17 @@ export default function ProfilePage() {
         setSelectedBenefits(prev => ({ ...prev, [benefitId]: checked }))
     }
 
+    const handleProfilePictureChange = (e: ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (loadEvent) => {
+                setUserData(prev => ({ ...prev, profilePicture: loadEvent.target?.result as string }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSave = () => {
         if (!currentUserEmail) return;
 
@@ -244,23 +260,51 @@ export default function ProfilePage() {
                     <CardDescription>This information helps personalize the support you receive.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="flex items-center space-x-4 rounded-md border p-4 bg-muted/50">
-                        <Mail className="h-5 w-5 text-muted-foreground" />
-                        <div className="flex-grow">
-                            <Label htmlFor="email" className="text-xs text-muted-foreground">Email</Label>
-                            <div id="email" className="font-semibold">{currentUserEmail}</div>
+                    <div className="flex items-center space-x-4">
+                        <div className="relative group">
+                            <Avatar className="w-24 h-24 border-2 border-primary/20">
+                                <AvatarImage src={userData.profilePicture} alt="Profile Picture" />
+                                <AvatarFallback className="bg-muted">
+                                    <User className="w-12 h-12 text-muted-foreground" />
+                                </AvatarFallback>
+                            </Avatar>
+                            <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="absolute bottom-0 right-0 rounded-full h-8 w-8 bg-background group-hover:bg-accent"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                <Camera className="h-4 w-4" />
+                            </Button>
+                             <Input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                className="hidden" 
+                                accept="image/*" 
+                                onChange={handleProfilePictureChange} 
+                             />
+                        </div>
+                        <div className="flex-grow space-y-2">
+                             <div className="flex items-center space-x-4 rounded-md border p-4 bg-muted/50">
+                                <Mail className="h-5 w-5 text-muted-foreground" />
+                                <div className="flex-grow">
+                                    <Label htmlFor="email" className="text-xs text-muted-foreground">Email</Label>
+                                    <div id="email" className="font-semibold">{currentUserEmail}</div>
+                                </div>
+                            </div>
+                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                <Label htmlFor="name">First name</Label>
+                                <Input id="name" name="name" placeholder="Alex" value={userData.name || ''} onChange={handleInputChange} />
+                                </div>
+                                <div className="space-y-2">
+                                <Label htmlFor="lastName">Last name</Label>
+                                <Input id="lastName" name="lastName" placeholder="Smith" value={userData.lastName || ''} onChange={handleInputChange}/>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="name">First name</Label>
-                          <Input id="name" name="name" placeholder="Alex" value={userData.name || ''} onChange={handleInputChange} />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="lastName">Last name</Label>
-                          <Input id="lastName" name="lastName" placeholder="Smith" value={userData.lastName || ''} onChange={handleInputChange}/>
-                        </div>
-                    </div>
+                    
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div className="space-y-2">
                             <Label htmlFor="age">Age</Label>

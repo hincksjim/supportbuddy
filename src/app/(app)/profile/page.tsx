@@ -14,6 +14,16 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -21,7 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { IndeterminateCheckbox } from "@/components/ui/indeterminate-checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { User, Save, Mail, Camera } from "lucide-react"
+import { User, Save, Mail, Camera, Loader2 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 
@@ -103,6 +113,98 @@ interface ProfileUpdateActivity {
   date: string;
 }
 
+function ProfilePictureCameraDialog({ onCapture, open, onOpenChange }: { onCapture: (dataUri: string) => void; open: boolean; onOpenChange: (open: boolean) => void; }) {
+    const { toast } = useToast();
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [hasCameraPermission, setHasCameraPermission] = useState(true);
+    const [isCapturing, setIsCapturing] = useState(false);
+
+    useEffect(() => {
+        const getCameraPermission = async () => {
+            if (!open) return;
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                setHasCameraPermission(false);
+                return;
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+                setHasCameraPermission(true);
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                setHasCameraPermission(false);
+                toast({
+                    variant: 'destructive',
+                    title: 'Camera Access Denied',
+                    description: 'Please enable camera permissions in your browser settings.',
+                });
+            }
+        };
+
+        getCameraPermission();
+
+        return () => {
+            if (videoRef.current && videoRef.current.srcObject) {
+                const stream = videoRef.current.srcObject as MediaStream;
+                stream.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, [open, toast]);
+
+    const handleCapture = () => {
+        if (!videoRef.current || !canvasRef.current) return;
+        setIsCapturing(true);
+
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        context?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+
+        const photoDataUri = canvas.toDataURL('image/jpeg');
+        onCapture(photoDataUri);
+        setIsCapturing(false);
+        onOpenChange(false);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Take a Profile Photo</DialogTitle>
+                    <DialogDescription>
+                        Center your face in the frame and click capture.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <div className="relative">
+                        <video ref={videoRef} className="w-full aspect-square rounded-full object-cover bg-muted" autoPlay muted playsInline />
+                        <canvas ref={canvasRef} className="hidden" />
+                        {!hasCameraPermission && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                                <p className="text-white text-center">Camera access is required.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="ghost">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleCapture} disabled={!hasCameraPermission || isCapturing}>
+                        {isCapturing ? <Loader2 className="animate-spin mr-2"/> : <Camera className="mr-2"/>}
+                        Capture
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function ProfilePage() {
     const router = useRouter()
     const { toast } = useToast()
@@ -113,7 +215,8 @@ export default function ProfilePage() {
     const [selectedBenefits, setSelectedBenefits] = useState<Record<string, boolean>>({});
     const [diagnosisSelection, setDiagnosisSelection] = useState('');
     const [otherDiagnosis, setOtherDiagnosis] = useState('');
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
+
 
     const loadUserData = useCallback(() => {
         setIsLoading(true);
@@ -170,9 +273,6 @@ export default function ProfilePage() {
         if (value !== 'other') {
             setOtherDiagnosis('');
             setUserData(prev => ({...prev, initialDiagnosis: value}));
-        } else {
-            // If switching to 'other', we might want to clear the old diagnosis or keep it
-            // For now, we wait for text input.
         }
     }
     
@@ -186,16 +286,9 @@ export default function ProfilePage() {
         setSelectedBenefits(prev => ({ ...prev, [benefitId]: checked }))
     }
 
-    const handleProfilePictureChange = (e: ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (loadEvent) => {
-                setUserData(prev => ({ ...prev, profilePicture: loadEvent.target?.result as string }));
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+    const handleProfilePictureCapture = (dataUri: string) => {
+        setUserData(prev => ({...prev, profilePicture: dataUri}));
+    }
 
     const handleSave = () => {
         if (!currentUserEmail) return;
@@ -244,217 +337,217 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="p-4 md:p-6 space-y-8">
-             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold font-headline">My Profile</h1>
-                    <p className="text-muted-foreground">
-                       View and edit your personal information.
-                    </p>
-                </div>
-                 <Button onClick={handleSave}><Save className="mr-2" /> Save Changes</Button>
-            </div>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Personal Details</CardTitle>
-                    <CardDescription>This information helps personalize the support you receive.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="flex items-center space-x-4">
-                        <div className="relative group">
-                            <Avatar className="w-24 h-24 border-2 border-primary/20">
-                                <AvatarImage src={userData.profilePicture} alt="Profile Picture" />
-                                <AvatarFallback className="bg-muted">
-                                    <User className="w-12 h-12 text-muted-foreground" />
-                                </AvatarFallback>
-                            </Avatar>
-                            <Button 
-                                variant="outline" 
-                                size="icon" 
-                                className="absolute bottom-0 right-0 rounded-full h-8 w-8 bg-background group-hover:bg-accent"
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                <Camera className="h-4 w-4" />
-                            </Button>
-                             <Input 
-                                type="file" 
-                                ref={fileInputRef} 
-                                className="hidden" 
-                                accept="image/*" 
-                                onChange={handleProfilePictureChange} 
-                             />
-                        </div>
-                        <div className="flex-grow space-y-2">
-                             <div className="flex items-center space-x-4 rounded-md border p-4 bg-muted/50">
-                                <Mail className="h-5 w-5 text-muted-foreground" />
-                                <div className="flex-grow">
-                                    <Label htmlFor="email" className="text-xs text-muted-foreground">Email</Label>
-                                    <div id="email" className="font-semibold">{currentUserEmail}</div>
-                                </div>
-                            </div>
-                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="space-y-2">
-                                <Label htmlFor="name">First name</Label>
-                                <Input id="name" name="name" placeholder="Alex" value={userData.name || ''} onChange={handleInputChange} />
-                                </div>
-                                <div className="space-y-2">
-                                <Label htmlFor="lastName">Last name</Label>
-                                <Input id="lastName" name="lastName" placeholder="Smith" value={userData.lastName || ''} onChange={handleInputChange}/>
-                                </div>
-                            </div>
-                        </div>
+        <>
+            <div className="p-4 md:p-6 space-y-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold font-headline">My Profile</h1>
+                        <p className="text-muted-foreground">
+                        View and edit your personal information.
+                        </p>
                     </div>
-                    
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="age">Age</Label>
-                            <Input id="age" name="age" type="number" placeholder="Your age" value={userData.age || ''} onChange={handleInputChange} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Gender</Label>
-                            <RadioGroup name="gender" value={userData.gender} onValueChange={(v) => handleSelectChange('gender', v)} className="flex gap-4 pt-2">
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="female" id="female" />
-                                    <Label htmlFor="female">Female</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="male" id="male" />
-                                    <Label htmlFor="male">Male</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="other" id="other" />
-                                    <Label htmlFor="other">Other</Label>
-                                </div>
-                            </RadioGroup>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="address1">House Number/Name & Street</Label>
-                        <Input id="address1" name="address1" placeholder="e.g., 10 Downing Street" value={userData.address1 || ''} onChange={handleInputChange} />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="address2">Address Line 2 (optional)</Label>
-                        <Input id="address2" name="address2" value={userData.address2 || ''} onChange={handleInputChange}/>
-                    </div>
-                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                         <div className="space-y-2">
-                            <Label htmlFor="townCity">Town/City</Label>
-                            <Input id="townCity" name="townCity" placeholder="e.g., London" value={userData.townCity || ''} onChange={handleInputChange} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="countyState">County/State</Label>
-                            <Input id="countyState" name="countyState" placeholder="e.g., Greater London" value={userData.countyState || ''} onChange={handleInputChange} />
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                         <div className="space-y-2">
-                            <Label htmlFor="country">Country</Label>
-                            <Input id="country" name="country" placeholder="e.g., United Kingdom" value={userData.country || ''} onChange={handleInputChange}/>
-                        </div>
-                         <div className="space-y-2">
-                          <Label htmlFor="postcode">Postcode</Label>
-                          <Input id="postcode" name="postcode" placeholder="Your postcode" value={userData.postcode || ''} onChange={handleInputChange}/>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="dob">Date of Birth</Label>
-                        <Input id="dob" name="dob" type="date" value={userData.dob ? new Date(userData.dob).toISOString().split('T')[0] : ''} onChange={handleInputChange} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="initial-diagnosis">Primary Health Condition</Label>
-                        <Select onValueChange={handleDiagnosisSelectChange} value={diagnosisSelection}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select your main condition" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {initialDiagnosisOptions.map(opt => (
-                                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                ))}
-                                <SelectItem value="other">Other...</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                     {diagnosisSelection === 'other' && (
-                        <div className="space-y-2">
-                            <Label htmlFor="other-diagnosis">Please specify your condition</Label>
-                            <Input id="other-diagnosis" name="other-diagnosis" placeholder="e.g., Chronic Kidney Disease" value={otherDiagnosis} onChange={handleOtherDiagnosisChange} />
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Financial Information</CardTitle>
-                    <CardDescription>This information is used for benefits suggestions. It is stored securely on your device.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="employmentStatus">Employment Status</Label>
-                        <Select name="employmentStatus" onValueChange={(v) => handleSelectChange('employmentStatus', v)} value={userData.employmentStatus}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select your status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="employed">Employed</SelectItem>
-                                <SelectItem value="self-employed">Self-employed</SelectItem>
-                                <SelectItem value="retired">Retired</SelectItem>
-                                <SelectItem value="unemployed-not-on-benefits">Unemployed not on benefits</SelectItem>
-                                <SelectItem value="unemployed-on-benefits">Unemployed on benefits</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {(userData.employmentStatus === 'employed' || userData.employmentStatus === 'self-employed') && (
-                        <div className="space-y-2">
-                            <Label htmlFor="income">Annual Income (£)</Label>
-                            <Input id="income" name="income" type="number" placeholder="e.g., 30000" value={userData.income || ''} onChange={handleInputChange} />
-                        </div>
-                    )}
-
-                    {userData.employmentStatus === 'retired' && (
-                        <div className="space-y-2">
-                            <Label htmlFor="savings">Savings (£)</Label>
-                            <Input id="savings" name="savings" type="number" placeholder="e.g., 5000" value={userData.savings || ''} onChange={handleInputChange} />
-                        </div>
-                    )}
-
-                    <div className="space-y-4 pt-2">
-                        <Label className="font-semibold">Benefits</Label>
-                        <p className="text-xs text-muted-foreground">Select any benefits you are currently receiving.</p>
-                        <div className="space-y-2 p-4 border rounded-md max-h-60 overflow-y-auto">
-                            <div className="flex items-center space-x-2 pb-2 border-b">
-                                <IndeterminateCheckbox
-                                    id="select-all-benefits"
-                                    checked={allBenefitsSelected}
-                                    indeterminate={someBenefitsSelected}
-                                    onCheckedChange={(checked) => {
-                                        const newSelected: Record<string, boolean> = {};
-                                        if (checked) {
-                                            benefitsList.forEach(b => newSelected[b.id] = true);
-                                        }
-                                        setSelectedBenefits(newSelected);
-                                    }}
-                                />
-                                <Label htmlFor="select-all-benefits" className="font-bold">Select All</Label>
-                            </div>
-                            {benefitsList.map(benefit => (
-                                <div key={benefit.id} className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id={benefit.id}
-                                        checked={selectedBenefits[benefit.id] || false}
-                                        onCheckedChange={(checked) => handleBenefitChange(benefit.id, !!checked)}
-                                    />
-                                    <Label htmlFor={benefit.id}>{benefit.label}</Label>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </CardContent>
-                 <CardFooter>
                     <Button onClick={handleSave}><Save className="mr-2" /> Save Changes</Button>
-                </CardFooter>
-            </Card>
-        </div>
+                </div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Personal Details</CardTitle>
+                        <CardDescription>This information helps personalize the support you receive.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="flex items-center space-x-4">
+                            <div className="relative group">
+                                <Avatar className="w-24 h-24 border-2 border-primary/20">
+                                    <AvatarImage src={userData.profilePicture} alt="Profile Picture" />
+                                    <AvatarFallback className="bg-muted">
+                                        <User className="w-12 h-12 text-muted-foreground" />
+                                    </AvatarFallback>
+                                </Avatar>
+                                <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    className="absolute bottom-0 right-0 rounded-full h-8 w-8 bg-background group-hover:bg-accent"
+                                    onClick={() => setIsCameraDialogOpen(true)}
+                                >
+                                    <Camera className="h-4 w-4" />
+                                </Button>
+                            </div>
+                            <div className="flex-grow space-y-2">
+                                <div className="flex items-center space-x-4 rounded-md border p-4 bg-muted/50">
+                                    <Mail className="h-5 w-5 text-muted-foreground" />
+                                    <div className="flex-grow">
+                                        <Label htmlFor="email" className="text-xs text-muted-foreground">Email</Label>
+                                        <div id="email" className="font-semibold">{currentUserEmail}</div>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <div className="space-y-2">
+                                    <Label htmlFor="name">First name</Label>
+                                    <Input id="name" name="name" placeholder="Alex" value={userData.name || ''} onChange={handleInputChange} />
+                                    </div>
+                                    <div className="space-y-2">
+                                    <Label htmlFor="lastName">Last name</Label>
+                                    <Input id="lastName" name="lastName" placeholder="Smith" value={userData.lastName || ''} onChange={handleInputChange}/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="age">Age</Label>
+                                <Input id="age" name="age" type="number" placeholder="Your age" value={userData.age || ''} onChange={handleInputChange} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Gender</Label>
+                                <RadioGroup name="gender" value={userData.gender} onValueChange={(v) => handleSelectChange('gender', v)} className="flex gap-4 pt-2">
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="female" id="female" />
+                                        <Label htmlFor="female">Female</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="male" id="male" />
+                                        <Label htmlFor="male">Male</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="other" id="other" />
+                                        <Label htmlFor="other">Other</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="address1">House Number/Name & Street</Label>
+                            <Input id="address1" name="address1" placeholder="e.g., 10 Downing Street" value={userData.address1 || ''} onChange={handleInputChange} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="address2">Address Line 2 (optional)</Label>
+                            <Input id="address2" name="address2" value={userData.address2 || ''} onChange={handleInputChange}/>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="townCity">Town/City</Label>
+                                <Input id="townCity" name="townCity" placeholder="e.g., London" value={userData.townCity || ''} onChange={handleInputChange} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="countyState">County/State</Label>
+                                <Input id="countyState" name="countyState" placeholder="e.g., Greater London" value={userData.countyState || ''} onChange={handleInputChange} />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="country">Country</Label>
+                                <Input id="country" name="country" placeholder="e.g., United Kingdom" value={userData.country || ''} onChange={handleInputChange}/>
+                            </div>
+                            <div className="space-y-2">
+                            <Label htmlFor="postcode">Postcode</Label>
+                            <Input id="postcode" name="postcode" placeholder="Your postcode" value={userData.postcode || ''} onChange={handleInputChange}/>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="dob">Date of Birth</Label>
+                            <Input id="dob" name="dob" type="date" value={userData.dob ? new Date(userData.dob).toISOString().split('T')[0] : ''} onChange={handleInputChange} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="initial-diagnosis">Primary Health Condition</Label>
+                            <Select onValueChange={handleDiagnosisSelectChange} value={diagnosisSelection}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select your main condition" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {initialDiagnosisOptions.map(opt => (
+                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                    ))}
+                                    <SelectItem value="other">Other...</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {diagnosisSelection === 'other' && (
+                            <div className="space-y-2">
+                                <Label htmlFor="other-diagnosis">Please specify your condition</Label>
+                                <Input id="other-diagnosis" name="other-diagnosis" placeholder="e.g., Chronic Kidney Disease" value={otherDiagnosis} onChange={handleOtherDiagnosisChange} />
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Financial Information</CardTitle>
+                        <CardDescription>This information is used for benefits suggestions. It is stored securely on your device.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="employmentStatus">Employment Status</Label>
+                            <Select name="employmentStatus" onValueChange={(v) => handleSelectChange('employmentStatus', v)} value={userData.employmentStatus}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select your status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="employed">Employed</SelectItem>
+                                    <SelectItem value="self-employed">Self-employed</SelectItem>
+                                    <SelectItem value="retired">Retired</SelectItem>
+                                    <SelectItem value="unemployed-not-on-benefits">Unemployed not on benefits</SelectItem>
+                                    <SelectItem value="unemployed-on-benefits">Unemployed on benefits</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {(userData.employmentStatus === 'employed' || userData.employmentStatus === 'self-employed') && (
+                            <div className="space-y-2">
+                                <Label htmlFor="income">Annual Income (£)</Label>
+                                <Input id="income" name="income" type="number" placeholder="e.g., 30000" value={userData.income || ''} onChange={handleInputChange} />
+                            </div>
+                        )}
+
+                        {userData.employmentStatus === 'retired' && (
+                            <div className="space-y-2">
+                                <Label htmlFor="savings">Savings (£)</Label>
+                                <Input id="savings" name="savings" type="number" placeholder="e.g., 5000" value={userData.savings || ''} onChange={handleInputChange} />
+                            </div>
+                        )}
+
+                        <div className="space-y-4 pt-2">
+                            <Label className="font-semibold">Benefits</Label>
+                            <p className="text-xs text-muted-foreground">Select any benefits you are currently receiving.</p>
+                            <div className="space-y-2 p-4 border rounded-md max-h-60 overflow-y-auto">
+                                <div className="flex items-center space-x-2 pb-2 border-b">
+                                    <IndeterminateCheckbox
+                                        id="select-all-benefits"
+                                        checked={allBenefitsSelected}
+                                        indeterminate={someBenefitsSelected}
+                                        onCheckedChange={(checked) => {
+                                            const newSelected: Record<string, boolean> = {};
+                                            if (checked) {
+                                                benefitsList.forEach(b => newSelected[b.id] = true);
+                                            }
+                                            setSelectedBenefits(newSelected);
+                                        }}
+                                    />
+                                    <Label htmlFor="select-all-benefits" className="font-bold">Select All</Label>
+                                </div>
+                                {benefitsList.map(benefit => (
+                                    <div key={benefit.id} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id={benefit.id}
+                                            checked={selectedBenefits[benefit.id] || false}
+                                            onCheckedChange={(checked) => handleBenefitChange(benefit.id, !!checked)}
+                                        />
+                                        <Label htmlFor={benefit.id}>{benefit.label}</Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </CardContent>
+                    <CardFooter>
+                        <Button onClick={handleSave}><Save className="mr-2" /> Save Changes</Button>
+                    </CardFooter>
+                </Card>
+            </div>
+            <ProfilePictureCameraDialog 
+                open={isCameraDialogOpen} 
+                onOpenChange={setIsCameraDialogOpen}
+                onCapture={handleProfilePictureCapture}
+            />
+        </>
     )
 }

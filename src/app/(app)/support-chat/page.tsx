@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect, Suspense, useCallback } from "react"
 import { CornerDownLeft, Loader2, User, Heart, Landmark, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX, PlusCircle, Download, Bookmark, ChevronDown, Settings } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
+import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -13,10 +14,6 @@ import { aiConversationalSupport, AiConversationalSupportInput } from "@/ai/flow
 import { generateConversationSummary } from "@/ai/flows/generate-conversation-summary"
 import { textToSpeech } from "@/ai/flows/text-to-speech"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { 
-    AvatarFemale20s, AvatarFemale30s, AvatarFemale40s, AvatarFemale60s,
-    AvatarMale20s, AvatarMale30s, AvatarMale40s, AvatarMale60s
-} from "@/components/icons"
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -99,15 +96,15 @@ const specialistConfig = {
     financial: { name: "Financial Support Specialist", icon: Landmark },
 }
 
-const avatars: { [key: string]: React.ElementType } = {
-    'female-20s': AvatarFemale20s,
-    'female-30s': AvatarFemale30s,
-    'female-40s': AvatarFemale40s,
-    'female-60s': AvatarFemale60s,
-    'male-20s': AvatarMale20s,
-    'male-30s': AvatarMale30s,
-    'male-40s': AvatarMale40s,
-    'male-60s': AvatarMale60s,
+const avatars: { [key: string]: string } = {
+    'female-20s': 'https://placehold.co/100x100.png',
+    'female-30s': 'https://placehold.co/100x100.png',
+    'female-40s': 'https://placehold.co/100x100.png',
+    'female-60s': 'https://placehold.co/100x100.png',
+    'male-20s': 'https://placehold.co/100x100.png',
+    'male-30s': 'https://placehold.co/100x100.png',
+    'male-40s': 'https://placehold.co/100x100.png',
+    'male-60s': 'https://placehold.co/100x100.png',
 };
 
 // Define a type for all the contextual data we will load
@@ -623,7 +620,7 @@ function SupportChatPageContent() {
               <div className="p-4 md:p-6 space-y-6">
                 {messages.map((message, index) => {
                    const specialist = message.metadata?.specialist || 'medical';
-                   const BuddyAvatarIcon = getAvatarForSpecialist(specialist);
+                   const buddyAvatarUrl = getAvatarForSpecialist(specialist);
                   return (
                   <div
                     key={index}
@@ -635,8 +632,9 @@ function SupportChatPageContent() {
                     {message.role === "assistant" && (
                         <div className="flex items-end gap-2">
                              <Avatar className="w-10 h-10 border bg-accent/50">
+                                <AvatarImage src={buddyAvatarUrl} alt={`${specialist} avatar`} />
                                 <AvatarFallback className="bg-transparent text-foreground">
-                                    <BuddyAvatarIcon className="w-10 h-10" />
+                                    <User />
                                 </AvatarFallback>
                               </Avatar>
                             <div
@@ -679,8 +677,9 @@ function SupportChatPageContent() {
                 {isLoading && (
                   <div className="flex items-start gap-4 justify-start">
                     <Avatar className="w-10 h-10 border bg-accent/50">
+                       <AvatarImage src={getAvatarForSpecialist(activeSpecialist)} alt={`${activeSpecialist} avatar`} />
                        <AvatarFallback className="bg-transparent text-foreground">
-                            {(getAvatarForSpecialist(activeSpecialist))({className: "w-10 h-10"})}
+                            <User />
                         </AvatarFallback>
                     </Avatar>
                     <div className="max-w-xl rounded-xl p-3 shadow-md bg-card flex items-center">
@@ -758,6 +757,3 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
-
-
-    

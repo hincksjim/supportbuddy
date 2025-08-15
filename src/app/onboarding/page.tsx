@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -15,22 +16,18 @@ import {
 } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
-import { 
-    AvatarFemale20s, AvatarFemale30s, AvatarFemale40s, AvatarFemale60s,
-    AvatarMale20s, AvatarMale30s, AvatarMale40s, AvatarMale60s
-} from "@/components/icons"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { User, Heart, Landmark } from "lucide-react"
 
 const avatars = [
-    { id: 'female-20s', Component: AvatarFemale20s, label: "Female, 20s" },
-    { id: 'female-30s', Component: AvatarFemale30s, label: "Female, 30s" },
-    { id: 'female-40s', Component: AvatarFemale40s, label: "Female, 40s" },
-    { id: 'female-60s', Component: AvatarFemale60s, label: "Female, 60s" },
-    { id: 'male-20s', Component: AvatarMale20s, label: "Male, 20s" },
-    { id: 'male-30s', Component: AvatarMale30s, label: "Male, 30s" },
-    { id: 'male-40s', Component: AvatarMale40s, label: "Male, 40s" },
-    { id: 'male-60s', Component: AvatarMale60s, label: "Male, 60s" },
+    { id: 'female-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 20s", hint: 'woman 20s' },
+    { id: 'female-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 30s", hint: 'woman 30s' },
+    { id: 'female-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 40s", hint: 'woman 40s' },
+    { id: 'female-60s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 60s", hint: 'woman 60s' },
+    { id: 'male-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 20s", hint: 'man 20s' },
+    { id: 'male-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 30s", hint: 'man 30s' },
+    { id: 'male-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 40s", hint: 'man 40s' },
+    { id: 'male-60s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 60s", hint: 'man 60s' },
 ]
 
 type Specialist = "medical" | "mental_health" | "financial";
@@ -42,13 +39,20 @@ function AvatarSelector({ onSelect, selectedAvatar }: { onSelect: (id: string) =
                 <div
                     key={avatar.id}
                     className={cn(
-                    "cursor-pointer rounded-lg p-2 transition-all duration-200 flex flex-col items-center gap-2",
-                    selectedAvatar === avatar.id ? "bg-accent ring-2 ring-primary" : "hover:bg-accent/50"
+                    "cursor-pointer rounded-lg p-2 transition-all duration-200 flex flex-col items-center gap-2 border-2",
+                    selectedAvatar === avatar.id ? "border-primary bg-accent" : "border-transparent hover:bg-accent/50"
                     )}
                     onClick={() => onSelect(avatar.id)}
                 >
-                    <avatar.Component className="h-24 w-24 text-foreground" />
-                    <Label className="text-sm">{avatar.label}</Label>
+                    <Image 
+                        src={avatar.imageUrl}
+                        alt={avatar.label}
+                        width={100}
+                        height={100}
+                        className="rounded-full aspect-square object-cover"
+                        data-ai-hint={avatar.hint}
+                    />
+                    <Label className="text-sm text-center">{avatar.label}</Label>
                 </div>
             ))}
         </div>

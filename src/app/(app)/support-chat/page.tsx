@@ -632,9 +632,9 @@ function SupportChatPageContent() {
                   >
                     {message.role === "assistant" && (
                         <div className="flex items-end gap-2">
-                             <Avatar className="w-8 h-8 border bg-accent/50">
+                             <Avatar className="w-10 h-10 border bg-accent/50">
                                 <AvatarFallback className="bg-transparent text-foreground">
-                                    <BuddyAvatarIcon className="w-8 h-8" />
+                                    <BuddyAvatarIcon className="w-10 h-10" />
                                 </AvatarFallback>
                               </Avatar>
                             <div
@@ -662,12 +662,12 @@ function SupportChatPageContent() {
                             >
                             <p className="whitespace-pre-wrap">{message.content}</p>
                             </div>
-                            <Avatar className="w-8 h-8 border">
+                            <Avatar className="w-10 h-10 border">
                                 {userData.profilePicture ? (
                                     <AvatarImage src={userData.profilePicture} alt="Your profile picture" />
                                 ) : null}
                                 <AvatarFallback className="bg-secondary text-secondary-foreground">
-                                    <User className="w-5 h-5" />
+                                    <User className="w-6 h-6" />
                                 </AvatarFallback>
                             </Avatar>
                         </>
@@ -676,9 +676,9 @@ function SupportChatPageContent() {
                   )})}
                 {isLoading && (
                   <div className="flex items-start gap-4 justify-start">
-                    <Avatar className="w-8 h-8 border bg-accent/50">
+                    <Avatar className="w-10 h-10 border bg-accent/50">
                        <AvatarFallback className="bg-transparent text-foreground">
-                            {(getAvatarForSpecialist(activeSpecialist))({className: "w-8 h-8"})}
+                            {(getAvatarForSpecialist(activeSpecialist))({className: "w-10 h-10"})}
                         </AvatarFallback>
                     </Avatar>
                     <div className="max-w-xl rounded-xl p-3 shadow-md bg-card flex items-center">

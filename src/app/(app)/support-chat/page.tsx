@@ -425,8 +425,10 @@ function SupportChatPageContent() {
     }
 
     // Archive the current chat before switching
-    archiveChatLocally(messages, activeSpecialist);
-
+    if (messages.length > 1) {
+        archiveChatLocally(messages, activeSpecialist);
+    }
+    
     // Start a new chat with the new specialist
     setActiveSpecialist(newSpecialist);
     startNewChat(newSpecialist);
@@ -695,9 +697,9 @@ function SupportChatPageContent() {
         <div className="container mx-auto max-w-lg">
              <Tabs value={activeSpecialist} onValueChange={(v) => handleSpecialistChange(v as Specialist)} className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="medical" disabled={isHistoricChat}><User className="mr-2"/>Medical</TabsTrigger>
-                    <TabsTrigger value="mental_health" disabled={isHistoricChat}><Heart className="mr-2"/>Mental</TabsTrigger>
-                    <TabsTrigger value="financial" disabled={isHistoricChat}><Landmark className="mr-2"/>Financial</TabsTrigger>
+                    <TabsTrigger value="medical" disabled={isHistoricChat} className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><User className="mr-2"/>Medical</TabsTrigger>
+                    <TabsTrigger value="mental_health" disabled={isHistoricChat} className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Heart className="mr-2"/>Mental</TabsTrigger>
+                    <TabsTrigger value="financial" disabled={isHistoricChat} className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Landmark className="mr-2"/>Financial</TabsTrigger>
                 </TabsList>
             </Tabs>
             <form
@@ -756,3 +758,6 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
+
+
+    

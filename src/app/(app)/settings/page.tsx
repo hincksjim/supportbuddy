@@ -48,14 +48,14 @@ const voices = [
 ]
 
 const avatars = [
-    { id: 'female-20s', imageUrl: '/FemaleDoctor30.png', label: "Female, 20s", hint: 'woman 20s' },
-    { id: 'female-30s', imageUrl: '/FemaleDoctor30.png', label: "Female, 30s", hint: 'woman 30s' },
-    { id: 'female-40s', imageUrl: '/FemaleDoctor40.png', label: "Female, 40s", hint: 'woman 40s' },
-    { id: 'female-60s', imageUrl: '/FemaleDoctor60.png', label: "Female, 60s", hint: 'woman 60s' },
-    { id: 'male-20s', imageUrl: '/MaleDoctor20.png', label: "Male, 20s", hint: 'man 20s' },
-    { id: 'male-30s', imageUrl: '/MaleDoctor30.png', label: "Male, 30s", hint: 'man 30s' },
-    { id: 'male-40s', imageUrl: '/MaleDoctor40.png', label: "Male, 40s", hint: 'man 40s' },
-    { id: 'male-60s', imageUrl: '/MaleDoctor60.png', label: "Male, 60s", hint: 'man 60s' },
+    { id: 'female-20s', imageUrl: '/FemaleDoctor30.png', label: "Female, 20s" },
+    { id: 'female-30s', imageUrl: '/FemaleDoctor30.png', label: "Female, 30s" },
+    { id: 'female-40s', imageUrl: '/FemaleDoctor40.png', label: "Female, 40s" },
+    { id: 'female-60s', imageUrl: '/FemaleDoctor60.png', label: "Female, 60s" },
+    { id: 'male-20s', imageUrl: '/MaleDoctor20.png', label: "Male, 20s" },
+    { id: 'male-30s', imageUrl: '/MaleDoctor30.png', label: "Male, 30s" },
+    { id: 'male-40s', imageUrl: '/MaleDoctor40.png', label: "Male, 40s" },
+    { id: 'male-60s', imageUrl: '/MaleDoctor60.png', label: "Male, 60s" },
 ]
 
 function SpecialistCard({ specialist, title, icon, userData, setUserData }: { specialist: Specialist, title: string, icon: React.ReactNode, userData: UserData, setUserData: React.Dispatch<React.SetStateAction<UserData>> }) {
@@ -100,7 +100,8 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData }: { sp
     }
     
      const filteredVoices = React.useMemo(() => {
-        const isMale = selectedAvatar.startsWith('male');
+        const selectedAvatarData = avatars.find(a => a.id === selectedAvatar);
+        const isMale = selectedAvatarData?.label.startsWith('Male');
         return voices.filter(v => isMale ? v.gender === 'Male' : v.gender === 'Female');
     }, [selectedAvatar]);
     
@@ -136,7 +137,6 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData }: { sp
                                     width={100}
                                     height={100}
                                     className="rounded-full aspect-square object-cover"
-                                    data-ai-hint={avatar.hint}
                                 />
                                 <Label className="text-sm text-center">{avatar.label}</Label>
                             </div>

@@ -19,15 +19,26 @@ import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { User, Heart, Landmark } from "lucide-react"
 
+// Import images directly
+import female20s from "../../../public/FemaleDoctor20s.png";
+import female30s from "../../../public/FemaleDoctor30.png";
+import female40s from "../../../public/FemaleDoctor40.png";
+import female60s from "../../../public/FemaleDoctor60.png";
+import male20s from "../../../public/MaleDoctor20.png";
+import male30s from "../../../public/MaleDoctor30.png";
+import male40s from "../../../public/MaleDoctor40.png";
+import male60s from "../../../public/MaleDoctor60.png";
+
+
 const avatars = [
-    { id: 'female-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 20s", hint: 'woman 20s' },
-    { id: 'female-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 30s", hint: 'woman 30s' },
-    { id: 'female-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 40s", hint: 'woman 40s' },
-    { id: 'female-60s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 60s", hint: 'woman 60s' },
-    { id: 'male-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 20s", hint: 'man 20s' },
-    { id: 'male-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 30s", hint: 'man 30s' },
-    { id: 'male-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 40s", hint: 'man 40s' },
-    { id: 'male-60s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 60s", hint: 'man 60s' },
+    { id: 'female-20s', imageUrl: female20s, label: "Female, 20s" },
+    { id: 'female-30s', imageUrl: female30s, label: "Female, 30s" },
+    { id: 'female-40s', imageUrl: female40s, label: "Female, 40s" },
+    { id: 'female-60s', imageUrl: female60s, label: "Female, 60s" },
+    { id: 'male-20s', imageUrl: male20s, label: "Male, 20s" },
+    { id: 'male-30s', imageUrl: male30s, label: "Male, 30s" },
+    { id: 'male-40s', imageUrl: male40s, label: "Male, 40s" },
+    { id: 'male-60s', imageUrl: male60s, label: "Male, 60s" },
 ]
 
 type Specialist = "medical" | "mental_health" | "financial";
@@ -50,7 +61,7 @@ function AvatarSelector({ onSelect, selectedAvatar }: { onSelect: (id: string) =
                         width={100}
                         height={100}
                         className="rounded-full aspect-square object-cover"
-                        data-ai-hint={avatar.hint}
+                        unoptimized
                     />
                     <Label className="text-sm text-center">{avatar.label}</Label>
                 </div>

@@ -31,6 +31,15 @@ import type { DiaryEntry } from "@/app/(app)/diary/page"
 import type { Medication } from "@/app/(app)/medication/page"
 import type { AnalysisResult } from "@/app/(app)/document-analysis/page"
 
+// Import images directly
+import female20s from "../../../../public/FemaleDoctor20s.png";
+import female30s from "../../../../public/FemaleDoctor30.png";
+import female40s from "../../../../public/FemaleDoctor40.png";
+import female60s from "../../../../public/FemaleDoctor60.png";
+import male20s from "../../../../public/MaleDoctor20.png";
+import male30s from "../../../../public/MaleDoctor30.png";
+import male40s from "../../../../public/MaleDoctor40.png";
+import male60s from "../../../../public/MaleDoctor60.png";
 
 type Specialist = "medical" | "mental_health" | "financial";
 
@@ -96,15 +105,15 @@ const specialistConfig = {
     financial: { name: "Financial Support Specialist", icon: Landmark },
 }
 
-const avatars: { [key: string]: string } = {
-    'female-20s': 'https://placehold.co/200x200.png',
-    'female-30s': 'https://placehold.co/200x200.png',
-    'female-40s': 'https://placehold.co/200x200.png',
-    'female-60s': 'https://placehold.co/200x200.png',
-    'male-20s': 'https://placehold.co/200x200.png',
-    'male-30s': 'https://placehold.co/200x200.png',
-    'male-40s': 'https://placehold.co/200x200.png',
-    'male-60s': 'https://placehold.co/200x200.png',
+const avatars = {
+    'female-20s': female20s,
+    'female-30s': female30s,
+    'female-40s': female40s,
+    'female-60s': female60s,
+    'male-20s': male20s,
+    'male-30s': male30s,
+    'male-40s': male40s,
+    'male-60s': male60s,
 };
 
 // Define a type for all the contextual data we will load
@@ -387,7 +396,7 @@ function SupportChatPageContent() {
   const getAvatarForSpecialist = (specialist: Specialist) => {
       const avatarKey = `avatar_${specialist}` as keyof UserData;
       const avatarId = userData[avatarKey] || 'female-30s';
-      return avatars[avatarId] || 'https://placehold.co/200x200.png';
+      return avatars[avatarId as keyof typeof avatars] || female30s;
   }
 
   const getWelcomeMessage = (specialist: Specialist) => {
@@ -632,7 +641,7 @@ function SupportChatPageContent() {
                     {message.role === "assistant" && (
                         <div className="flex items-end gap-2">
                              <Avatar className="w-10 h-10 border bg-accent/50">
-                                <AvatarImage src={buddyAvatarUrl} alt={`${specialist} avatar`} />
+                                <Image src={buddyAvatarUrl} alt={`${specialist} avatar`} className="object-cover" unoptimized/>
                                 <AvatarFallback className="bg-transparent text-foreground">
                                     <User />
                                 </AvatarFallback>
@@ -677,7 +686,7 @@ function SupportChatPageContent() {
                 {isLoading && (
                   <div className="flex items-start gap-4 justify-start">
                     <Avatar className="w-10 h-10 border bg-accent/50">
-                       <AvatarImage src={getAvatarForSpecialist(activeSpecialist)} alt={`${activeSpecialist} avatar`} />
+                       <Image src={getAvatarForSpecialist(activeSpecialist)} alt={`${activeSpecialist} avatar`} className="object-cover" unoptimized/>
                        <AvatarFallback className="bg-transparent text-foreground">
                             <User />
                         </AvatarFallback>

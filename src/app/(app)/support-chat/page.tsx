@@ -97,14 +97,14 @@ const specialistConfig = {
 }
 
 const avatars: { [key: string]: string } = {
-    'female-20s': 'https://placehold.co/100x100.png',
-    'female-30s': 'https://placehold.co/100x100.png',
-    'female-40s': 'https://placehold.co/100x100.png',
-    'female-60s': 'https://placehold.co/100x100.png',
-    'male-20s': 'https://placehold.co/100x100.png',
-    'male-30s': 'https://placehold.co/100x100.png',
-    'male-40s': 'https://placehold.co/100x100.png',
-    'male-60s': 'https://placehold.co/100x100.png',
+    'female-20s': '/FemaleDoctor30.png',
+    'female-30s': '/FemaleDoctor30.png',
+    'female-40s': '/FemaleDoctor40.png',
+    'female-60s': '/FemaleDoctor60.png',
+    'male-20s': '/MaleDoctor20.png',
+    'male-30s': '/MaleDoctor30.png',
+    'male-40s': '/MaleDoctor40.png',
+    'male-60s': '/MaleDoctor60.png',
 };
 
 // Define a type for all the contextual data we will load

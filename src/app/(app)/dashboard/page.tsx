@@ -27,7 +27,8 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { MessageSquare, FileText, Mic, PlusCircle, Loader2, StopCircle, X, Bookmark, User, Heart, Landmark } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { MessageSquare, FileText, Mic, PlusCircle, Loader2, StopCircle, X, Bookmark, User, Heart, Landmark, NotebookPen } from "lucide-react"
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
 import { useToast } from "@/hooks/use-toast"
 import { summarizeVoiceNote } from "@/ai/flows/summarize-voice-note"
@@ -68,6 +69,14 @@ interface VoiceNote {
   date: string;
 }
 
+interface TextNote {
+  id: string;
+  type: 'textNote';
+  title: string;
+  content: string;
+  date: string;
+}
+
 interface SavedMessage {
     id: string;
     type: 'savedMessage'; // To distinguish from other activity types
@@ -93,6 +102,7 @@ type ActivityItem =
   | { type: 'conversation', data: ConversationSummary }
   | { type: 'analysis', data: AnalysisResult }
   | { type: 'voiceNote', data: VoiceNote }
+  | { type: 'textNote', data: TextNote }
   | { type: 'savedMessage', data: SavedMessage }
   | { type: 'profileUpdate', data: ProfileUpdateActivity };
 
@@ -134,6 +144,71 @@ function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; chil
     </Dialog>
   )
 }
+
+function AddTextNoteDialog({ onNoteAdded }: { onNoteAdded: (note: TextNote) => void }) {
+    const [title, setTitle] = useState('');
+    const [content, setContent] = useState('');
+    const { toast } = useToast();
+
+    const handleSave = () => {
+        if (!title.trim() || !content.trim()) {
+            toast({
+                title: 'Title and content are required',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        const newNote: TextNote = {
+            id: new Date().toISOString(),
+            type: 'textNote',
+            title,
+            content,
+            date: new Date().toISOString(),
+        };
+
+        onNoteAdded(newNote);
+        setTitle('');
+        setContent('');
+        document.getElementById('close-text-note-dialog')?.click();
+    };
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="secondary">
+                    <NotebookPen className="mr-2" />
+                    Add a Note
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add a New Note</DialogTitle>
+                    <DialogDescription>
+                        Save a quick note, reminder, or details from a call.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="note-title">Title</Label>
+                        <Input id="note-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., 'Call with Macmillan'" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="note-content">Content</Label>
+                        <Textarea id="note-content" value={content} onChange={(e) => setContent(e.target.value)} rows={8} placeholder="Jot down your notes here..." />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose id="close-text-note-dialog" asChild>
+                        <Button variant="ghost">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleSave}>Save Note</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 
 function RecordVoiceNoteDialog({ onRecordingComplete }: { onRecordingComplete: (newNote: VoiceNote) => void }) {
   const [title, setTitle] = useState("");
@@ -389,6 +464,36 @@ function AnalysisCard({ result, onDelete }: { result: AnalysisResult, onDelete: 
     )
 }
 
+function TextNoteCard({ note, onDelete }: { note: TextNote, onDelete: (id: string, type: ActivityItem['type']) => void }) {
+    return (
+        <Card className="flex flex-col h-full relative group">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    <NotebookPen className="w-5 h-5 text-primary" />
+                    {note.title}
+                </CardTitle>
+                <CardDescription>{new Date(note.date).toLocaleDateString()}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1">
+                 <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-5">{note.content}</p>
+            </CardContent>
+            <Button 
+                variant="destructive" 
+                size="icon" 
+                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onDelete(note.id, 'textNote');
+                }}
+            >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Delete</span>
+            </Button>
+        </Card>
+    );
+}
+
 function VoiceNoteCard({ note, onDelete }: { note: VoiceNote, onDelete: (id: string, type: ActivityItem['type']) => void }) {
     return (
         <Card className="flex flex-col h-full relative group">
@@ -497,12 +602,14 @@ export default function DashboardPage() {
         try {
             const storedSummaries = localStorage.getItem(`conversationSummaries_${currentUserEmail}`);
             if (storedSummaries) {
-                const summaries: (ConversationSummary | SavedMessage | ProfileUpdateActivity)[] = JSON.parse(storedSummaries);
+                const summaries: (ConversationSummary | SavedMessage | ProfileUpdateActivity | TextNote)[] = JSON.parse(storedSummaries);
                 summaries.forEach(s => {
                     if ('type' in s && s.type === 'savedMessage') {
                          allActivity.push({ type: 'savedMessage', data: s });
                     } else if ('type' in s && s.type === 'profileUpdate') {
                         allActivity.push({ type: 'profileUpdate', data: s });
+                    } else if ('type' in s && s.type === 'textNote') {
+                        allActivity.push({ type: 'textNote', data: s });
                     } else if (!('type' in s)) {
                          // This is a conversation summary
                         allActivity.push({ type: 'conversation', data: s as ConversationSummary });
@@ -563,13 +670,24 @@ export default function DashboardPage() {
         loadActivity(); // Reload all activity to display the new note
     };
 
+    const handleNewTextNote = (newNote: TextNote) => {
+        if (!currentUserEmail) return;
+        // Text notes are stored in the same place as conversation summaries for simplicity
+        const storageKey = `conversationSummaries_${currentUserEmail}`;
+        const storedItems = localStorage.getItem(storageKey);
+        const items = storedItems ? JSON.parse(storedItems) : [];
+        items.unshift(newNote);
+        localStorage.setItem(storageKey, JSON.stringify(items));
+        loadActivity();
+    }
+
     const handleDelete = (id: string, type: ActivityItem['type']) => {
         if (!currentUserEmail) return;
 
-        if (type === 'conversation' || type === 'savedMessage' || type === 'profileUpdate') {
+        if (type === 'conversation' || type === 'savedMessage' || type === 'profileUpdate' || type === 'textNote') {
             const key = `conversationSummaries_${currentUserEmail}`;
             const stored = localStorage.getItem(key);
-            const items: (ConversationSummary | SavedMessage | ProfileUpdateActivity)[] = stored ? JSON.parse(stored) : [];
+            const items: (ConversationSummary | SavedMessage | ProfileUpdateActivity | TextNote)[] = stored ? JSON.parse(stored) : [];
             const updatedItems = items.filter(item => item.id !== id);
             localStorage.setItem(key, JSON.stringify(updatedItems));
 
@@ -606,7 +724,10 @@ export default function DashboardPage() {
                         Here&apos;s a summary of your recent conversations and document analyses.
                     </p>
                 </div>
-                <RecordVoiceNoteDialog onRecordingComplete={handleNewVoiceNote} />
+                 <div className="flex items-center gap-2">
+                    <AddTextNoteDialog onNoteAdded={handleNewTextNote} />
+                    <RecordVoiceNoteDialog onRecordingComplete={handleNewVoiceNote} />
+                 </div>
             </div>
 
             {activity.length > 0 ? (
@@ -622,6 +743,9 @@ export default function DashboardPage() {
                             if (item.type === 'voiceNote') {
                                 return <VoiceNoteCard key={`note-${item.data.id}-${index}`} note={item.data} onDelete={handleDelete} />;
                             }
+                            if (item.type === 'textNote') {
+                                return <TextNoteCard key={`textnote-${item.data.id}-${index}`} note={item.data} onDelete={handleDelete} />;
+                            }
                             if (item.type === 'savedMessage') {
                                 return <SavedMessageCard key={`saved-${item.data.id}-${index}`} message={item.data} onDelete={handleDelete} />;
                             }
@@ -636,13 +760,14 @@ export default function DashboardPage() {
                  <div className="text-center py-20 rounded-lg border-2 border-dashed">
                     <h2 className="text-xl font-semibold">No Activity Yet</h2>
                     <p className="text-muted-foreground mt-2">Your recent activity will appear here.</p>
-                     <div className="mt-6">
+                     <div className="mt-6 flex items-center justify-center gap-4">
                         <Link href="/document-analysis">
-                             <Button variant="outline" className="mr-4">
+                             <Button variant="outline">
                                 <FileText className="mr-2" />
                                 Analyze a Document
                              </Button>
                         </Link>
+                         <AddTextNoteDialog onNoteAdded={handleNewTextNote} />
                          <RecordVoiceNoteDialog onRecordingComplete={handleNewVoiceNote} />
                     </div>
                 </div>

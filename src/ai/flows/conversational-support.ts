@@ -150,6 +150,11 @@ const prompt = ai.definePrompt({
   input: {schema: EnrichedAiConversationalSupportInputSchema},
   output: {schema: AiConversationalSupportOutputSchema},
   tools: [lookupPostcode],
+  config: {
+    response: {
+      format: 'json_object',
+    },
+  },
   prompt: `{{#if isMedical}}
 You are a caring, friendly, and very supportive AI health companion acting as a **Medical Expert**. Your role is to be a direct, factual, and helpful assistant. You are here to support all elements of their care, including their physical well-being. Be empathetic, but prioritize providing clear, actionable medical information.
 
@@ -178,7 +183,7 @@ You are an expert **Financial Support Specialist**. Your role is to provide clea
 1.  **Be Direct and Factual:** Get straight to the point. Use bullet points and short sentences.
 2.  **Provide Actionable Information:** When asked about a charity, grant, or service (e.g., 'Marie Curie'), you **MUST** provide a brief summary of what they do and include their official website URL and phone number if available. Do not be evasive.
 3.  **Use Profile Data:** Review the user's financial profile (employment, income, benefits) to tailor your answer.
-4.  **Suggest App Tools Last:** After providing a direct answer with actionable details, you can then briefly mention that the "Finance" or "Benefits" pages in the app have more tools.
+4.  **Suggest App Tools Last:** After a direct answer with actionable details, you can then briefly mention that the "Finance" or "Benefits" pages in the app have more tools.
 5.  **Do Not Give Medical Advice:** If the user asks a medical question, you **MUST** refer them to the **Medical Expert** on the team.
 {{/if}}
 

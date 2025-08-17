@@ -20,10 +20,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { User, Heart, Landmark } from "lucide-react"
 
 const medicalAvatars = [
-    { id: 'female-doctor-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Doctor, 20s", hint: 'doctor woman 20s' },
-    { id: 'male-doctor-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Doctor, 30s", hint: 'doctor man 30s' },
-    { id: 'female-doctor-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Doctor, 40s", hint: 'doctor woman 40s' },
-    { id: 'male-doctor-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Doctor, 50s", hint: 'doctor man 50s' },
+    { id: 'female-doctor-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Surgical Consultant, 20s", hint: 'doctor woman 20s' },
+    { id: 'male-doctor-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Surgical Consultant, 30s", hint: 'doctor man 30s' },
+    { id: 'female-doctor-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Surgical Consultant, 40s", hint: 'doctor woman 40s' },
+    { id: 'male-doctor-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Surgical Consultant, 50s", hint: 'doctor man 50s' },
 ];
 
 const mentalHealthAvatars = [
@@ -34,10 +34,10 @@ const mentalHealthAvatars = [
 ];
 
 const financialAvatars = [
-    { id: 'female-advisor-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Advisor, 30s", hint: 'advisor woman 30s' },
-    { id: 'male-advisor-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Advisor, 40s", hint: 'advisor man 40s' },
-    { id: 'female-advisor-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Advisor, 50s", hint: 'advisor woman 50s' },
-    { id: 'male-advisor-60s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Advisor, 60s", hint: 'advisor man 60s' },
+    { id: 'female-advisor-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Support Specialist, 30s", hint: 'advisor woman 30s' },
+    { id: 'male-advisor-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Support Specialist, 40s", hint: 'advisor man 40s' },
+    { id: 'female-advisor-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Support Specialist, 50s", hint: 'advisor woman 50s' },
+    { id: 'male-advisor-60s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Support Specialist, 60s", hint: 'advisor man 60s' },
 ];
 
 

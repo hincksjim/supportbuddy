@@ -113,9 +113,15 @@ export async function generatePersonalSummary(
     day: 'numeric',
     weekday: 'long',
   });
+
+  // Sort diary data here before passing to the prompt
+  const sortedDiaryData = [...input.diaryData].sort((a, b) => {
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
+  });
   
   const extendedInput = { 
     ...input, 
+    diaryData: sortedDiaryData,
     currentDate,
   };
   
@@ -218,9 +224,9 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 {{/if}}
 
 ### **Wellness & Diary Insights**
-*(Review all diary entries. You MUST sort the entries by date, from most recent to oldest. For each day, create a Markdown bulleted list item. Each bullet point MUST represent one single day and start on a new line. Include details on Mood, Pain Score, Pain Location, and Pain Remarks.)*
+*(Review all diary entries, which are pre-sorted from most recent to oldest. For each day, create a Markdown bulleted list item. Each bullet point MUST represent one single day and start on a new line. Include details on Mood, Pain Score, Pain Location, and Pain Remarks.)*
 {{#if diaryData}}
-{{#each (sortBy diaryData 'date' 'desc')}}
+{{#each diaryData}}
 *   **{{date}}**: Mood: {{mood}}; Pain: {{painScore}}/10{{#if painLocation}} in the **{{painLocation}}** (Remarks: *{{painRemarks}}*){{/if}}; Worried about: "{{worriedAbout}}"; Positive about: "{{positiveAbout}}".
 {{/each}}
 {{else}}
@@ -255,22 +261,6 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 *   [C{{@index}}] Conversation: "{{convo.title}}" (Summarized: {{convo.date}}, ID: {{convo.id}})
 {{/each}}
 `,
-  },
-);
-
-// I will add a Handlebars helper to sort the array
-import { handlebars } from 'genkit/tools';
-handlebars.registerHelper('sortBy', function (array, key, order) {
-  const sortedArray = [...array];
-  sortedArray.sort((a, b) => {
-    const dateA = new Date(a[key]).getTime();
-    const dateB = new Date(b[key]).getTime();
-    if (order === 'desc') {
-      return dateB - dateA;
-    }
-    return dateA - dateB;
-  });
-  return sortedArray;
 });
 
 

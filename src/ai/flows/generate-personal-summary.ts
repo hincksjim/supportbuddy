@@ -36,6 +36,8 @@ const DiaryEntrySchema = z.object({
   diagnosisMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
   treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
   painScore: z.number().nullable(),
+  painLocation: z.string().nullable(),
+  painRemarks: z.string(),
   weight: z.string(),
   sleep: z.string(),
   food: z.string(),
@@ -219,7 +221,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 {{#if diaryData}}
 *(Review the last 5 diary entries. You MUST create a Markdown bulleted list. Each bullet point MUST represent one single day and start on a new line. For example: * August 5th, 2025: Mood: bad, Pain: 0, Worried about MDT outcome. [Diary])*
 {{#each diaryData}}
-*   **{{date}}**: Mood: {{mood}}, Pain: {{painScore}}, Worried about: "{{worriedAbout}}", Positive about: "{{positiveAbout}}".
+*   **{{date}}**: Mood: {{mood}}; Pain: {{painScore}} {{#if painLocation}}at **{{painLocation}}** ({{painRemarks}}){{/if}}; Worried about: "{{worriedAbout}}"; Positive about: "{{positiveAbout}}".
 {{/each}}
 {{else}}
 *   (No diary entries provided)
@@ -284,3 +286,5 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

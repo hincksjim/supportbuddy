@@ -37,7 +37,7 @@ import html2canvas from "html2canvas"
 import { checkMedicationDose } from "@/ai/flows/check-medication-dose"
 import { analyzeSymptomPattern } from "@/ai/flows/analyze-symptom-pattern"
 import { marked } from "marked"
-import { DiarySummary } from "@/components/weekly-diary-summary"
+import { DiarySummary } from "@/components/diary-summary"
 
 // Data structure for meds taken
 export interface MedsTaken {

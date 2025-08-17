@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
-import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download, X } from "lucide-react"
+import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download, X, Lightbulb } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Medication } from "@/app/(app)/medication/page"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -35,6 +35,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
 import { checkMedicationDose } from "@/ai/flows/check-medication-dose"
+import { analyzeSymptomPattern } from "@/ai/flows/analyze-symptom-pattern"
+import { marked } from "marked"
 
 // Data structure for meds taken
 export interface MedsTaken {
@@ -62,6 +64,20 @@ export interface DiaryEntry {
   positiveAbout: string;
   notes: string;
   medsTaken: MedsTaken[];
+}
+
+interface UserData {
+    initialDiagnosis?: string;
+}
+
+interface TimelineData {
+    timeline: {
+        title: string;
+        steps: {
+            title: string;
+            status: 'pending' | 'completed';
+        }[];
+    }[];
 }
 
 const moodOptions: { [key in NonNullable<DiaryEntry['mood']>]: string } = {
@@ -243,7 +259,7 @@ function LogMedicationDialog({ onLog, prescribedMeds, existingMedsTaken, onDoseW
 }
 
 
-function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave: (entry: DiaryEntry) => void; existingEntry?: DiaryEntry | null; currentUserEmail: string | null; }) {
+function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries }: { onSave: (entry: DiaryEntry) => void; existingEntry?: DiaryEntry | null; currentUserEmail: string | null; allEntries: DiaryEntry[]; }) {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [mood, setMood] = useState<DiaryEntry['mood']>('meh');
     const [diagnosisMood, setDiagnosisMood] = useState<DiaryEntry['diagnosisMood']>('meh');
@@ -260,18 +276,31 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
     const [medsTaken, setMedsTaken] = useState<MedsTaken[]>([]);
     const [prescribedMeds, setPrescribedMeds] = useState<Medication[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+    const [isCheckingSymptom, setIsCheckingSymptom] = useState(false);
+    const [symptomAnalysis, setSymptomAnalysis] = useState<string | null>(null);
+
+    const [contextData, setContextData] = useState<{
+        userData: UserData | null;
+        timelineData: TimelineData | null;
+    }>({ userData: null, timelineData: null });
+    
     const { toast } = useToast();
 
-    // Load prescribed meds for the dropdown
+    // Load prescribed meds and other context for the dropdown and symptom analysis
     useEffect(() => {
         if (!currentUserEmail) return;
         try {
             const storedMeds = localStorage.getItem(`medications_${currentUserEmail}`);
-            if (storedMeds) {
-                setPrescribedMeds(JSON.parse(storedMeds));
-            }
+            if (storedMeds) setPrescribedMeds(JSON.parse(storedMeds));
+
+            const storedUser = localStorage.getItem(`userData_${currentUserEmail}`);
+            if (storedUser) setContextData(prev => ({...prev, userData: JSON.parse(storedUser)}));
+            
+            const storedTimeline = localStorage.getItem(`treatmentTimeline_${currentUserEmail}`);
+            if(storedTimeline) setContextData(prev => ({...prev, timelineData: JSON.parse(storedTimeline)}));
+
         } catch(e) {
-            console.error("Could not load prescribed meds", e);
+            console.error("Could not load context data", e);
         }
     }, [currentUserEmail]);
 
@@ -351,6 +380,59 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
             duration: 10000,
         })
     }
+
+    // --- Symptom Analysis Logic ---
+    const handleSymptomAnalysis = useCallback(async (symptom: string) => {
+        // Only run if symptom is present and pain score > 0
+        if (!symptom || (painScore ?? 0) === 0) {
+            setSymptomAnalysis(null);
+            return;
+        }
+
+        // Check if this symptom has been logged before
+        const symptomCount = allEntries.filter(e => e.painLocation === symptom).length;
+        
+        // We'll trigger the check if it's been logged at least once before (so twice total including current)
+        if (symptomCount < 1) {
+            setSymptomAnalysis(null);
+            return;
+        }
+
+        setIsCheckingSymptom(true);
+        setSymptomAnalysis(null);
+        
+        try {
+            const activeTreatments = contextData.timelineData?.timeline.flatMap(stage => 
+                stage.steps.filter(step => step.status === 'completed').map(step => step.title)
+            ) || [];
+            
+            const result = await analyzeSymptomPattern({
+                symptom,
+                diagnosis: contextData.userData?.initialDiagnosis || "Not specified",
+                medications: prescribedMeds.map(m => ({ name: m.name })),
+                treatments: activeTreatments,
+            });
+
+            setSymptomAnalysis(result.analysis);
+
+        } catch (error) {
+            console.error("Symptom analysis failed:", error);
+            // Don't show an error to the user, just fail silently.
+        } finally {
+            setIsCheckingSymptom(false);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [allEntries, contextData, prescribedMeds, painScore]);
+
+    // Trigger analysis when pain location changes
+    useEffect(() => {
+        if (painLocation) {
+            handleSymptomAnalysis(painLocation);
+        } else {
+            setSymptomAnalysis(null);
+        }
+    }, [painLocation, handleSymptomAnalysis]);
+    
 
     return (
         <Dialog>
@@ -451,6 +533,24 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
                                     <Label htmlFor="pain-remarks">Pain Remarks</Label>
                                     <Textarea id="pain-remarks" placeholder="Describe the pain (e.g., sharp, dull, aching)..." value={painRemarks} onChange={(e) => setPainRemarks(e.target.value)} />
                                 </div>
+                                
+                                {isCheckingSymptom && (
+                                    <div className="flex items-center gap-2 text-muted-foreground p-4 justify-center">
+                                        <Loader2 className="animate-spin" />
+                                        <span>Analyzing symptom...</span>
+                                    </div>
+                                )}
+
+                                {symptomAnalysis && !isCheckingSymptom && (
+                                    <Alert>
+                                        <Lightbulb className="h-4 w-4" />
+                                        <AlertTitle>Possible Causes Analysis</AlertTitle>
+                                        <AlertDescription>
+                                            <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: marked(symptomAnalysis) as string }} />
+                                            <p className="text-xs italic mt-2">This is an AI-generated analysis, not medical advice. Always consult your doctor.</p>
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
                             </div>
                         </div>
                     )}
@@ -533,7 +633,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail }: { onSave:
     )
 }
 
-function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete }: { entry: DiaryEntry; onSave: (entry: DiaryEntry) => void; currentUserEmail: string | null; onDelete: (id: string) => void; }) {
+function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries }: { entry: DiaryEntry; onSave: (entry: DiaryEntry) => void; currentUserEmail: string | null; onDelete: (id: string) => void; allEntries: DiaryEntry[]; }) {
     const hasPainDetails = (entry.painScore ?? 0) > 0 && (entry.painLocation || entry.painRemarks);
     
     return (
@@ -630,7 +730,7 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete }: { entry: 
                 )}
             </CardContent>
              <CardFooter className="flex justify-between items-center">
-                 <DiaryEntryDialog onSave={onSave} existingEntry={entry} currentUserEmail={currentUserEmail} />
+                 <DiaryEntryDialog onSave={onSave} existingEntry={entry} currentUserEmail={currentUserEmail} allEntries={allEntries}/>
                  <Button 
                     variant="destructive" 
                     size="icon" 
@@ -788,7 +888,7 @@ export default function DiaryPage() {
             {entries.length > 0 ? (
                 <div className="space-y-6" ref={diaryContainerRef}>
                     {entries.map(entry => (
-                        <DiaryEntryCard key={entry.id} entry={entry} onSave={handleSaveEntry} currentUserEmail={currentUserEmail} onDelete={handleDeleteEntry} />
+                        <DiaryEntryCard key={entry.id} entry={entry} onSave={handleSaveEntry} currentUserEmail={currentUserEmail} onDelete={handleDeleteEntry} allEntries={entries} />
                     ))}
                 </div>
             ) : (
@@ -798,9 +898,7 @@ export default function DiaryPage() {
                 </div>
             )}
             
-            <DiaryEntryDialog onSave={handleSaveEntry} currentUserEmail={currentUserEmail}/>
+            <DiaryEntryDialog onSave={handleSaveEntry} currentUserEmail={currentUserEmail} allEntries={entries}/>
         </div>
     )
 }
-
-    

@@ -59,3 +59,23 @@ export const AnalyzeSymptomPatternOutputSchema = z.object({
   analysis: z.string().describe("A markdown-formatted string detailing potential links between the symptom and the user's profile. Should start with a summary, then bullet points for each potential link found."),
 });
 export type AnalyzeSymptomPatternOutput = z.infer<typeof AnalyzeSymptomPatternOutputSchema>;
+
+// This schema is for AI flows that need to process diary entries.
+// It keeps the structure consistent.
+export const DiaryEntrySchemaForAI = z.object({
+    id: z.string(),
+    date: z.string(),
+    mood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
+    diagnosisMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
+    treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
+    painScore: z.number().nullable(),
+    painLocation: z.string().nullable(),
+    painRemarks: z.string().optional(),
+    weight: z.string(),
+    sleep: z.string(),
+    food: z.string(),
+    worriedAbout: z.string(),
+    positiveAbout: z.string(),
+    notes: z.string(),
+});
+export type DiaryEntryForAI = z.infer<typeof DiaryEntrySchemaForAI>;

@@ -37,6 +37,7 @@ import html2canvas from "html2canvas"
 import { checkMedicationDose } from "@/ai/flows/check-medication-dose"
 import { analyzeSymptomPattern } from "@/ai/flows/analyze-symptom-pattern"
 import { marked } from "marked"
+import { WeeklyDiarySummary } from "@/components/weekly-diary-summary"
 
 // Data structure for meds taken
 export interface MedsTaken {
@@ -888,6 +889,8 @@ export default function DiaryPage() {
                     Download PDF
                 </Button>
             </div>
+
+            <WeeklyDiarySummary entries={entries} currentUserEmail={currentUserEmail} />
 
             {entries.length > 0 ? (
                 <div className="space-y-6" ref={diaryContainerRef}>

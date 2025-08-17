@@ -35,3 +35,17 @@ export const SourceConversation = z.object({
   ),
 });
 export type SourceConversation = z.infer<typeof SourceConversation>;
+
+
+export const AnalyzeSymptomPatternInputSchema = z.object({
+  symptom: z.string().describe("The recurring symptom being experienced by the user (e.g., 'Headache', 'Nausea', 'Back (Lower) pain')."),
+  diagnosis: z.string().describe("The user's primary diagnosis (e.g., 'Renal Cell Carcinoma')."),
+  medications: z.array(z.object({ name: z.string() })).describe("A list of medications the user is currently taking."),
+  treatments: z.array(z.string()).describe("A list of active or recent treatment step titles (e.g., 'Chemotherapy', 'Partial Nephrectomy')."),
+});
+export type AnalyzeSymptomPatternInput = z.infer<typeof AnalyzeSymptomPatternInputSchema>;
+
+export const AnalyzeSymptomPatternOutputSchema = z.object({
+  analysis: z.string().describe("A markdown-formatted string detailing potential links between the symptom and the user's profile. Should start with a summary, then bullet points for each potential link found."),
+});
+export type AnalyzeSymptomPatternOutput = z.infer<typeof AnalyzeSymptomPatternOutputSchema>;

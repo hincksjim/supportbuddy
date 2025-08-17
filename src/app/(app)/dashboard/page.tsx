@@ -464,23 +464,51 @@ function AnalysisCard({ result, onDelete }: { result: AnalysisResult, onDelete: 
     )
 }
 
+function ViewTextNoteDialog({ note, children }: { note: TextNote; children: React.ReactNode }) {
+    return (
+        <Dialog>
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>{note.title}</DialogTitle>
+                    <DialogDescription>
+                        Note from {new Date(note.date).toLocaleDateString()}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 max-h-[60vh] overflow-y-auto">
+                    <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="secondary">Close</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function TextNoteCard({ note, onDelete }: { note: TextNote, onDelete: (id: string, type: ActivityItem['type']) => void }) {
     return (
-        <Card className="flex flex-col h-full relative group">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                    <NotebookPen className="w-5 h-5 text-primary" />
-                    {note.title}
-                </CardTitle>
-                <CardDescription>{new Date(note.date).toLocaleDateString()}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1">
-                 <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-5">{note.content}</p>
-            </CardContent>
-            <Button 
-                variant="destructive" 
-                size="icon" 
-                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+        <div className="relative group h-full">
+            <ViewTextNoteDialog note={note}>
+                <Card className="flex flex-col h-full cursor-pointer hover:bg-accent/50 transition-colors">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <NotebookPen className="w-5 h-5 text-primary" />
+                            {note.title}
+                        </CardTitle>
+                        <CardDescription>{new Date(note.date).toLocaleDateString()}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-1">
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-5">{note.content}</p>
+                    </CardContent>
+                </Card>
+            </ViewTextNoteDialog>
+            <Button
+                variant="destructive"
+                size="icon"
+                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                 onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
@@ -490,7 +518,7 @@ function TextNoteCard({ note, onDelete }: { note: TextNote, onDelete: (id: strin
                 <X className="h-4 w-4" />
                 <span className="sr-only">Delete</span>
             </Button>
-        </Card>
+        </div>
     );
 }
 

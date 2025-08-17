@@ -12,6 +12,8 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { SourceConversation, SourceDocument } from './types';
+import { DiaryEntryForAI, GenerateDiarySummaryInputSchema } from './types';
+import { generateDiarySummary } from './generate-diary-summary';
 
 
 const TimelineStepSchema = z.object({
@@ -105,6 +107,15 @@ export type GeneratePersonalSummaryOutput = z.infer<
   typeof GeneratePersonalSummaryOutputSchema
 >;
 
+const EnrichedGeneratePersonalSummaryInputSchema = GeneratePersonalSummaryInputSchema.extend({
+    currentDate: z.string().describe("The current date in 'Weekday, Day Month Year' format. For calculating dates from relative terms like 'tomorrow'."),
+    diarySummaries: z.array(z.object({
+        title: z.string(),
+        summary: z.string(),
+    })).describe("An array of AI-generated weekly or monthly summaries for the diary entries."),
+});
+
+
 export async function generatePersonalSummary(
   input: GeneratePersonalSummaryInput
 ): Promise<GeneratePersonalSummaryOutput> {
@@ -116,23 +127,63 @@ export async function generatePersonalSummary(
     weekday: 'long',
   });
 
-  // Sort diary data here before passing to the prompt
   const sortedDiaryData = [...input.diaryData].sort((a, b) => {
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
   
+  // Group entries by month and week
+    const getMonthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const getWeekKey = (date: Date) => {
+        const year = date.getFullYear();
+        const startOfWeek = new Date(date);
+        startOfWeek.setDate(date.getDate() - date.getDay() + 1); // Monday
+        const dayOfYear = (startOfWeek.getTime() - new Date(year, 0, 1).getTime()) / 86400000;
+        return `${year}-W${String(Math.ceil(dayOfYear / 7)).padStart(2, '0')}`;
+    }
+
+    const groupedByMonth = sortedDiaryData.reduce((acc, entry) => {
+        const monthKey = getMonthKey(new Date(entry.date));
+        if (!acc[monthKey]) acc[monthKey] = [];
+        acc[monthKey].push(entry);
+        return acc;
+    }, {} as { [key: string]: DiaryEntry[] });
+
+    const currentMonthKey = getMonthKey(new Date());
+    const diarySummaries: {title: string, summary: string}[] = [];
+
+    for (const monthKey in groupedByMonth) {
+        if (monthKey === currentMonthKey) {
+             const groupedByWeek = groupedByMonth[monthKey].reduce((acc, entry) => {
+                const weekKey = getWeekKey(new Date(entry.date));
+                if (!acc[weekKey]) acc[weekKey] = [];
+                acc[weekKey].push(entry);
+                return acc;
+            }, {} as { [key: string]: DiaryEntry[] });
+
+            for (const weekKey in groupedByWeek) {
+                const weekEntries = groupedByWeek[weekKey];
+                const summaryResult = await generateDiarySummary({ diaryEntries: weekEntries, timeframe: 'Weekly' });
+                const weekStartDate = new Date(weekEntries[weekEntries.length - 1].date);
+                const title = `Summary for Week of ${weekStartDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+                diarySummaries.push({ title, summary: summaryResult.summary });
+            }
+        } else {
+             const monthEntries = groupedByMonth[monthKey];
+             const summaryResult = await generateDiarySummary({ diaryEntries: monthEntries, timeframe: 'Monthly' });
+             const title = `Summary for ${new Date(monthEntries[0].date).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}`;
+             diarySummaries.push({ title, summary: summaryResult.summary });
+        }
+    }
+  
   const extendedInput = { 
     ...input, 
     diaryData: sortedDiaryData,
+    diarySummaries,
     currentDate,
   };
   
   return generatePersonalSummaryFlow(extendedInput);
 }
-
-const EnrichedGeneratePersonalSummaryInputSchema = GeneratePersonalSummaryInputSchema.extend({
-    currentDate: z.string().describe("The current date in 'Weekday, Day Month Year' format. For calculating dates from relative terms like 'tomorrow'."),
-});
 
 
 const prompt = ai.definePrompt({
@@ -226,7 +277,17 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 {{/if}}
 
 ### **Wellness & Diary Insights**
-*(Review all diary entries, which are pre-sorted from most recent to oldest. For each day, create a Markdown bulleted list item. Each bullet point MUST represent one single day and start on a new line. Include details on Mood, Pain Score, Pain Location, and Pain Remarks. If an AI symptom analysis exists, include it.)*
+*(This section should contain the pre-generated diary summaries first, followed by the detailed daily log.)*
+
+{{#if diarySummaries}}
+**AI-Generated Summaries:**
+{{#each diarySummaries}}
+> **{{title}}:** {{summary}}
+{{/each}}
+---
+{{/if}}
+
+**Daily Log (Most Recent First):**
 {{#if diaryData}}
 {{#each diaryData}}
 *   **{{date}}**: Mood: {{mood}}; Pain: {{painScore}}/10{{#if painLocation}} in the **{{painLocation}}** (Remarks: *{{painRemarks}}*){{/if}}; Worried about: "{{worriedAbout}}"; Positive about: "{{positiveAbout}}".
@@ -276,13 +337,8 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     outputSchema: GeneratePersonalSummaryOutputSchema,
   },
   async input => {
-    // The prompt is now expected to return the `updatedDiagnosis` in the output object.
-    // That same output object also contains the `report`, which the prompt has been instructed
-    // to build using the `updatedDiagnosis` it just determined.
     const {output} = await prompt(input);
-
-    // We need to re-compose the output to inject the determined diagnosis into the report string,
-    // as the Handlebars template inside the prompt doesn't have access to other output fields.
+    
      if (output && output.report && output.updatedDiagnosis) {
         const finalReport = output.report.replace(
             /{{{updatedDiagnosis}}}/g,

@@ -18,7 +18,6 @@ import { DiaryEntry } from "@/app/(app)/diary/page"
 import { Medication } from "@/app/(app)/medication/page"
 import { DiaryChart } from "@/components/diary-chart"
 import { lookupPostcode } from "@/services/postcode-lookup"
-import { DiarySummary } from "@/components/weekly-diary-summary"
 
 interface Message {
   role: "user" | "assistant"
@@ -199,9 +198,9 @@ export default function SummaryPage() {
     
     // Give UI time to update before blocking with AI call
     setTimeout(async () => {
-        const hasContent = analysisData.length > 0 || sourceConversationsData.length > 0;
+        const hasContent = analysisData.length > 0 || sourceConversationsData.length > 0 || diaryEntries.length > 0;
         if (!hasContent) {
-            setError("You need to have a conversation or analyze a document first to generate a summary report.");
+            setError("You need to have a conversation, analyze a document, or make a diary entry first to generate a summary report.");
             return;
         }
 
@@ -497,7 +496,6 @@ export default function SummaryPage() {
             </CardHeader>
             <CardContent>
                 <div className="space-y-6">
-                    <DiarySummary entries={diaryEntries} currentUserEmail={currentUserEmail} />
                     {diaryEntries.length > 1 ? (
                         <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
                             <Card className="chart-card-pdf">

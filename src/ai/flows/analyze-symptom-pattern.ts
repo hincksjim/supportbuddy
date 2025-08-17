@@ -30,12 +30,18 @@ const prompt = ai.definePrompt({
 *   **Primary Diagnosis:** {{{diagnosis}}}
 *   **Current Medications:** {{#each medications}}{{name}}{{#unless @last}}, {{/unless}}{{/each}}
 *   **Active/Recent Treatments:** {{#each treatments}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+*   **User's Remarks about the pain:**
+    {{#each painRemarks}}
+    - "{{this}}"
+    {{/each}}
+
 
 **Task:**
 1.  **Analyze Connections:** Review the user's situation. Systematically check if the reported 'symptom' is a known side effect or common consequence of:
     a.  The 'diagnosis' itself.
     b.  Any of the 'medications' listed.
     c.  Any of the 'treatments' listed.
+    d.  Also consider the user's 'painRemarks' for additional context.
 2.  **Construct Analysis:** Create a response in Markdown format for the \`analysis\` field.
     *   **Summary First:** Begin with a brief, one-sentence summary of your findings. For example: "Based on your profile, the symptom might be related to your medication or diagnosis." or "No direct common link was found, but it's important to monitor."
     *   **Bulleted List:** Follow the summary with a bulleted list. Each bullet point should detail a specific potential connection you found.

@@ -390,7 +390,8 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
         }
 
         // Check if this symptom has been logged before
-        const symptomCount = allEntries.filter(e => e.painLocation === symptom).length;
+        const relevantEntries = allEntries.filter(e => e.painLocation === symptom);
+        const symptomCount = relevantEntries.length;
         
         // We'll trigger the check if it's been logged at least once before (so twice total including current)
         if (symptomCount < 1) {
@@ -405,12 +406,19 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             const activeTreatments = contextData.timelineData?.timeline.flatMap(stage => 
                 stage.steps.filter(step => step.status === 'completed').map(step => step.title)
             ) || [];
+
+            const painRemarksForSymptom = relevantEntries.map(e => e.painRemarks).filter(Boolean);
+            // Also include the current entry's remarks if they exist
+            if(painRemarks) {
+                painRemarksForSymptom.push(painRemarks);
+            }
             
             const result = await analyzeSymptomPattern({
                 symptom,
                 diagnosis: contextData.userData?.initialDiagnosis || "Not specified",
                 medications: prescribedMeds.map(m => ({ name: m.name })),
                 treatments: activeTreatments,
+                painRemarks: painRemarksForSymptom,
             });
 
             setSymptomAnalysis(result.analysis);
@@ -422,7 +430,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             setIsCheckingSymptom(false);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [allEntries, contextData, prescribedMeds, painScore]);
+    }, [allEntries, contextData, prescribedMeds, painScore, painRemarks]);
 
     // Trigger analysis when pain location changes
     useEffect(() => {

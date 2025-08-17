@@ -42,6 +42,7 @@ export const AnalyzeSymptomPatternInputSchema = z.object({
   diagnosis: z.string().describe("The user's primary diagnosis (e.g., 'Renal Cell Carcinoma')."),
   medications: z.array(z.object({ name: z.string() })).describe("A list of medications the user is currently taking."),
   treatments: z.array(z.string()).describe("A list of active or recent treatment step titles (e.g., 'Chemotherapy', 'Partial Nephrectomy')."),
+  painRemarks: z.array(z.string()).describe("A list of the user's own descriptions of the pain from the days it was logged."),
 });
 export type AnalyzeSymptomPatternInput = z.infer<typeof AnalyzeSymptomPatternInputSchema>;
 

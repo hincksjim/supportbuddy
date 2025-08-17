@@ -53,6 +53,15 @@ const DiaryEntrySchema = z.object({
   })),
 });
 
+const MedicationSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  strength: z.string(),
+  dose: z.string(),
+  issuedBy: z.string(),
+  issuedDate: z.string(),
+});
+
 const GeneratePersonalSummaryInputSchema = z.object({
     userName: z.string().describe("The user's first name."),
     initialDiagnosis: z.string().optional().describe("The user's primary diagnosis selected at signup."),
@@ -93,15 +102,6 @@ const GeneratePersonalSummaryOutputSchema = z.object({
 export type GeneratePersonalSummaryOutput = z.infer<
   typeof GeneratePersonalSummaryOutputSchema
 >;
-
-const MedicationSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  strength: z.string(),
-  dose: z.string(),
-  issuedBy: z.string(),
-  issuedDate: z.string(),
-});
 
 export async function generatePersonalSummary(
   input: GeneratePersonalSummaryInput
@@ -292,3 +292,5 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

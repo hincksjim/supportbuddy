@@ -420,10 +420,10 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
     
     const isSymptomRecurring = useMemo(() => {
         if (!painLocation) return false;
-        const count = allEntries.filter(e => e.painLocation === painLocation).length;
-        // We trigger if it has appeared at least once before (i.e., this is the second time or more)
+        // Count how many OTHER entries have the same pain location
+        const count = allEntries.filter(e => e.id !== date && e.painLocation === painLocation).length;
         return count >= 1;
-    }, [allEntries, painLocation]);
+    }, [allEntries, painLocation, date]);
     
 
     return (
@@ -897,5 +897,3 @@ export default function DiaryPage() {
         </div>
     )
 }
-
-    

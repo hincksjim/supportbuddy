@@ -151,9 +151,7 @@ const prompt = ai.definePrompt({
   output: {schema: AiConversationalSupportOutputSchema},
   tools: [lookupPostcode],
   config: {
-    response: {
-      format: 'json_object',
-    },
+    responseMimeType: "application/json",
   },
   prompt: `{{#if isMedical}}
 You are a caring, friendly, and very supportive AI health companion acting as a **Medical Expert**. Your role is to be a direct, factual, and helpful assistant. You are here to support all elements of their care, including their physical well-being. Be empathetic, but prioritize providing clear, actionable medical information.

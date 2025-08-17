@@ -8,6 +8,7 @@ import { Loader2, RefreshCw, Download } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { marked } from "marked"
 import jsPDF from "jspdf"
+import "jspdf-autotable"
 import html2canvas from "html2canvas"
 import { useToast } from "@/hooks/use-toast"
 
@@ -18,10 +19,14 @@ import { DiaryEntry } from "@/app/(app)/diary/page"
 import { Medication } from "@/app/(app)/medication/page"
 import { DiaryChart } from "@/components/diary-chart"
 import { lookupPostcode } from "@/services/postcode-lookup"
+import { TextNote } from "@/ai/flows/types"
 
 interface Message {
   role: "user" | "assistant"
-  content: string
+  content: string;
+   metadata?: {
+      specialist: any;
+  }
 }
 
 interface AnalysisResult {
@@ -40,6 +45,7 @@ interface ConversationSummary {
   title: string;
   summary: string;
   date: string;
+  specialist?: any;
 }
 
 interface StoredConversation {
@@ -99,6 +105,7 @@ export default function SummaryPage() {
   const [timelineData, setTimelineData] = useState<TimelineData | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisResult[]>([])
   const [sourceConversationsData, setSourceConversationsData] = useState<StoredConversation[]>([])
+  const [textNotes, setTextNotes] = useState<TextNote[]>([])
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([])
   const [medicationData, setMedicationData] = useState<Medication[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -130,7 +137,11 @@ export default function SummaryPage() {
         setAnalysisData(JSON.parse(storedAnalyses));
       }
       
-      // All Saved Conversations
+      // All Saved Conversations and text notes
+      const storedSummaries = localStorage.getItem(`conversationSummaries_${currentUserEmail}`);
+      const summariesAndNotes = storedSummaries ? JSON.parse(storedSummaries) : [];
+      setTextNotes(summariesAndNotes.filter((item: any) => item.type === 'textNote'));
+
       const storedConversations = localStorage.getItem(`allConversations_${currentUserEmail}`);
       if (storedConversations) {
         setSourceConversationsData(JSON.parse(storedConversations));
@@ -228,13 +239,13 @@ export default function SummaryPage() {
             
             // --- Benefits Caching Logic ---
             let potentialBenefitsText = "*   No additional benefits were identified at this time. Visit the Finance page to check.";
-            const benefitsCacheKey = `financialSuggestions_${currentUserEmail}`;
+            const benefitsCacheKey = `financialSuggestionsCache_${currentUserEmail}`;
             const cachedBenefits = localStorage.getItem(benefitsCacheKey);
             if(cachedBenefits) {
-                const suggestions: BenefitSuggestion[] = JSON.parse(cachedBenefits);
-                 if (suggestions.length > 0) {
-                    potentialBenefitsText = suggestions
-                        .map(b => `*   **${b.name}:** ${b.reason}`)
+                 const parsedCache = JSON.parse(cachedBenefits);
+                 if (parsedCache && parsedCache.suggestions && parsedCache.suggestions.length > 0) {
+                     potentialBenefitsText = parsedCache.suggestions
+                        .map((b: BenefitSuggestion) => `*   **${b.name}:** ${b.reason}`)
                         .join('\n');
                 }
             }
@@ -264,7 +275,7 @@ export default function SummaryPage() {
 
             // --- Fingerprint Caching Logic ---
             const dataToFingerprint = {
-                userData, timelineData, analysisData, sourceConversationsData, diaryEntries, medicationData, locationInfo, potentialBenefitsText
+                userData, timelineData, analysisData, sourceConversationsData, textNotes, diaryEntries, medicationData, locationInfo, potentialBenefitsText
             };
             const currentFingerprint = JSON.stringify(dataToFingerprint);
             const fingerprintKey = `personalSummaryFingerprint_${currentUserEmail}`;
@@ -295,6 +306,7 @@ export default function SummaryPage() {
                 timelineData,
                 sourceDocuments,
                 sourceConversations,
+                textNotes: textNotes.map(n => ({ id: n.id, title: n.title, content: n.content, date: new Date(n.date).toLocaleDateString() })),
                 diaryData: diaryEntries,
                 medicationData: medicationData,
                 locationInfo: locationInfo,
@@ -342,15 +354,15 @@ export default function SummaryPage() {
           const pdfWidth = pdf.internal.pageSize.getWidth();
           const pdfHeight = pdf.internal.pageSize.getHeight();
           const margin = 15;
-          let yPos = margin;
 
           // --- 1. Add Title Page ---
           pdf.setFontSize(28);
           pdf.text("Personal Summary Report", pdfWidth / 2, pdfHeight / 2, { align: 'center' });
-          pdf.addPage();
-          yPos = margin;
-
+          
           // --- 2. Add Charts ---
+          pdf.addPage();
+          let yPos = margin;
+          
           pdf.setFontSize(18);
           pdf.text("Wellness Trends", margin, yPos);
           yPos += 10;
@@ -381,73 +393,15 @@ export default function SummaryPage() {
 
           // --- 3. Add AI Generated Report ---
           pdf.addPage();
-          yPos = margin;
-          
-          const lexer = new marked.Lexer();
-          const tokens = lexer.lex(report || "");
-
-          const checkPageBreak = (heightNeeded: number) => {
-              if (yPos + heightNeeded > pdfHeight - margin) {
-                  pdf.addPage();
-                  yPos = margin;
-              }
-          };
-          
-          for (const token of tokens) {
-              if (token.type === 'heading') {
-                  const fontSize = token.depth === 2 ? 14 : (token.depth === 3 ? 12 : 10);
-                  const textHeight = (fontSize / 72) * 25.4 * 0.5; // Approx height
-                  checkPageBreak(textHeight);
-                  pdf.setFontSize(fontSize);
-                  pdf.setFont('helvetica', 'bold');
-                  const splitText = pdf.splitTextToSize(token.text, pdfWidth - margin * 2);
-                  pdf.text(splitText, margin, yPos);
-                  yPos += pdf.getTextDimensions(splitText).h + 4;
-
-              } else if (token.type === 'list') {
-                  pdf.setFontSize(10);
-                  pdf.setFont('helvetica', 'normal');
-                   for (const item of token.items) {
-                       const bulletPoint = `• ${item.text}`;
-                       const splitText = pdf.splitTextToSize(bulletPoint, pdfWidth - margin * 2 - 5);
-                       const textHeight = pdf.getTextDimensions(splitText).h;
-                       checkPageBreak(textHeight);
-                       pdf.text(splitText, margin + 5, yPos);
-                       yPos += textHeight + 2;
-                   }
-                   yPos += 5;
-
-              } else if (token.type === 'paragraph' || token.type === 'text') {
-                  pdf.setFontSize(10);
-                  pdf.setFont('helvetica', 'normal');
-                  const splitText = pdf.splitTextToSize(token.text, pdfWidth - margin * 2);
-                  const textHeight = pdf.getTextDimensions(splitText).h;
-                  checkPageBreak(textHeight);
-                  pdf.text(splitText, margin, yPos);
-                  yPos += textHeight + 3;
-
-              } else if (token.type === 'space') {
-                  yPos += 5;
-              } else if (token.type === 'hr') {
-                  checkPageBreak(5);
-                  pdf.setDrawColor(200, 200, 200);
-                  pdf.line(margin, yPos, pdfWidth - margin, yPos);
-                  yPos += 5;
-              } else if (token.type === 'blockquote') {
-                  pdf.setFontSize(10);
-                  pdf.setFont('helvetica', 'italic');
-                  const text = token.text;
-                   const splitText = pdf.splitTextToSize(text, pdfWidth - margin * 2 - 10);
-                   const textHeight = pdf.getTextDimensions(splitText).h;
-                   checkPageBreak(textHeight + 4);
-                   pdf.setDrawColor(200, 200, 200);
-                   pdf.line(margin, yPos - 2, margin, yPos + textHeight); // Left border
-                   pdf.text(splitText, margin + 5, yPos);
-                   yPos += textHeight + 6;
-              }
-          }
-
-          pdf.save("Personal-Summary-Report.pdf");
+          (pdf as any).html(reportElement, {
+              callback: function(doc: jsPDF) {
+                  doc.save("Personal-Summary-Report.pdf");
+              },
+              x: margin,
+              y: margin,
+              width: pdfWidth - (margin * 2),
+              windowWidth: reportElement.scrollWidth
+          });
 
       } catch (err) {
           console.error("Could not generate PDF", err);
@@ -457,7 +411,7 @@ export default function SummaryPage() {
       }
   };
 
-  const reportHtml = report ? marked(report) : "";
+  const reportHtml = report ? marked.parse(report) : "";
   
   return (
     <div className="p-4 md:p-6 space-y-8">

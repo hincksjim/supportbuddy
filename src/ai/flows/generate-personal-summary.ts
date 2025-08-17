@@ -11,8 +11,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { SourceConversation, SourceDocument } from './types';
-import { DiaryEntryForAI, GenerateDiarySummaryInputSchema } from './types';
+import { SourceConversation, SourceDocument, TextNoteSchema } from './types';
+import { DiaryEntryForAI, GenerateDiarySummaryInput } from './types';
 import { generateDiarySummary } from './generate-diary-summary';
 
 
@@ -87,6 +87,7 @@ const GeneratePersonalSummaryInputSchema = z.object({
     }).nullable().describe('The user\'s current treatment timeline data, which includes completed steps and notes.'),
     sourceDocuments: z.array(SourceDocument).describe('An array of previously analyzed documents, including their titles and analysis content.'),
     sourceConversations: z.array(SourceConversation).describe('An array of summaries and full transcripts from previous conversations.'),
+    textNotes: z.array(TextNoteSchema.omit({ type: true })).optional().describe('An array of general text notes saved by the user.'),
     diaryData: z.array(DiaryEntrySchema).describe('An array of the user\'s diary entries.'),
     medicationData: z.array(MedicationSchema).describe('An array of the user\'s prescribed medications.'),
     locationInfo: z.object({
@@ -151,8 +152,10 @@ export async function generatePersonalSummary(
     const currentMonthKey = getMonthKey(new Date());
     const diarySummaries: {title: string, summary: string}[] = [];
 
-    for (const monthKey in groupedByMonth) {
-        if (monthKey === currentMonthKey) {
+    const sortedMonths = Object.keys(groupedByMonth).sort((a,b) => b.localeCompare(a));
+
+    for (const monthKey of sortedMonths) {
+         if (monthKey === currentMonthKey) {
              const groupedByWeek = groupedByMonth[monthKey].reduce((acc, entry) => {
                 const weekKey = getWeekKey(new Date(entry.date));
                 if (!acc[weekKey]) acc[weekKey] = [];
@@ -160,7 +163,9 @@ export async function generatePersonalSummary(
                 return acc;
             }, {} as { [key: string]: DiaryEntry[] });
 
-            for (const weekKey in groupedByWeek) {
+            const sortedWeeks = Object.keys(groupedByWeek).sort((a,b) => b.localeCompare(a));
+
+            for (const weekKey of sortedWeeks) {
                 const weekEntries = groupedByWeek[weekKey];
                 const summaryResult = await generateDiarySummary({ diaryEntries: weekEntries, timeframe: 'Weekly' });
                 const weekStartDate = new Date(weekEntries[weekEntries.length - 1].date);
@@ -202,7 +207,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
     *   You **MUST** populate the \`updatedDiagnosis\` field in the output JSON with this single, most specific diagnosis string.
 
 2.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources (Documents, Conversations, Diary, Medications, Timeline, Financials) to build the report. The saved conversation transcripts are a primary source of truth for the user's narrative.
-3.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, a date, or a feeling), you **MUST** cite where you found it using a reference marker, like **[D0]** for the first document or **[C1]** for the second conversation. The letter indicates the type (D for Document, C for Conversation) and the number is the index from the source list.
+3.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, a date, or a feeling), you **MUST** cite where you found it using a reference marker, like **[D0]** for the first document or **[C1]** for the second conversation. The letter indicates the type (D for Document, C for Conversation, N for Note) and the number is the index from the source list.
 4.  **FORMAT WITH MARKDOWN:** The entire report output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes as defined in the template.
 5.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details or make medical predictions.
 6.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow," you MUST calculate the specific date. If a timeframe is ambiguous (e.g., "in two weeks"), state it exactly as provided.
@@ -241,7 +246,16 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 ---
 {{/each}}
 
-**4. Other Data Sources:**
+**4. General Text Notes (For additional context):**
+{{#each textNotes}}
+*   **Source ID (for citation):** N{{@index}}
+*   **Note Title:** "{{title}}" ({{date}})
+*   **Content:**
+    {{{content}}}
+---
+{{/each}}
+
+**5. Other Data Sources:**
 *   Diary Entries, Medication Lists, and Timelines are available for context.
 ---
 
@@ -325,6 +339,9 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 {{/each}}
 {{#each sourceConversations as |convo|}}
 *   [C{{@index}}] Conversation: "{{convo.title}}" (Summarized: {{convo.date}}, ID: {{convo.id}})
+{{/each}}
+{{#each textNotes as |note|}}
+*   [N{{@index}}] Note: "{{note.title}}" ({{note.date}}, ID: {{note.id}})
 {{/each}}
 `,
 });

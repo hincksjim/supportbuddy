@@ -69,7 +69,7 @@ export const DiaryEntrySchemaForAI = z.object({
     diagnosisMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
     treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
     painScore: z.number().nullable(),
-    painLocation: z.string().nullable(),
+    painLocation: z.string().nullable().optional(),
     painRemarks: z.string().optional(),
     weight: z.string(),
     sleep: z.string(),

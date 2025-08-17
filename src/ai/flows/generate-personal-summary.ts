@@ -29,6 +29,15 @@ const TimelineStageSchema = z.object({
   steps: z.array(TimelineStepSchema),
 });
 
+const MedicationSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  strength: z.string(),
+  dose: z.string(),
+  issuedBy: z.string(),
+  issuedDate: z.string(),
+});
+
 const DiaryEntrySchema = z.object({
   id: z.string(),
   date: z.string(),
@@ -38,6 +47,7 @@ const DiaryEntrySchema = z.object({
   painScore: z.number().nullable(),
   painLocation: z.string().nullable().optional(),
   painRemarks: z.string().optional(),
+  symptomAnalysis: z.string().optional(),
   weight: z.string(),
   sleep: z.string(),
   food: z.string(),
@@ -53,14 +63,6 @@ const DiaryEntrySchema = z.object({
   })),
 });
 
-const MedicationSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  strength: z.string(),
-  dose: z.string(),
-  issuedBy: z.string(),
-  issuedDate: z.string(),
-});
 
 const GeneratePersonalSummaryInputSchema = z.object({
     userName: z.string().describe("The user's first name."),
@@ -224,10 +226,13 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 {{/if}}
 
 ### **Wellness & Diary Insights**
-*(Review all diary entries, which are pre-sorted from most recent to oldest. For each day, create a Markdown bulleted list item. Each bullet point MUST represent one single day and start on a new line. Include details on Mood, Pain Score, Pain Location, and Pain Remarks.)*
+*(Review all diary entries, which are pre-sorted from most recent to oldest. For each day, create a Markdown bulleted list item. Each bullet point MUST represent one single day and start on a new line. Include details on Mood, Pain Score, Pain Location, and Pain Remarks. If an AI symptom analysis exists, include it.)*
 {{#if diaryData}}
 {{#each diaryData}}
 *   **{{date}}**: Mood: {{mood}}; Pain: {{painScore}}/10{{#if painLocation}} in the **{{painLocation}}** (Remarks: *{{painRemarks}}*){{/if}}; Worried about: "{{worriedAbout}}"; Positive about: "{{positiveAbout}}".
+{{#if symptomAnalysis}}
+> **AI Analysis:** {{symptomAnalysis}}
+{{/if}}
 {{/each}}
 {{else}}
 *   (No diary entries provided)
@@ -292,5 +297,3 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

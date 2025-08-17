@@ -57,6 +57,7 @@ export interface DiaryEntry {
   painScore: number | null;
   painLocation: string | null;
   painRemarks: string;
+  symptomAnalysis?: string; // To store AI analysis for recurring symptoms
   weight: string;
   sleep: string;
   food: string;
@@ -315,6 +316,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             painScore: 0,
             painLocation: null,
             painRemarks: '',
+            symptomAnalysis: '',
             weight: '',
             sleep: '',
             food: '',
@@ -331,6 +333,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
         setPainScore(entryToEdit.painScore);
         setPainLocation(entryToEdit.painLocation || null);
         setPainRemarks(entryToEdit.painRemarks || '');
+        setSymptomAnalysis(entryToEdit.symptomAnalysis || null);
         setWeight(entryToEdit.weight);
         setSleep(entryToEdit.sleep);
         setFood(entryToEdit.food);
@@ -338,7 +341,6 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
         setPositiveAbout(entryToEdit.positiveAbout);
         setNotes(entryToEdit.notes);
         setMedsTaken(entryToEdit.medsTaken || []);
-        setSymptomAnalysis(null); // Reset analysis on open
     }, [existingEntry]);
 
     const handleSave = () => {
@@ -352,6 +354,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             painScore,
             painLocation,
             painRemarks,
+            symptomAnalysis: symptomAnalysis || undefined,
             weight,
             sleep,
             food,
@@ -721,6 +724,12 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries 
                     <div className="space-y-1">
                         <h4 className="font-semibold text-sm">Other Notes</h4>
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{entry.notes}</p>
+                    </div>
+                )}
+                {entry.symptomAnalysis && (
+                     <div className="space-y-1 pt-4 border-t">
+                        <h4 className="font-semibold text-sm flex items-center gap-2"><Lightbulb className="w-4 h-4 text-primary"/> AI Symptom Analysis</h4>
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground" dangerouslySetInnerHTML={{ __html: marked(entry.symptomAnalysis) as string }} />
                     </div>
                 )}
             </CardContent>

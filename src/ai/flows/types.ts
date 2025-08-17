@@ -36,6 +36,15 @@ export const SourceConversation = z.object({
 });
 export type SourceConversation = z.infer<typeof SourceConversation>;
 
+export const TextNoteSchema = z.object({
+  id: z.string(),
+  type: z.literal('textNote'),
+  title: z.string(),
+  content: z.string(),
+  date: z.string(),
+});
+export type TextNote = z.infer<typeof TextNoteSchema>;
+
 
 export const AnalyzeSymptomPatternInputSchema = z.object({
   symptom: z.string().describe("The recurring symptom being experienced by the user (e.g., 'Headache', 'Nausea', 'Back (Lower) pain')."),

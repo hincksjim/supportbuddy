@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
-import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download, X, Lightbulb } from "lucide-react"
+import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download, X, Lightbulb, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Medication } from "@/app/(app)/medication/page"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -338,6 +338,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
         setPositiveAbout(entryToEdit.positiveAbout);
         setNotes(entryToEdit.notes);
         setMedsTaken(entryToEdit.medsTaken || []);
+        setSymptomAnalysis(null); // Reset analysis on open
     }, [existingEntry]);
 
     const handleSave = () => {
@@ -382,23 +383,9 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
     }
 
     // --- Symptom Analysis Logic ---
-    const handleSymptomAnalysis = useCallback(async (symptom: string) => {
-        // Only run if symptom is present and pain score > 0
-        if (!symptom || (painScore ?? 0) === 0) {
-            setSymptomAnalysis(null);
-            return;
-        }
-
-        // Check if this symptom has been logged before
-        const relevantEntries = allEntries.filter(e => e.painLocation === symptom);
-        const symptomCount = relevantEntries.length;
+    const handleSymptomAnalysis = useCallback(async () => {
+        if (!painLocation) return;
         
-        // We'll trigger the check if it's been logged at least once before (so twice total including current)
-        if (symptomCount < 1) {
-            setSymptomAnalysis(null);
-            return;
-        }
-
         setIsCheckingSymptom(true);
         setSymptomAnalysis(null);
         
@@ -406,15 +393,15 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             const activeTreatments = contextData.timelineData?.timeline.flatMap(stage => 
                 stage.steps.filter(step => step.status === 'completed').map(step => step.title)
             ) || [];
-
+            
+            const relevantEntries = allEntries.filter(e => e.painLocation === painLocation);
             const painRemarksForSymptom = relevantEntries.map(e => e.painRemarks).filter(Boolean);
-            // Also include the current entry's remarks if they exist
             if(painRemarks) {
                 painRemarksForSymptom.push(painRemarks);
             }
             
             const result = await analyzeSymptomPattern({
-                symptom,
+                symptom: painLocation,
                 diagnosis: contextData.userData?.initialDiagnosis || "Not specified",
                 medications: prescribedMeds.map(m => ({ name: m.name })),
                 treatments: activeTreatments,
@@ -429,17 +416,14 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
         } finally {
             setIsCheckingSymptom(false);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [allEntries, contextData, prescribedMeds, painScore, painRemarks]);
-
-    // Trigger analysis when pain location changes
-    useEffect(() => {
-        if (painLocation) {
-            handleSymptomAnalysis(painLocation);
-        } else {
-            setSymptomAnalysis(null);
-        }
-    }, [painLocation, handleSymptomAnalysis]);
+    }, [allEntries, contextData, prescribedMeds, painLocation, painRemarks]);
+    
+    const isSymptomRecurring = useMemo(() => {
+        if (!painLocation) return false;
+        const count = allEntries.filter(e => e.painLocation === painLocation).length;
+        // We trigger if it has appeared at least once before (i.e., this is the second time or more)
+        return count >= 1;
+    }, [allEntries, painLocation]);
     
 
     return (
@@ -526,7 +510,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                              <div className="grid grid-cols-1 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="pain-location">Pain Location</Label>
-                                    <Select value={painLocation || ""} onValueChange={(val) => setPainLocation(val)}>
+                                    <Select value={painLocation || ""} onValueChange={(val) => { setPainLocation(val); setSymptomAnalysis(null); }}>
                                         <SelectTrigger id="pain-location">
                                             <SelectValue placeholder="Select where it hurts" />
                                         </SelectTrigger>
@@ -542,13 +526,16 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                                     <Textarea id="pain-remarks" placeholder="Describe the pain (e.g., sharp, dull, aching)..." value={painRemarks} onChange={(e) => setPainRemarks(e.target.value)} />
                                 </div>
                                 
-                                {isCheckingSymptom && (
-                                    <div className="flex items-center gap-2 text-muted-foreground p-4 justify-center">
-                                        <Loader2 className="animate-spin" />
-                                        <span>Analyzing symptom...</span>
-                                    </div>
+                                {isSymptomRecurring && (
+                                     <div className="flex flex-col items-start gap-2">
+                                         <Button onClick={handleSymptomAnalysis} disabled={isCheckingSymptom || !painLocation} size="sm" variant="outline">
+                                             {isCheckingSymptom ? <Loader2 className="animate-spin mr-2"/> : <Zap className="mr-2"/>}
+                                             Check Symptom
+                                         </Button>
+                                         <p className="text-xs text-muted-foreground">This seems to be a recurring symptom. Click to check for possible connections.</p>
+                                     </div>
                                 )}
-
+                                
                                 {symptomAnalysis && !isCheckingSymptom && (
                                     <Alert>
                                         <Lightbulb className="h-4 w-4" />
@@ -910,3 +897,5 @@ export default function DiaryPage() {
         </div>
     )
 }
+
+    

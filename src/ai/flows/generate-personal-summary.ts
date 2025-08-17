@@ -12,8 +12,6 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { SourceConversation, SourceDocument, TextNoteSchema } from './types';
-import { DiaryEntryForAI, GenerateDiarySummaryInput } from './types';
-import { generateDiarySummary } from './generate-diary-summary';
 
 
 const TimelineStepSchema = z.object({
@@ -110,10 +108,6 @@ export type GeneratePersonalSummaryOutput = z.infer<
 
 const EnrichedGeneratePersonalSummaryInputSchema = GeneratePersonalSummaryInputSchema.extend({
     currentDate: z.string().describe("The current date in 'Weekday, Day Month Year' format. For calculating dates from relative terms like 'tomorrow'."),
-    diarySummaries: z.array(z.object({
-        title: z.string(),
-        summary: z.string(),
-    })).describe("An array of AI-generated weekly or monthly summaries for the diary entries."),
 });
 
 
@@ -132,58 +126,9 @@ export async function generatePersonalSummary(
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
   
-  // Group entries by month and week
-    const getMonthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    const getWeekKey = (date: Date) => {
-        const year = date.getFullYear();
-        const startOfWeek = new Date(date);
-        startOfWeek.setDate(date.getDate() - date.getDay() + 1); // Monday
-        const dayOfYear = (startOfWeek.getTime() - new Date(year, 0, 1).getTime()) / 86400000;
-        return `${year}-W${String(Math.ceil(dayOfYear / 7)).padStart(2, '0')}`;
-    }
-
-    const groupedByMonth = sortedDiaryData.reduce((acc, entry) => {
-        const monthKey = getMonthKey(new Date(entry.date));
-        if (!acc[monthKey]) acc[monthKey] = [];
-        acc[monthKey].push(entry);
-        return acc;
-    }, {} as { [key: string]: DiaryEntry[] });
-
-    const currentMonthKey = getMonthKey(new Date());
-    const diarySummaries: {title: string, summary: string}[] = [];
-
-    const sortedMonths = Object.keys(groupedByMonth).sort((a,b) => b.localeCompare(a));
-
-    for (const monthKey of sortedMonths) {
-         if (monthKey === currentMonthKey) {
-             const groupedByWeek = groupedByMonth[monthKey].reduce((acc, entry) => {
-                const weekKey = getWeekKey(new Date(entry.date));
-                if (!acc[weekKey]) acc[weekKey] = [];
-                acc[weekKey].push(entry);
-                return acc;
-            }, {} as { [key: string]: DiaryEntry[] });
-
-            const sortedWeeks = Object.keys(groupedByWeek).sort((a,b) => b.localeCompare(a));
-
-            for (const weekKey of sortedWeeks) {
-                const weekEntries = groupedByWeek[weekKey];
-                const summaryResult = await generateDiarySummary({ diaryEntries: weekEntries, timeframe: 'Weekly' });
-                const weekStartDate = new Date(weekEntries[weekEntries.length - 1].date);
-                const title = `Summary for Week of ${weekStartDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
-                diarySummaries.push({ title, summary: summaryResult.summary });
-            }
-        } else {
-             const monthEntries = groupedByMonth[monthKey];
-             const summaryResult = await generateDiarySummary({ diaryEntries: monthEntries, timeframe: 'Monthly' });
-             const title = `Summary for ${new Date(monthEntries[0].date).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}`;
-             diarySummaries.push({ title, summary: summaryResult.summary });
-        }
-    }
-  
   const extendedInput = { 
     ...input, 
     diaryData: sortedDiaryData,
-    diarySummaries,
     currentDate,
   };
   
@@ -206,17 +151,24 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
     *   Identify the most specific and recent diagnosis mentioned. For example, if the user's initial diagnosis is "Cancer (All Types)" but a recent document [D1] specifies "Renal Cell Carcinoma, 7cm", then "Renal Cell Carcinoma, 7cm" is the latest diagnosis.
     *   You **MUST** populate the \`updatedDiagnosis\` field in the output JSON with this single, most specific diagnosis string.
 
-2.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources (Documents, Conversations, Diary, Medications, Timeline, Financials) to build the report. The saved conversation transcripts are a primary source of truth for the user's narrative.
-3.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, a date, or a feeling), you **MUST** cite where you found it using a reference marker, like **[D0]** for the first document or **[C1]** for the second conversation. The letter indicates the type (D for Document, C for Conversation, N for Note) and the number is the index from the source list.
-4.  **FORMAT WITH MARKDOWN:** The entire report output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes as defined in the template.
-5.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details or make medical predictions.
-6.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow," you MUST calculate the specific date. If a timeframe is ambiguous (e.g., "in two weeks"), state it exactly as provided.
-7.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
-8.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, contact details, **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections.
-9.  **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents and conversations you were provided, using the title, date, and ID for each, along with their citation marker.
-10. **INJECT BENEFITS TEXT:** The "Potential Additional Benefits" section MUST be populated *only* by inserting the exact pre-formatted text provided in the \`potentialBenefitsText\` input field.
-11. **FORMAT ADDRESS CORRECTLY**: When creating the address line, you MUST only include fields that have a value. Join them with a comma and a space, but do not add a comma if a field is missing or for the last item in the address.
-12. **USE UPDATED DIAGNOSIS IN REPORT**: In the "Primary Health Condition" field of the report, you MUST use the value you determined for \`updatedDiagnosis\`.
+2.  **GENERATE DIARY SUMMARIES (Second Most Important Task):**
+    *   Review the user's \`diaryData\`.
+    *   You **MUST** generate insightful weekly or monthly summaries for the "Wellness & Diary Insights" section.
+    *   Group entries by month. For the most recent month, generate weekly summaries. For all previous months, generate a single monthly summary.
+    *   Each summary should be 2-3 paragraphs, identifying trends in mood, pain, and key themes from their worries and positive notes. Use an observational tone ("It seems like...", "The entries suggest...").
+    *   You MUST format these summaries inside Markdown blockquotes. Example: \`> **Summary for Week of Aug 05:** This week's entries suggest... \`
+
+3.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources (Documents, Conversations, Diary, Medications, Timeline, Financials) to build the report. The saved conversation transcripts are a primary source of truth for the user's narrative.
+4.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, a date, or a feeling), you **MUST** cite where you found it using a reference marker, like **[D0]** for the first document or **[C1]** for the second conversation. The letter indicates the type (D for Document, C for Conversation, N for Note) and the number is the index from the source list.
+5.  **FORMAT WITH MARKDOWN:** The entire report output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes as defined in the template.
+6.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details or make medical predictions.
+7.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow," you MUST calculate the specific date. If a timeframe is ambiguous (e.g., "in two weeks"), state it exactly as provided.
+8.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
+9.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, contact details, **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections.
+10. **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents and conversations you were provided, using the title, date, and ID for each, along with their citation marker.
+11. **INJECT BENEFITS TEXT:** The "Potential Additional Benefits" section MUST be populated *only* by inserting the exact pre-formatted text provided in the \`potentialBenefitsText\` input field.
+12. **FORMAT ADDRESS CORRECTLY**: When creating the address line, you MUST only include fields that have a value. Join them with a comma and a space, but do not add a comma if a field is missing or for the last item in the address.
+13. **USE UPDATED DIAGNOSIS IN REPORT**: In the "Primary Health Condition" field of the report, you MUST use the value you determined for \`updatedDiagnosis\`.
 
 ---
 **FIRST, REVIEW ALL AVAILABLE INFORMATION SOURCES TO USE:**
@@ -255,8 +207,14 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 ---
 {{/each}}
 
-**5. Other Data Sources:**
-*   Diary Entries, Medication Lists, and Timelines are available for context.
+**5. Diary Entries (For Wellness Summaries and Daily Log):**
+{{#each diaryData}}
+- **Date:** {{date}} - Mood: {{mood}}, Pain: {{painScore}}, Worried: "{{worriedAbout}}", Positive: "{{positiveAbout}}", Notes: "{{notes}}"
+{{/each}}
+---
+
+**6. Other Data Sources:**
+*   Medication Lists and Timelines are available for context.
 ---
 
 **NOW, POPULATE THE REPORT TEMPLATE BELOW:**
@@ -291,15 +249,12 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 {{/if}}
 
 ### **Wellness & Diary Insights**
-*(This section should contain the pre-generated diary summaries first, followed by the detailed daily log.)*
+*(This section should contain the AI-generated diary summaries first, followed by the detailed daily log. Generate the summaries based on the provided diaryData as per the instructions at the start of this prompt.)*
 
-{{#if diarySummaries}}
 **AI-Generated Summaries:**
-{{#each diarySummaries}}
-> **{{title}}:** {{summary}}
-{{/each}}
+*(Here is where you will generate the weekly/monthly summaries in blockquotes based on the diary data)*
+
 ---
-{{/if}}
 
 **Daily Log (Most Recent First):**
 {{#if diaryData}}
@@ -370,3 +325,5 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

@@ -2,22 +2,21 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react";
-import { group } from "console";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Sparkles } from "lucide-react";
 import { DiaryEntry } from "@/app/(app)/diary/page";
-import { generateWeeklyDiarySummary } from "@/ai/flows/generate-weekly-diary-summary";
+import { generateDiarySummary } from "@/ai/flows/generate-diary-summary";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { marked } from "marked";
 
-interface WeeklySummaryProps {
+interface DiarySummaryProps {
     entries: DiaryEntry[];
     currentUserEmail: string | null;
 }
 
-interface WeeklySummaryData {
-    [weekKey: string]: {
+interface StoredSummaryData {
+    [key: string]: { // key is weekKey or monthKey
         summary: string;
         fingerprint: string;
     };
@@ -26,58 +25,110 @@ interface WeeklySummaryData {
 const getWeekKey = (date: Date) => {
     const year = date.getFullYear();
     const startOfWeek = new Date(date);
-    startOfWeek.setDate(date.getDate() - date.getDay());
-    const weekNumber = Math.ceil(((startOfWeek.getTime() - new Date(year, 0, 1).getTime()) / 86400000) / 7);
-    return `${year}-W${weekNumber}`;
+    startOfWeek.setDate(date.getDate() - date.getDay() + 1); // Monday as start of week
+    const dayOfYear = (startOfWeek.getTime() - new Date(year, 0, 1).getTime()) / 86400000;
+    const weekNumber = Math.ceil(dayOfYear / 7);
+    return `${year}-W${String(weekNumber).padStart(2, '0')}`;
 }
+
+const getMonthKey = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    return `${year}-M${String(month).padStart(2, '0')}`;
+}
+
 
 const createFingerprint = (entries: DiaryEntry[]) => {
     return JSON.stringify(entries.map(e => ({ id: e.id, mood: e.mood, painScore: e.painScore, worriedAbout: e.worriedAbout, positiveAbout: e.positiveAbout })));
 }
 
+function SummaryCard({ title, entries, summaryKey, timeframe, onGenerate, storedSummary, isLoading }: {
+    title: string;
+    entries: DiaryEntry[];
+    summaryKey: string;
+    timeframe: 'Weekly' | 'Monthly';
+    onGenerate: (key: string, timeframe: 'Weekly' | 'Monthly') => void;
+    storedSummary?: { summary: string; fingerprint: string; };
+    isLoading: boolean;
+}) {
+    const currentFingerprint = createFingerprint(entries);
+    const isUpToDate = storedSummary && storedSummary.fingerprint === currentFingerprint;
+    
+    return (
+        <Alert>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                <div className="flex-1">
+                    <AlertTitle className="font-bold">{title}</AlertTitle>
+                    <AlertDescription className="mt-2 prose prose-sm dark:prose-invert max-w-none">
+                        {isLoading ? (
+                            <p className="text-muted-foreground">Generating summary...</p>
+                        ) : isUpToDate ? (
+                             <div dangerouslySetInnerHTML={{ __html: marked(storedSummary.summary) as string }} />
+                        ) : (
+                            <p className="text-muted-foreground italic">A {timeframe.toLowerCase()} summary can be generated for this period.</p>
+                        )}
+                    </AlertDescription>
+                </div>
+                <Button
+                    size="sm"
+                    onClick={() => onGenerate(summaryKey, timeframe)}
+                    disabled={isLoading || isUpToDate}
+                    className="mt-2 sm:mt-0"
+                >
+                    {isLoading ? <Loader2 className="mr-2 animate-spin" /> : <Sparkles className="mr-2" />}
+                    {isUpToDate ? "Up to date" : `Generate ${timeframe} Summary`}
+                </Button>
+            </div>
+        </Alert>
+    );
+}
 
-export function WeeklyDiarySummary({ entries, currentUserEmail }: WeeklySummaryProps) {
-    const [summaries, setSummaries] = useState<WeeklySummaryData>({});
+export function DiarySummary({ entries, currentUserEmail }: DiarySummaryProps) {
+    const [summaries, setSummaries] = useState<StoredSummaryData>({});
     const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         if (!currentUserEmail) return;
-        const storedSummaries = localStorage.getItem(`weeklyDiarySummaries_${currentUserEmail}`);
+        const storedSummaries = localStorage.getItem(`diarySummaries_${currentUserEmail}`);
         if (storedSummaries) {
             setSummaries(JSON.parse(storedSummaries));
         }
     }, [currentUserEmail]);
 
-    const saveSummaries = (newSummaries: WeeklySummaryData) => {
+    const saveSummaries = (newSummaries: StoredSummaryData) => {
         if (!currentUserEmail) return;
         setSummaries(newSummaries);
-        localStorage.setItem(`weeklyDiarySummaries_${currentUserEmail}`, JSON.stringify(newSummaries));
+        localStorage.setItem(`diarySummaries_${currentUserEmail}`, JSON.stringify(newSummaries));
     }
     
-    const groupedEntries = useMemo(() => {
+    const groupedEntriesByMonth = useMemo(() => {
         const groups: { [key: string]: DiaryEntry[] } = {};
         entries.forEach(entry => {
-            const weekKey = getWeekKey(new Date(entry.date));
-            if (!groups[weekKey]) {
-                groups[weekKey] = [];
+            const monthKey = getMonthKey(new Date(entry.date));
+            if (!groups[monthKey]) {
+                groups[monthKey] = [];
             }
-            groups[weekKey].push(entry);
+            groups[monthKey].push(entry);
         });
         return groups;
     }, [entries]);
 
-    const handleGenerateSummary = async (weekKey: string) => {
-        const weekEntries = groupedEntries[weekKey];
-        if (!weekEntries || weekEntries.length === 0) return;
+    const handleGenerateSummary = async (key: string, timeframe: 'Weekly' | 'Monthly') => {
+        const isWeekly = timeframe === 'Weekly';
+        const entriesToSummarize = isWeekly
+            ? (groupedEntriesByMonth[getMonthKey(new Date())] || []).filter(e => getWeekKey(new Date(e.date)) === key)
+            : groupedEntriesByMonth[key];
 
-        setLoadingStates(prev => ({ ...prev, [weekKey]: true }));
+        if (!entriesToSummarize || entriesToSummarize.length === 0) return;
+
+        setLoadingStates(prev => ({ ...prev, [key]: true }));
 
         try {
-            const result = await generateWeeklyDiarySummary({ diaryEntries: weekEntries });
-            const newFingerprint = createFingerprint(weekEntries);
+            const result = await generateDiarySummary({ diaryEntries: entriesToSummarize, timeframe });
+            const newFingerprint = createFingerprint(entriesToSummarize);
             const newSummaryData = {
                 ...summaries,
-                [weekKey]: {
+                [key]: {
                     summary: result.summary,
                     fingerprint: newFingerprint,
                 }
@@ -85,62 +136,80 @@ export function WeeklyDiarySummary({ entries, currentUserEmail }: WeeklySummaryP
             saveSummaries(newSummaryData);
 
         } catch (error) {
-            console.error(`Failed to generate summary for ${weekKey}`, error);
+            console.error(`Failed to generate summary for ${key}`, error);
         } finally {
-            setLoadingStates(prev => ({ ...prev, [weekKey]: false }));
+            setLoadingStates(prev => ({ ...prev, [key]: false }));
         }
     }
 
-    const sortedWeeks = Object.keys(groupedEntries).sort((a,b) => b.localeCompare(a));
-    
+    const sortedMonths = Object.keys(groupedEntriesByMonth).sort((a,b) => b.localeCompare(a));
+    const currentMonthKey = getMonthKey(new Date());
+
     if (entries.length === 0) return null;
 
     return (
         <Card className="mb-8">
             <CardHeader>
-                <CardTitle>Weekly Summaries</CardTitle>
-                <CardDescription>Get AI-powered summaries of your weekly diary entries to spot trends.</CardDescription>
+                <CardTitle>Diary Summaries</CardTitle>
+                <CardDescription>Get AI-powered summaries of your diary entries to spot trends.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                {sortedWeeks.map(weekKey => {
-                    const weekEntries = groupedEntries[weekKey];
-                    const weekStartDate = new Date(weekEntries[weekEntries.length - 1].date);
-                    const weekEndDate = new Date(weekEntries[0].date);
-                    const title = `Week of ${weekStartDate.toLocaleDateString('en-GB', { month: 'long', day: 'numeric' })}`;
-                    const currentFingerprint = createFingerprint(weekEntries);
-                    const cachedSummary = summaries[weekKey];
-                    const isUpToDate = cachedSummary && cachedSummary.fingerprint === currentFingerprint;
-                    const isLoading = loadingStates[weekKey];
+                {sortedMonths.map(monthKey => {
+                    const monthEntries = groupedEntriesByMonth[monthKey];
+                    const monthDate = new Date(monthEntries[0].date);
+                    const monthTitle = monthDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+                    
+                    if (monthKey === currentMonthKey) {
+                        // For the current month, group by week
+                        const groupedByWeek = monthEntries.reduce((acc, entry) => {
+                            const weekKey = getWeekKey(new Date(entry.date));
+                            if (!acc[weekKey]) acc[weekKey] = [];
+                            acc[weekKey].push(entry);
+                            return acc;
+                        }, {} as { [key: string]: DiaryEntry[] });
 
-                    return (
-                        <Alert key={weekKey}>
-                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-                                <div className="flex-1">
-                                    <AlertTitle className="font-bold">{title}</AlertTitle>
-                                    <AlertDescription className="mt-2 prose prose-sm dark:prose-invert max-w-none">
-                                        {isLoading ? (
-                                            <p className="text-muted-foreground">Generating summary...</p>
-                                        ) : isUpToDate ? (
-                                             <div dangerouslySetInnerHTML={{ __html: marked(cachedSummary.summary) as string }} />
-                                        ) : (
-                                            <p className="text-muted-foreground italic">A summary can be generated for this week.</p>
-                                        )}
-                                    </AlertDescription>
+                        const sortedWeeks = Object.keys(groupedByWeek).sort((a,b) => b.localeCompare(a));
+                        
+                        return (
+                             <Card key={monthKey} className="p-4 bg-muted/30">
+                                <h3 className="font-semibold mb-2">{monthTitle} (Weekly)</h3>
+                                <div className="space-y-2">
+                                    {sortedWeeks.map(weekKey => {
+                                        const weekEntries = groupedByWeek[weekKey];
+                                        const weekStartDate = new Date(weekEntries[weekEntries.length - 1].date);
+                                        const weekTitle = `Week of ${weekStartDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+
+                                        return <SummaryCard 
+                                            key={weekKey}
+                                            title={weekTitle}
+                                            entries={weekEntries}
+                                            summaryKey={weekKey}
+                                            timeframe="Weekly"
+                                            onGenerate={handleGenerateSummary}
+                                            storedSummary={summaries[weekKey]}
+                                            isLoading={loadingStates[weekKey]}
+                                        />
+                                    })}
                                 </div>
-                                <Button
-                                    size="sm"
-                                    onClick={() => handleGenerateSummary(weekKey)}
-                                    disabled={isLoading || isUpToDate}
-                                >
-                                    {isLoading ? <Loader2 className="mr-2 animate-spin" /> : <Sparkles className="mr-2" />}
-                                    {isUpToDate ? "Up to date" : "Generate Summary"}
-                                </Button>
-                            </div>
-                        </Alert>
-                    )
+                            </Card>
+                        )
+                    } else {
+                        // For past months, show monthly summary
+                        return (
+                             <SummaryCard 
+                                key={monthKey}
+                                title={monthTitle}
+                                entries={monthEntries}
+                                summaryKey={monthKey}
+                                timeframe="Monthly"
+                                onGenerate={handleGenerateSummary}
+                                storedSummary={summaries[monthKey]}
+                                isLoading={loadingStates[monthKey]}
+                             />
+                        )
+                    }
                 })}
             </CardContent>
         </Card>
     );
 }
-

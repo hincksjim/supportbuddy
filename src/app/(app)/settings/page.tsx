@@ -49,24 +49,37 @@ const voices = [
 
 const medicalAvatars = [
     { id: 'female-doctor-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Surgical Consultant, 20s", hint: 'doctor woman 20s' },
+    { id: 'male-doctor-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Surgical Consultant, 20s", hint: 'doctor man 20s' },
+    { id: 'female-doctor-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Surgical Consultant, 30s", hint: 'doctor woman 30s' },
     { id: 'male-doctor-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Surgical Consultant, 30s", hint: 'doctor man 30s' },
     { id: 'female-doctor-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Surgical Consultant, 40s", hint: 'doctor woman 40s' },
+    { id: 'male-doctor-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Surgical Consultant, 40s", hint: 'doctor man 40s' },
+    { id: 'female-doctor-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Surgical Consultant, 50s", hint: 'doctor woman 50s' },
     { id: 'male-doctor-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Surgical Consultant, 50s", hint: 'doctor man 50s' },
 ];
 
 const mentalHealthAvatars = [
     { id: 'female-nurse-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Nurse, 20s", hint: 'nurse woman 20s' },
+    { id: 'male-nurse-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Nurse, 20s", hint: 'nurse man 20s' },
+    { id: 'female-therapist-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Therapist, 30s", hint: 'therapist woman 30s' },
     { id: 'male-therapist-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Therapist, 30s", hint: 'therapist man 30s' },
     { id: 'female-nurse-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Nurse, 40s", hint: 'nurse woman 40s' },
+    { id: 'male-nurse-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Nurse, 40s", hint: 'nurse man 40s' },
+    { id: 'female-therapist-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Therapist, 50s", hint: 'therapist woman 50s' },
     { id: 'male-therapist-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Therapist, 50s", hint: 'therapist man 50s' },
 ];
 
 const financialAvatars = [
-    { id: 'female-advisor-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Support Specialist, 30s", hint: 'advisor woman 30s' },
-    { id: 'male-advisor-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Support Specialist, 40s", hint: 'advisor man 40s' },
-    { id: 'female-advisor-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Support Specialist, 50s", hint: 'advisor woman 50s' },
-    { id: 'male-advisor-60s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Support Specialist, 60s", hint: 'advisor man 60s' },
+    { id: 'female-support-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Support Specialist, 30s", hint: 'advisor woman 30s' },
+    { id: 'male-support-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Support Specialist, 30s", hint: 'advisor man 30s' },
+    { id: 'female-support-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Support Specialist, 40s", hint: 'advisor woman 40s' },
+    { id: 'male-support-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Support Specialist, 40s", hint: 'advisor man 40s' },
+    { id: 'female-support-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Support Specialist, 50s", hint: 'advisor woman 50s' },
+    { id: 'male-support-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Support Specialist, 50s", hint: 'advisor man 50s' },
+    { id: 'female-support-60s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Support Specialist, 60s", hint: 'advisor woman 60s' },
+    { id: 'male-support-60s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Support Specialist, 60s", hint: 'advisor man 60s' },
 ];
+
 
 const specialistAvatarMap = {
     medical: medicalAvatars,

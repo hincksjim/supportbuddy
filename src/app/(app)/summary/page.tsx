@@ -18,6 +18,7 @@ import { DiaryEntry } from "@/app/(app)/diary/page"
 import { Medication } from "@/app/(app)/medication/page"
 import { DiaryChart } from "@/components/diary-chart"
 import { lookupPostcode } from "@/services/postcode-lookup"
+import { DiarySummary } from "@/components/weekly-diary-summary"
 
 interface Message {
   role: "user" | "assistant"
@@ -457,9 +458,8 @@ export default function SummaryPage() {
       }
   };
 
-
   const reportHtml = report ? marked(report) : "";
-
+  
   return (
     <div className="p-4 md:p-6 space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -496,63 +496,66 @@ export default function SummaryPage() {
                 </div>
             </CardHeader>
             <CardContent>
-                {diaryEntries.length > 1 ? (
-                    <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card className="chart-card-pdf">
-                            <CardHeader>
-                                <CardTitle className="text-base">Overall Mood Trends</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <DiaryChart data={diaryEntries} chartType="mood" />
-                            </CardContent>
-                        </Card>
-                        <Card className="chart-card-pdf">
-                            <CardHeader>
-                                <CardTitle className="text-base">Treatment Mood Trends</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <DiaryChart data={diaryEntries} chartType="treatment" />
-                            </CardContent>
-                        </Card>
-                        <Card className="chart-card-pdf">
-                            <CardHeader>
-                                <CardTitle className="text-base">Diagnosis Mood Trends</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <DiaryChart data={diaryEntries} chartType="diagnosis" />
-                            </CardContent>
-                        </Card>
-                        <Card className="chart-card-pdf">
-                            <CardHeader>
-                                <CardTitle className="text-base">Pain Trends</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <DiaryChart data={diaryEntries} chartType="pain" />
-                            </CardContent>
-                        </Card>
-                        <Card className="chart-card-pdf">
-                            <CardHeader>
-                                <CardTitle className="text-base">Weight Trends</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <DiaryChart data={diaryEntries} chartType="weight" />
-                            </CardContent>
-                        </Card>
-                        <Card className="chart-card-pdf">
-                            <CardHeader>
-                                <CardTitle className="text-base">Sleep Trends</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <DiaryChart data={diaryEntries} chartType="sleep" />
-                            </CardContent>
-                        </Card>
-                    </div>
-                ) : (
-                    <div className="text-center py-10 rounded-lg border-2 border-dashed">
-                        <h3 className="text-lg font-semibold">Not Enough Data for Charts</h3>
-                        <p className="text-muted-foreground mt-1">You need at least two diary entries to see your wellness trends.</p>
-                    </div>
-                )}
+                <div className="space-y-6">
+                    <DiarySummary entries={diaryEntries} currentUserEmail={currentUserEmail} />
+                    {diaryEntries.length > 1 ? (
+                        <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
+                            <Card className="chart-card-pdf">
+                                <CardHeader>
+                                    <CardTitle className="text-base">Overall Mood Trends</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={diaryEntries} chartType="mood" />
+                                </CardContent>
+                            </Card>
+                            <Card className="chart-card-pdf">
+                                <CardHeader>
+                                    <CardTitle className="text-base">Treatment Mood Trends</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={diaryEntries} chartType="treatment" />
+                                </CardContent>
+                            </Card>
+                            <Card className="chart-card-pdf">
+                                <CardHeader>
+                                    <CardTitle className="text-base">Diagnosis Mood Trends</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={diaryEntries} chartType="diagnosis" />
+                                </CardContent>
+                            </Card>
+                            <Card className="chart-card-pdf">
+                                <CardHeader>
+                                    <CardTitle className="text-base">Pain Trends</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={diaryEntries} chartType="pain" />
+                                </CardContent>
+                            </Card>
+                            <Card className="chart-card-pdf">
+                                <CardHeader>
+                                    <CardTitle className="text-base">Weight Trends</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={diaryEntries} chartType="weight" />
+                                </CardContent>
+                            </Card>
+                            <Card className="chart-card-pdf">
+                                <CardHeader>
+                                    <CardTitle className="text-base">Sleep Trends</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={diaryEntries} chartType="sleep" />
+                                </CardContent>
+                            </Card>
+                        </div>
+                    ) : (
+                        <div className="text-center py-10 rounded-lg border-2 border-dashed">
+                            <h3 className="text-lg font-semibold">Not Enough Data for Charts</h3>
+                            <p className="text-muted-foreground mt-1">You need at least two diary entries to see your wellness trends.</p>
+                        </div>
+                    )}
+                </div>
             </CardContent>
          </Card>
       

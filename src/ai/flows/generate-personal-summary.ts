@@ -218,10 +218,10 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 {{/if}}
 
 ### **Wellness & Diary Insights**
+*(Review all diary entries. The user's diary data is provided sorted from most recent to oldest. You MUST present a summary for each day in that order. For each day, you MUST create a Markdown bulleted list. Each bullet point MUST represent one single day and start on a new line. Include details on Mood, Pain Score, Pain Location, and Pain Remarks.)*
 {{#if diaryData}}
-*(Review the last 5 diary entries. You MUST create a Markdown bulleted list. Each bullet point MUST represent one single day and start on a new line. For example: * August 5th, 2025: Mood: bad, Pain: 0, Worried about MDT outcome. [Diary])*
 {{#each diaryData}}
-*   **{{date}}**: Mood: {{mood}}; Pain: {{painScore}} {{#if painLocation}}at **{{painLocation}}** ({{painRemarks}}){{/if}}; Worried about: "{{worriedAbout}}"; Positive about: "{{positiveAbout}}".
+*   **{{date}}**: Mood: {{mood}}; Pain: {{painScore}}/10{{#if painLocation}} in the **{{painLocation}}** (Remarks: *{{painRemarks}}*){{/if}}; Worried about: "{{worriedAbout}}"; Positive about: "{{positiveAbout}}".
 {{/each}}
 {{else}}
 *   (No diary entries provided)

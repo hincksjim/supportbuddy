@@ -19,20 +19,31 @@ import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { User, Heart, Landmark } from "lucide-react"
 
-const avatars = [
-    { id: 'female-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 20s", hint: 'woman 20s' },
-    { id: 'female-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 30s", hint: 'woman 30s' },
-    { id: 'female-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 40s", hint: 'woman 40s' },
-    { id: 'female-60s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 60s", hint: 'woman 60s' },
-    { id: 'male-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 20s", hint: 'man 20s' },
-    { id: 'male-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 30s", hint: 'man 30s' },
-    { id: 'male-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 40s", hint: 'man 40s' },
-    { id: 'male-60s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 60s", hint: 'man 60s' },
-]
+const medicalAvatars = [
+    { id: 'female-doctor-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Doctor, 20s", hint: 'doctor woman 20s' },
+    { id: 'male-doctor-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Doctor, 30s", hint: 'doctor man 30s' },
+    { id: 'female-doctor-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Doctor, 40s", hint: 'doctor woman 40s' },
+    { id: 'male-doctor-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Doctor, 50s", hint: 'doctor man 50s' },
+];
+
+const mentalHealthAvatars = [
+    { id: 'female-nurse-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Nurse, 20s", hint: 'nurse woman 20s' },
+    { id: 'male-therapist-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Therapist, 30s", hint: 'therapist man 30s' },
+    { id: 'female-nurse-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Nurse, 40s", hint: 'nurse woman 40s' },
+    { id: 'male-therapist-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Therapist, 50s", hint: 'therapist man 50s' },
+];
+
+const financialAvatars = [
+    { id: 'female-advisor-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Advisor, 30s", hint: 'advisor woman 30s' },
+    { id: 'male-advisor-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Advisor, 40s", hint: 'advisor man 40s' },
+    { id: 'female-advisor-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Advisor, 50s", hint: 'advisor woman 50s' },
+    { id: 'male-advisor-60s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Advisor, 60s", hint: 'advisor man 60s' },
+];
+
 
 type Specialist = "medical" | "mental_health" | "financial";
 
-function AvatarSelector({ onSelect, selectedAvatar }: { onSelect: (id: string) => void, selectedAvatar: string }) {
+function AvatarSelector({ onSelect, selectedAvatar, avatars }: { onSelect: (id: string) => void, selectedAvatar: string, avatars: typeof medicalAvatars }) {
     return (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {avatars.map(avatar => (
@@ -62,9 +73,9 @@ function AvatarSelector({ onSelect, selectedAvatar }: { onSelect: (id: string) =
 export default function OnboardingPage() {
   const router = useRouter()
   const [selections, setSelections] = useState({
-      medical: "female-30s",
-      mental_health: "male-40s",
-      financial: "female-60s",
+      medical: "female-doctor-40s",
+      mental_health: "male-therapist-30s",
+      financial: "female-advisor-50s",
   });
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
@@ -118,13 +129,13 @@ export default function OnboardingPage() {
                     <TabsTrigger value="financial"><Landmark className="mr-2"/>Financial Support</TabsTrigger>
                 </TabsList>
                 <TabsContent value="medical" className="pt-6">
-                    <AvatarSelector onSelect={(id) => handleSelect("medical", id)} selectedAvatar={selections.medical} />
+                    <AvatarSelector onSelect={(id) => handleSelect("medical", id)} selectedAvatar={selections.medical} avatars={medicalAvatars} />
                 </TabsContent>
                 <TabsContent value="mental_health" className="pt-6">
-                     <AvatarSelector onSelect={(id) => handleSelect("mental_health", id)} selectedAvatar={selections.mental_health} />
+                     <AvatarSelector onSelect={(id) => handleSelect("mental_health", id)} selectedAvatar={selections.mental_health} avatars={mentalHealthAvatars} />
                 </TabsContent>
                 <TabsContent value="financial" className="pt-6">
-                     <AvatarSelector onSelect={(id) => handleSelect("financial", id)} selectedAvatar={selections.financial} />
+                     <AvatarSelector onSelect={(id) => handleSelect("financial", id)} selectedAvatar={selections.financial} avatars={financialAvatars} />
                 </TabsContent>
             </Tabs>
         </CardContent>

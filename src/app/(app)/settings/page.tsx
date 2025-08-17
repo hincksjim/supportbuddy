@@ -47,18 +47,35 @@ const voices = [
     { name: 'Callirrhoe', gender: 'Female' },
 ]
 
-const avatars = [
-    { id: 'female-20s', imageUrl: '/FemaleDoctor20.png', label: "Female, 20s", hint: 'woman 20s' },
-    { id: 'female-30s', imageUrl: '/FemaleDoctor30.png', label: "Female, 30s", hint: 'woman 30s' },
-    { id: 'female-40s', imageUrl: '/FemaleDoctor40.png', label: "Female, 40s", hint: 'woman 40s' },
-    { id: 'female-60s', imageUrl: '/FemaleDoctor60.png', label: "Female, 60s", hint: 'woman 60s' },
-    { id: 'male-20s', imageUrl: '/Maledoctor20.png', label: "Male, 20s", hint: 'man 20s' },
-    { id: 'male-30s', imageUrl: '/Maledoctor30.png', label: "Male, 30s", hint: 'man 30s' },
-    { id: 'male-40s', imageUrl: '/Maledoctor40.png', label: "Male, 40s", hint: 'man 40s' },
-    { id: 'male-60s', imageUrl: '/MaleDoctor60.png', label: "Male, 60s", hint: 'man 60s' },
-]
+const medicalAvatars = [
+    { id: 'female-doctor-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Doctor, 20s", hint: 'doctor woman 20s' },
+    { id: 'male-doctor-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Doctor, 30s", hint: 'doctor man 30s' },
+    { id: 'female-doctor-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Doctor, 40s", hint: 'doctor woman 40s' },
+    { id: 'male-doctor-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Doctor, 50s", hint: 'doctor man 50s' },
+];
 
-function SpecialistCard({ specialist, title, icon, userData, setUserData }: { specialist: Specialist, title: string, icon: React.ReactNode, userData: UserData, setUserData: React.Dispatch<React.SetStateAction<UserData>> }) {
+const mentalHealthAvatars = [
+    { id: 'female-nurse-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Nurse, 20s", hint: 'nurse woman 20s' },
+    { id: 'male-therapist-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Therapist, 30s", hint: 'therapist man 30s' },
+    { id: 'female-nurse-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Nurse, 40s", hint: 'nurse woman 40s' },
+    { id: 'male-therapist-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Therapist, 50s", hint: 'therapist man 50s' },
+];
+
+const financialAvatars = [
+    { id: 'female-advisor-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Advisor, 30s", hint: 'advisor woman 30s' },
+    { id: 'male-advisor-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Advisor, 40s", hint: 'advisor man 40s' },
+    { id: 'female-advisor-50s', imageUrl: 'https://placehold.co/200x200.png', label: "Female Advisor, 50s", hint: 'advisor woman 50s' },
+    { id: 'male-advisor-60s', imageUrl: 'https://placehold.co/200x200.png', label: "Male Advisor, 60s", hint: 'advisor man 60s' },
+];
+
+const specialistAvatarMap = {
+    medical: medicalAvatars,
+    mental_health: mentalHealthAvatars,
+    financial: financialAvatars,
+}
+
+
+function SpecialistCard({ specialist, title, icon, userData, setUserData, avatars }: { specialist: Specialist, title: string, icon: React.ReactNode, userData: UserData, setUserData: React.Dispatch<React.SetStateAction<UserData>>, avatars: typeof medicalAvatars }) {
     const { toast } = useToast()
     const [isPlaying, setIsPlaying] = useState(false)
     const audioRef = useRef<HTMLAudioElement>(null);
@@ -66,7 +83,7 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData }: { sp
     const avatarKey = `avatar_${specialist}` as keyof UserData;
     const voiceKey = `voice_${specialist}` as keyof UserData;
 
-    const selectedAvatar = userData[avatarKey] || (specialist === 'medical' ? 'female-30s' : 'male-40s');
+    const selectedAvatar = userData[avatarKey] || avatars[0].id;
     const selectedVoice = userData[voiceKey] || 'Algenib';
 
     const handleAvatarChange = (avatarId: string) => {
@@ -103,7 +120,8 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData }: { sp
         const selectedAvatarData = avatars.find(a => a.id === selectedAvatar);
         const isMale = selectedAvatarData?.label.startsWith('Male');
         return voices.filter(v => isMale ? v.gender === 'Male' : v.gender === 'Female');
-    }, [selectedAvatar]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedAvatar, avatars]);
     
     useEffect(() => {
         if (!filteredVoices.some(v => v.name === selectedVoice)) {
@@ -290,9 +308,9 @@ export default function SettingsPage() {
             </Card>
             
             <div className="space-y-6">
-                <SpecialistCard specialist="medical" title="Medical Expert" icon={<User />} userData={userData} setUserData={setUserData} />
-                <SpecialistCard specialist="mental_health" title="Mental Health Nurse" icon={<Heart />} userData={userData} setUserData={setUserData} />
-                <SpecialistCard specialist="financial" title="Financial Support Specialist" icon={<Landmark />} userData={userData} setUserData={setUserData} />
+                <SpecialistCard specialist="medical" title="Medical Expert" icon={<User />} userData={userData} setUserData={setUserData} avatars={specialistAvatarMap.medical} />
+                <SpecialistCard specialist="mental_health" title="Mental Health Nurse" icon={<Heart />} userData={userData} setUserData={setUserData} avatars={specialistAvatarMap.mental_health} />
+                <SpecialistCard specialist="financial" title="Financial Support Specialist" icon={<Landmark />} userData={userData} setUserData={setUserData} avatars={specialistAvatarMap.financial} />
             </div>
 
         </div>

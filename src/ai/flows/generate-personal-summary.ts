@@ -311,7 +311,7 @@ const generatePersonalSummaryFlow = ai.defineFlow(
   async input => {
     const {output} = await prompt(input);
     
-     if (output && output.report && output.updatedDiagnosis) {
+    if (output && output.report && output.updatedDiagnosis) {
         const finalReport = output.report.replace(
             /{{{updatedDiagnosis}}}/g,
             output.updatedDiagnosis
@@ -325,7 +325,3 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    
-
-    

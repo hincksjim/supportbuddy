@@ -28,10 +28,17 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { MessageSquare, FileText, Mic, PlusCircle, Loader2, StopCircle, X, Bookmark, User, Heart, Landmark, NotebookPen } from "lucide-react"
+import { MessageSquare, FileText, Mic, PlusCircle, Loader2, StopCircle, X, Bookmark, User, Heart, Landmark, NotebookPen, Handshake, Trash2 } from "lucide-react"
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
 import { useToast } from "@/hooks/use-toast"
 import { summarizeVoiceNote } from "@/ai/flows/summarize-voice-note"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { CalendarIcon } from "lucide-react"
+import { Calendar } from "@/components/ui/calendar"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
+import { Checkbox } from "@/components/ui/checkbox"
 
 type Specialist = "medical" | "mental_health" | "financial";
 
@@ -93,6 +100,25 @@ interface ProfileUpdateActivity {
   date: string;
 }
 
+interface ActionItem {
+    id: string;
+    description: string;
+    assignedTo: string[]; // Attendee names
+    dueDate: string | null; // ISO date string
+    priority: 'low' | 'medium' | 'high';
+}
+
+interface MeetingNote {
+    id: string;
+    type: 'meetingNote';
+    date: string; // ISO date string
+    location: 'in-person' | 'phone' | 'video-call';
+    attendees: string[];
+    subject: string;
+    notes: string;
+    actions: ActionItem[];
+}
+
 interface StoredConversation {
     id: string;
     messages: object[];
@@ -103,6 +129,7 @@ type ActivityItem =
   | { type: 'analysis', data: AnalysisResult }
   | { type: 'voiceNote', data: VoiceNote }
   | { type: 'textNote', data: TextNote }
+  | { type: 'meetingNote', data: MeetingNote }
   | { type: 'savedMessage', data: SavedMessage }
   | { type: 'profileUpdate', data: ProfileUpdateActivity };
 
@@ -144,6 +171,205 @@ function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; chil
     </Dialog>
   )
 }
+
+function AddMeetingNoteDialog({ onNoteAdded }: { onNoteAdded: (note: MeetingNote) => void }) {
+    const [date, setDate] = useState<Date | undefined>(new Date());
+    const [location, setLocation] = useState<'in-person' | 'phone' | 'video-call'>('in-person');
+    const [attendees, setAttendees] = useState('');
+    const [subject, setSubject] = useState('');
+    const [notes, setNotes] = useState('');
+    const [actions, setActions] = useState<ActionItem[]>([]);
+    const { toast } = useToast();
+
+    const attendeesList = attendees.split(',').map(a => a.trim()).filter(Boolean);
+
+    const addAction = () => {
+        setActions([...actions, { id: new Date().toISOString(), description: '', assignedTo: [], dueDate: null, priority: 'medium' }]);
+    };
+    
+    const updateAction = (id: string, field: keyof ActionItem, value: any) => {
+        setActions(actions.map(a => a.id === id ? { ...a, [field]: value } : a));
+    };
+
+    const deleteAction = (id: string) => {
+        setActions(actions.filter(a => a.id !== id));
+    }
+
+    const handleSave = () => {
+        if (!date || !subject.trim() || !attendees.trim()) {
+            toast({
+                title: 'Date, Subject, and Attendees are required',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        const newNote: MeetingNote = {
+            id: new Date().toISOString(),
+            type: 'meetingNote',
+            date: date.toISOString(),
+            location,
+            attendees: attendeesList,
+            subject,
+            notes,
+            actions,
+        };
+
+        onNoteAdded(newNote);
+        setDate(new Date());
+        setLocation('in-person');
+        setAttendees('');
+        setSubject('');
+        setNotes('');
+        setActions([]);
+        document.getElementById('close-meeting-note-dialog')?.click();
+    };
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="secondary">
+                    <Handshake className="mr-2" />
+                    Log a Meeting
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Log a New Meeting</DialogTitle>
+                    <DialogDescription>
+                        Record important details and action items from your meeting.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Date</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !date && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {date ? format(date, "PPP") : <span>Pick a date</span>}
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                    mode="single"
+                                    selected={date}
+                                    onSelect={setDate}
+                                    initialFocus
+                                />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div className="space-y-2">
+                             <Label>Location</Label>
+                             <Select value={location} onValueChange={(v) => setLocation(v as any)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select location" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="in-person">In-Person</SelectItem>
+                                    <SelectItem value="phone">Phone Call</SelectItem>
+                                    <SelectItem value="video-call">Video Call</SelectItem>
+                                </SelectContent>
+                             </Select>
+                        </div>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="meeting-subject">Subject / Regarding</Label>
+                        <Input id="meeting-subject" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g., 'MDT Meeting Results'" />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="meeting-attendees">Attendees</Label>
+                        <Input id="meeting-attendees" value={attendees} onChange={(e) => setAttendees(e.target.value)} placeholder="Names, separated by commas" />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="meeting-notes">Notes</Label>
+                        <Textarea id="meeting-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={6} placeholder="Key discussion points, decisions, etc." />
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t">
+                        <h4 className="font-semibold">Action Items</h4>
+                        {actions.map(action => (
+                            <Card key={action.id} className="p-4 bg-muted/50">
+                               <div className="flex justify-end mb-2">
+                                     <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteAction(action.id)}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                               </div>
+                               <div className="space-y-4">
+                                 <Textarea placeholder="Action description..." value={action.description} onChange={(e) => updateAction(action.id, 'description', e.target.value)} />
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                     <div className="space-y-2">
+                                         <Label>Due Date</Label>
+                                         <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button variant="outline" size="sm" className="w-full justify-start text-left font-normal">
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {action.dueDate ? format(new Date(action.dueDate), "PPP") : "No due date"}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={action.dueDate ? new Date(action.dueDate) : undefined} onSelect={(d) => updateAction(action.id, 'dueDate', d?.toISOString() || null)} /></PopoverContent>
+                                        </Popover>
+                                     </div>
+                                     <div className="space-y-2">
+                                         <Label>Priority</Label>
+                                         <Select value={action.priority} onValueChange={(v) => updateAction(action.id, 'priority', v)}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="low">Low</SelectItem>
+                                                <SelectItem value="medium">Medium</SelectItem>
+                                                <SelectItem value="high">High</SelectItem>
+                                            </SelectContent>
+                                         </Select>
+                                     </div>
+                                 </div>
+                                  <div className="space-y-2">
+                                    <Label>Assigned To</Label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {attendeesList.map(person => (
+                                            <div key={person} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`assign-${action.id}-${person}`}
+                                                    checked={action.assignedTo.includes(person)}
+                                                    onCheckedChange={(checked) => {
+                                                        const newAssigned = checked
+                                                            ? [...action.assignedTo, person]
+                                                            : action.assignedTo.filter(p => p !== person);
+                                                        updateAction(action.id, 'assignedTo', newAssigned);
+                                                    }}
+                                                />
+                                                <label htmlFor={`assign-${action.id}-${person}`} className="text-sm font-medium">{person}</label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                               </div>
+                            </Card>
+                        ))}
+                         <Button variant="outline" size="sm" onClick={addAction}>
+                            <PlusCircle className="mr-2" /> Add Action Item
+                        </Button>
+                    </div>
+
+                </div>
+                <DialogFooter>
+                    <DialogClose id="close-meeting-note-dialog" asChild>
+                        <Button variant="ghost">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleSave}>Save Meeting Note</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 
 function AddTextNoteDialog({ onNoteAdded }: { onNoteAdded: (note: TextNote) => void }) {
     const [title, setTitle] = useState('');
@@ -488,6 +714,91 @@ function ViewTextNoteDialog({ note, children }: { note: TextNote; children: Reac
     );
 }
 
+function ViewMeetingNoteDialog({ note, children }: { note: MeetingNote; children: React.ReactNode }) {
+    const priorityColor = {
+        low: "text-green-500",
+        medium: "text-yellow-500",
+        high: "text-red-500",
+    };
+    return (
+        <Dialog>
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>{note.subject}</DialogTitle>
+                    <DialogDescription>
+                        Meeting on {new Date(note.date).toLocaleDateString()} &bull; {note.location}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 max-h-[70vh] overflow-y-auto space-y-4">
+                    <div>
+                        <h4 className="font-semibold text-sm">Attendees</h4>
+                        <p className="text-sm text-muted-foreground">{note.attendees.join(', ')}</p>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-sm">Notes</h4>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{note.notes || "No notes were taken."}</p>
+                    </div>
+                    {note.actions.length > 0 && (
+                        <div>
+                            <h4 className="font-semibold text-sm">Action Items</h4>
+                            <div className="space-y-2 mt-2">
+                                {note.actions.map(action => (
+                                    <div key={action.id} className="p-3 border rounded-md bg-muted/50">
+                                        <p className="text-sm">{action.description}</p>
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
+                                            <span><strong>To:</strong> {action.assignedTo.join(', ')}</span>
+                                            <span className={cn(priorityColor[action.priority])}>
+                                                <strong>Priority:</strong> {action.priority.toUpperCase()}
+                                            </span>
+                                            <span><strong>Due:</strong> {action.dueDate ? new Date(action.dueDate).toLocaleDateString() : 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="secondary">Close</Button></DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function MeetingNoteCard({ note, onDelete }: { note: MeetingNote, onDelete: (id: string, type: ActivityItem['type']) => void }) {
+    return (
+         <div className="relative group h-full">
+            <ViewMeetingNoteDialog note={note}>
+                <Card className="flex flex-col h-full cursor-pointer hover:bg-accent/50 transition-colors">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <Handshake className="w-5 h-5 text-primary" />
+                            {note.subject}
+                        </CardTitle>
+                        <CardDescription>{new Date(note.date).toLocaleDateString()}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-1">
+                        <p className="text-sm text-muted-foreground line-clamp-2"><strong>Attendees:</strong> {note.attendees.join(', ')}</p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-3 mt-2">{note.notes || "No notes for this meeting."}</p>
+                    </CardContent>
+                </Card>
+            </ViewMeetingNoteDialog>
+            <Button
+                variant="destructive"
+                size="icon"
+                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDelete(note.id, 'meetingNote'); }}
+            >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Delete</span>
+            </Button>
+        </div>
+    );
+}
+
+
 function TextNoteCard({ note, onDelete }: { note: TextNote, onDelete: (id: string, type: ActivityItem['type']) => void }) {
     return (
         <div className="relative group h-full">
@@ -630,7 +941,7 @@ export default function DashboardPage() {
         try {
             const storedSummaries = localStorage.getItem(`conversationSummaries_${currentUserEmail}`);
             if (storedSummaries) {
-                const summaries: (ConversationSummary | SavedMessage | ProfileUpdateActivity | TextNote)[] = JSON.parse(storedSummaries);
+                const summaries: (ConversationSummary | SavedMessage | ProfileUpdateActivity | TextNote | MeetingNote)[] = JSON.parse(storedSummaries);
                 summaries.forEach(s => {
                     if ('type' in s && s.type === 'savedMessage') {
                          allActivity.push({ type: 'savedMessage', data: s });
@@ -638,6 +949,8 @@ export default function DashboardPage() {
                         allActivity.push({ type: 'profileUpdate', data: s });
                     } else if ('type' in s && s.type === 'textNote') {
                         allActivity.push({ type: 'textNote', data: s });
+                    } else if ('type' in s && s.type === 'meetingNote') {
+                        allActivity.push({ type: 'meetingNote', data: s });
                     } else if (!('type' in s)) {
                          // This is a conversation summary
                         allActivity.push({ type: 'conversation', data: s as ConversationSummary });
@@ -698,9 +1011,9 @@ export default function DashboardPage() {
         loadActivity(); // Reload all activity to display the new note
     };
 
-    const handleNewTextNote = (newNote: TextNote) => {
+    const handleNewTextOrMeetingNote = (newNote: TextNote | MeetingNote) => {
         if (!currentUserEmail) return;
-        // Text notes are stored in the same place as conversation summaries for simplicity
+        // Text and meeting notes are stored in the same place as conversation summaries for simplicity
         const storageKey = `conversationSummaries_${currentUserEmail}`;
         const storedItems = localStorage.getItem(storageKey);
         const items = storedItems ? JSON.parse(storedItems) : [];
@@ -712,10 +1025,10 @@ export default function DashboardPage() {
     const handleDelete = (id: string, type: ActivityItem['type']) => {
         if (!currentUserEmail) return;
 
-        if (type === 'conversation' || type === 'savedMessage' || type === 'profileUpdate' || type === 'textNote') {
+        if (type === 'conversation' || type === 'savedMessage' || type === 'profileUpdate' || type === 'textNote' || type === 'meetingNote') {
             const key = `conversationSummaries_${currentUserEmail}`;
             const stored = localStorage.getItem(key);
-            const items: (ConversationSummary | SavedMessage | ProfileUpdateActivity | TextNote)[] = stored ? JSON.parse(stored) : [];
+            const items: (ConversationSummary | SavedMessage | ProfileUpdateActivity | TextNote | MeetingNote)[] = stored ? JSON.parse(stored) : [];
             const updatedItems = items.filter(item => item.id !== id);
             localStorage.setItem(key, JSON.stringify(updatedItems));
 
@@ -753,7 +1066,8 @@ export default function DashboardPage() {
                     </p>
                 </div>
                  <div className="flex items-center gap-2">
-                    <AddTextNoteDialog onNoteAdded={handleNewTextNote} />
+                    <AddMeetingNoteDialog onNoteAdded={handleNewTextOrMeetingNote} />
+                    <AddTextNoteDialog onNoteAdded={handleNewTextOrMeetingNote} />
                     <RecordVoiceNoteDialog onRecordingComplete={handleNewVoiceNote} />
                  </div>
             </div>
@@ -773,6 +1087,9 @@ export default function DashboardPage() {
                             }
                             if (item.type === 'textNote') {
                                 return <TextNoteCard key={`textnote-${item.data.id}-${index}`} note={item.data} onDelete={handleDelete} />;
+                            }
+                            if (item.type === 'meetingNote') {
+                                return <MeetingNoteCard key={`meetingnote-${item.data.id}-${index}`} note={item.data} onDelete={handleDelete} />;
                             }
                             if (item.type === 'savedMessage') {
                                 return <SavedMessageCard key={`saved-${item.data.id}-${index}`} message={item.data} onDelete={handleDelete} />;
@@ -795,7 +1112,7 @@ export default function DashboardPage() {
                                 Analyze a Document
                              </Button>
                         </Link>
-                         <AddTextNoteDialog onNoteAdded={handleNewTextNote} />
+                         <AddTextNoteDialog onNoteAdded={handleNewTextOrMeetingNote} />
                          <RecordVoiceNoteDialog onRecordingComplete={handleNewVoiceNote} />
                     </div>
                 </div>
@@ -803,3 +1120,4 @@ export default function DashboardPage() {
         </div>
     )
 }
+

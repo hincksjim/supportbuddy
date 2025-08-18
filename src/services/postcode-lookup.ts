@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -24,8 +23,9 @@ export const lookupPostcode = ai.defineTool(
       postcode: z.string().describe('The UK postcode to look up.'),
     }),
     outputSchema: PostcodeInfoSchema,
+    tools: [googleSearch],
   },
-  async (input) => {
+  async (input, context) => {
     try {
       const response = await axios.get(
         `https://api.postcodes.io/postcodes/${input.postcode}`
@@ -36,16 +36,16 @@ export const lookupPostcode = ai.defineTool(
         
         let phoneNumber: string | undefined = undefined;
         if (nhsHa !== 'Unknown') {
-            const searchResult = await googleSearch(
-                `contact number for ${nhsHa}`
-            );
+            const searchResult = await context.runTool(googleSearch, `contact number for ${nhsHa}`);
             
             // A simple regex to find a plausible UK phone number from the search result.
             const phoneRegex = /(?:(?:\(?(?:0(?:0|11)\)?[\s-]?\(?|(\+)\d{1,4}\)?[\s-]?\(?(?:0\d|)\d{1,4}\)?[\s-]?\d{1,4}[\s-]?\d{1,4}\s?\(?...\)?|\(?\d{2,6}\)?[\s-]?\d{3,4}[\s-]?\d{3,4})|.{0,4}?"S?"?d{4,6}["S"s]?\d{6,8}|"d{4,6}"s"d{6,8})/g;
-            const match = searchResult.match(phoneRegex);
-            if (match && match.length > 0) {
-                // Find the most likely number - often the first one that looks like a standard UK number
-                phoneNumber = match.find(m => /^(0\d{3,4}\s?\d{3}\s?\d{3}|0\d{9,10})$/.test(m.replace(/\s/g, '')));
+            if (searchResult?.output) {
+                const match = (searchResult.output as string).match(phoneRegex);
+                if (match && match.length > 0) {
+                    // Find the most likely number - often the first one that looks like a standard UK number
+                    phoneNumber = match.find(m => /^(0\d{3,4}\s?\d{3}\s?\d{3}|0\d{9,10})$/.test(m.replace(/\s/g, '')));
+                }
             }
         }
         

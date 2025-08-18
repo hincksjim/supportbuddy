@@ -24,7 +24,6 @@ export const lookupPostcode = ai.defineTool(
       postcode: z.string().describe('The UK postcode to look up.'),
     }),
     outputSchema: PostcodeInfoSchema,
-    tools: [googleSearch],
   },
   async (input) => {
     try {

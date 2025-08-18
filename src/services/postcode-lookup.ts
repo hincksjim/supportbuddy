@@ -8,7 +8,7 @@
 import {ai} from '@/ai/genkit';
 import axios from 'axios';
 import {z} from 'zod';
-import {googleSearch} from 'genkit/tools';
+import {googleSearch} from '@genkit-ai/googleai/tools';
 
 const PostcodeInfoSchema = z.object({
   city: z.string().describe('The city associated with the postcode.'),

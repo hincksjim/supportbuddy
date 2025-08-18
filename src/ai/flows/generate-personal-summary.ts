@@ -164,7 +164,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 6.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details or make medical predictions.
 7.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow," you MUST calculate the specific date. If a timeframe is ambiguous (e.g., "in two weeks"), state it exactly as provided.
 8.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
-9.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, contact details, **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections.
+9.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, contact details, **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections. When you find a phone number, you **MUST** format it in bold text (e.g., **01234 567890**).
 10. **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents and conversations you were provided, using the title, date, and ID for each, along with their citation marker.
 11. **INJECT BENEFITS TEXT:** The "Potential Additional Benefits" section MUST be populated *only* by inserting the exact pre-formatted text provided in the \`potentialBenefitsText\` input field.
 12. **FORMAT ADDRESS CORRECTLY**: When creating the address line, you MUST only include fields that have a value. Join them with a comma and a space, but do not add a comma if a field is missing or for the last item in the address.
@@ -233,7 +233,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 *   **Hospital Number:** [Extract from sources] [D0]
 
 ### **Medical Team & Contacts**
-*(This section should be a bulleted list of any and all medical contacts found in the data sources. Extract any mentioned doctors, specialist teams, nurses, or hospitals, along with their contact details. If none are mentioned, state "No information provided yet.")*
+*(This section should be a bulleted list of any and all medical contacts found in the data sources. Extract any mentioned doctors, specialist teams, nurses, or hospitals, along with their contact details. Remember to bold any phone numbers. If none are mentioned, state "No information provided yet.")*
 
 ### **Diagnosis & Condition Summary**
 *(Synthesize the key medical details from ALL data sources into a concise summary. Start with the user's most specific diagnosis and then add details from documents and conversations. Include cancer type, stage, dates, and key test results. Cite your sources for each key finding using a reference marker like [D0] or [C1].)*
@@ -325,5 +325,7 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    
 
     

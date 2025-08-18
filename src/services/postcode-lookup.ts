@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -16,7 +17,7 @@ const PostcodeInfoSchema = z.object({
 export const lookupPostcode = ai.defineTool(
   {
     name: 'lookupPostcode',
-    description: 'Looks up information for a given UK postcode, such as city and local health authority.',
+    description: 'Looks up information for a given UK postcode, such as city and local health authority. After getting the health authority name, you should also perform a search to find the contact number for that authority.',
     inputSchema: z.object({
       postcode: z.string().describe('The UK postcode to look up.'),
     }),
@@ -43,3 +44,5 @@ export const lookupPostcode = ai.defineTool(
     }
   }
 );
+
+    

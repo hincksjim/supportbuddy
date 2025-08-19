@@ -18,8 +18,10 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { PlusCircle, Trash2, Edit } from "lucide-react"
+import { PlusCircle, Trash2, Edit, CalendarIcon } from "lucide-react"
 import { format, isSameDay } from "date-fns"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
 interface Appointment {
   id: string
@@ -32,19 +34,20 @@ interface Appointment {
 function AppointmentDialog({
   onSave,
   existingAppointment,
-  selectedDate,
+  initialDate,
   open,
   onOpenChange,
 }: {
   onSave: (appointment: Appointment) => void
   existingAppointment?: Appointment | null
-  selectedDate: Date
+  initialDate: Date | undefined
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
   const [title, setTitle] = useState("")
   const [time, setTime] = useState("09:00")
   const [notes, setNotes] = useState("")
+  const [appointmentDate, setAppointmentDate] = useState<Date | undefined>(new Date());
 
   useEffect(() => {
     if (open) {
@@ -52,18 +55,21 @@ function AppointmentDialog({
         setTitle(existingAppointment.title)
         setTime(existingAppointment.time)
         setNotes(existingAppointment.notes)
+        setAppointmentDate(new Date(existingAppointment.date));
       } else {
         setTitle("")
         setTime("09:00")
         setNotes("")
+        setAppointmentDate(initialDate || new Date());
       }
     }
-  }, [open, existingAppointment])
+  }, [open, existingAppointment, initialDate])
 
   const handleSave = () => {
+    if (!appointmentDate) return;
     const newAppointment: Appointment = {
       id: existingAppointment?.id || new Date().toISOString(),
-      date: selectedDate.toISOString(),
+      date: appointmentDate.toISOString(),
       time,
       title,
       notes,
@@ -77,10 +83,35 @@ function AppointmentDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {existingAppointment ? "Edit" : "New"} Appointment on {format(selectedDate, "PPP")}
+            {existingAppointment ? "Edit" : "New"} Appointment
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          <div className="space-y-2">
+              <Label>Date</Label>
+              <Popover>
+                  <PopoverTrigger asChild>
+                  <Button
+                      variant={"outline"}
+                      className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !appointmentDate && "text-muted-foreground"
+                      )}
+                  >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {appointmentDate ? format(appointmentDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                  <Calendar
+                      mode="single"
+                      selected={appointmentDate}
+                      onSelect={setAppointmentDate}
+                      initialFocus
+                  />
+                  </PopoverContent>
+              </Popover>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input
@@ -218,7 +249,7 @@ export default function CalendarPage() {
                 <CardTitle>Appointments</CardTitle>
                 <CardDescription>{date ? format(date, "PPP") : "Select a date"}</CardDescription>
               </div>
-              <Button onClick={handleNewAppointment} disabled={!date}>
+              <Button onClick={handleNewAppointment}>
                 <PlusCircle className="mr-2" /> New
               </Button>
             </div>
@@ -268,7 +299,7 @@ export default function CalendarPage() {
         onOpenChange={setIsDialogOpen}
         onSave={handleSaveAppointment}
         existingAppointment={editingAppointment}
-        selectedDate={date || new Date()}
+        initialDate={date}
       />
     </>
   )

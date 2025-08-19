@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Calendar } from "@/components/ui/calendar"
+import { DayPicker as DayPickerCalendar, type DayProps } from "react-day-picker"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,6 +22,7 @@ import { PlusCircle, Trash2, Edit, CalendarIcon } from "lucide-react"
 import { format, isSameDay } from "date-fns"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { Day } from "@/components/ui/calendar"
 
 interface Appointment {
   id: string
@@ -103,7 +104,7 @@ function AppointmentDialog({
                   </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
-                  <Calendar
+                  <DayPickerCalendar
                       mode="single"
                       selected={appointmentDate}
                       onSelect={setAppointmentDate}
@@ -214,30 +215,28 @@ export default function CalendarPage() {
     .filter((app) => date && isSameDay(new Date(app.date), date))
     .sort((a, b) => a.time.localeCompare(b.time))
 
+  const CustomDay = (props: DayProps) => {
+    const hasAppointment = appointments.some((app) => isSameDay(new Date(app.date), props.date));
+    return (
+      <div className="relative">
+        <Day {...props} />
+        {hasAppointment && <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />}
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="grid h-full grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-6">
         <Card>
           <CardContent className="p-2 md:p-4 flex justify-center">
-            <Calendar
+            <DayPickerCalendar
               mode="single"
               selected={date}
               onSelect={setDate}
               className="rounded-md"
               components={{
-                Day: ({ date, displayMonth, ...props }) => {
-                  const hasAppointment = appointments.some((app) => isSameDay(new Date(app.date), date))
-                  return (
-                    <div className="relative">
-                      <button {...props} className="react-day-picker-Day-button">
-                        {date.getDate()}
-                      </button>
-                      {hasAppointment && (
-                        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
-                      )}
-                    </div>
-                  )
-                },
+                Day: CustomDay,
               }}
             />
           </CardContent>

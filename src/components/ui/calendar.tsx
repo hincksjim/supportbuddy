@@ -1,8 +1,9 @@
+
 "use client"
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import { DayPicker, DayContent, DayContentProps } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
@@ -60,6 +61,9 @@ function Calendar({
         IconRight: ({ className, ...props }) => (
           <ChevronRight className={cn("h-4 w-4", className)} {...props} />
         ),
+        Day: ({ date, ...props }) => (
+          <DayContent date={date} {...props} />
+        ),
       }}
       {...props}
     />
@@ -67,4 +71,7 @@ function Calendar({
 }
 Calendar.displayName = "Calendar"
 
-export { Calendar }
+// Re-export Day to be used in custom components
+const Day = DayContent;
+
+export { Calendar, Day }

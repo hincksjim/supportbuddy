@@ -28,7 +28,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { MessageSquare, FileText, Mic, PlusCircle, Loader2, StopCircle, X, Bookmark, User, Heart, Landmark, NotebookPen, Handshake, Trash2, Gavel } from "lucide-react"
+import { MessageSquare, FileText, Mic, PlusCircle, Loader2, StopCircle, X, Bookmark, User, Heart, Landmark, NotebookPen, Handshake, Trash2, Gavel, CalendarDays } from "lucide-react"
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
 import { useToast } from "@/hooks/use-toast"
 import { summarizeVoiceNote } from "@/ai/flows/summarize-voice-note"
@@ -40,6 +40,7 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Checkbox } from "@/components/ui/checkbox"
 import { MeetingNote } from "@/ai/flows/types"
+import type { AppointmentActivity, Appointment } from "@/app/(app)/calendar/page"
 
 type Specialist = "medical" | "mental_health" | "financial";
 
@@ -120,6 +121,7 @@ type ActivityItem =
   | { type: 'voiceNote', data: VoiceNote }
   | { type: 'textNote', data: TextNote }
   | { type: 'meetingNote', data: MeetingNote }
+  | { type: 'appointment', data: AppointmentActivity }
   | { type: 'savedMessage', data: SavedMessage }
   | { type: 'profileUpdate', data: ProfileUpdateActivity };
 
@@ -591,6 +593,43 @@ function RecordVoiceNoteDialog({ onRecordingComplete }: { onRecordingComplete: (
   );
 }
 
+function AppointmentCard({ appt, onDelete }: { appt: AppointmentActivity, onDelete: (id: string, type: ActivityItem['type']) => void }) {
+    return (
+        <Card className="flex flex-col h-full relative group">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    <CalendarDays className="w-5 h-5 text-primary" />
+                    {appt.subject}
+                </CardTitle>
+                <CardDescription className="flex items-center gap-2 text-xs">
+                  <span>{new Date(appt.date).toLocaleDateString()}</span>
+                  <span className="text-muted-foreground/80">&bull;</span>
+                  <span>{appt.location}</span>
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col justify-between">
+                 <p className="text-sm text-muted-foreground line-clamp-4">An appointment has been scheduled.</p>
+                 <Link href={`/calendar`} className="mt-4">
+                    <Button variant="link" className="px-0 pt-2">View on calendar &rarr;</Button>
+                 </Link>
+            </CardContent>
+            <Button 
+                variant="destructive" 
+                size="icon" 
+                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onDelete(appt.id, 'appointment');
+                }}
+            >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Delete</span>
+            </Button>
+        </Card>
+    )
+}
+
 function ConversationCard({ summary, onDelete }: { summary: ConversationSummary, onDelete: (id: string, type: ActivityItem['type']) => void }) {
     const specialistInfo = summary.specialist ? specialistConfig[summary.specialist] : { name: "Conversation", icon: MessageSquare };
     const SpecialistIcon = specialistInfo.icon;
@@ -931,7 +970,7 @@ export default function DashboardPage() {
         try {
             const storedSummaries = localStorage.getItem(`conversationSummaries_${currentUserEmail}`);
             if (storedSummaries) {
-                const summaries: (ConversationSummary | SavedMessage | ProfileUpdateActivity | TextNote | MeetingNote)[] = JSON.parse(storedSummaries);
+                const summaries: (ConversationSummary | SavedMessage | ProfileUpdateActivity | TextNote | MeetingNote | AppointmentActivity)[] = JSON.parse(storedSummaries);
                 summaries.forEach(s => {
                     if ('type' in s && s.type === 'savedMessage') {
                          allActivity.push({ type: 'savedMessage', data: s });
@@ -941,6 +980,8 @@ export default function DashboardPage() {
                         allActivity.push({ type: 'textNote', data: s });
                     } else if ('type' in s && s.type === 'meetingNote') {
                         allActivity.push({ type: 'meetingNote', data: s });
+                    } else if ('type' in s && s.type === 'appointment') {
+                        allActivity.push({ type: 'appointment', data: s });
                     } else if (!('type' in s)) {
                          // This is a conversation summary
                         allActivity.push({ type: 'conversation', data: s as ConversationSummary });
@@ -1015,10 +1056,10 @@ export default function DashboardPage() {
     const handleDelete = (id: string, type: ActivityItem['type']) => {
         if (!currentUserEmail) return;
 
-        if (type === 'conversation' || type === 'savedMessage' || type === 'profileUpdate' || type === 'textNote' || type === 'meetingNote') {
+        if (type === 'conversation' || type === 'savedMessage' || type === 'profileUpdate' || type === 'textNote' || type === 'meetingNote' || type === 'appointment') {
             const key = `conversationSummaries_${currentUserEmail}`;
             const stored = localStorage.getItem(key);
-            const items: (ConversationSummary | SavedMessage | ProfileUpdateActivity | TextNote | MeetingNote)[] = stored ? JSON.parse(stored) : [];
+            const items: (ConversationSummary | SavedMessage | ProfileUpdateActivity | TextNote | MeetingNote | AppointmentActivity)[] = stored ? JSON.parse(stored) : [];
             const updatedItems = items.filter(item => item.id !== id);
             localStorage.setItem(key, JSON.stringify(updatedItems));
 
@@ -1029,6 +1070,16 @@ export default function DashboardPage() {
                 const updatedConvos = convos.filter(c => c.id !== id);
                 localStorage.setItem(allConvosKey, JSON.stringify(updatedConvos));
             }
+
+            if (type === 'appointment') {
+                const apptId = id.replace('appt-', '');
+                const apptsKey = `appointments_${currentUserEmail}`;
+                const storedAppts = localStorage.getItem(apptsKey);
+                const appts: Appointment[] = storedAppts ? JSON.parse(storedAppts) : [];
+                const updatedAppts = appts.filter(a => a.id !== apptId);
+                localStorage.setItem(apptsKey, JSON.stringify(updatedAppts));
+            }
+
         } else if (type === 'analysis') {
             const key = `analysisResults_${currentUserEmail}`;
             const stored = localStorage.getItem(key);
@@ -1080,6 +1131,9 @@ export default function DashboardPage() {
                             }
                             if (item.type === 'meetingNote') {
                                 return <MeetingNoteCard key={`meetingnote-${item.data.id}-${index}`} note={item.data as MeetingNote} onDelete={handleDelete} />;
+                            }
+                            if (item.type === 'appointment') {
+                                return <AppointmentCard key={`appointment-${item.data.id}-${index}`} appt={item.data as AppointmentActivity} onDelete={handleDelete} />;
                             }
                             if (item.type === 'savedMessage') {
                                 return <SavedMessageCard key={`saved-${item.data.id}-${index}`} message={item.data} onDelete={handleDelete} />;

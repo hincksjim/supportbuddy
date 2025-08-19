@@ -17,14 +17,14 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { PlusCircle, Trash2, Edit, CalendarIcon, Users, MapPin } from "lucide-react"
+import { PlusCircle, Trash2, Edit, CalendarIcon, Users, MapPin, NotebookText } from "lucide-react"
 import { format, isSameDay, startOfDay } from "date-fns"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 
-interface Appointment {
+export interface Appointment {
   id: string
   date: string // ISO string
   time: string
@@ -33,6 +33,17 @@ interface Appointment {
   location: 'in-person' | 'phone' | 'video-call';
   attendees: string;
 }
+
+// This interface is for items stored in the general activity feed.
+// It's a subset of Appointment with a 'type' property.
+export interface AppointmentActivity {
+  id: string;
+  type: 'appointment';
+  date: string;
+  subject: string;
+  location: 'in-person' | 'phone' | 'video-call';
+}
+
 
 function AppointmentDialog({
   onSave,
@@ -217,6 +228,9 @@ export default function CalendarPage() {
   }, [loadAppointments])
 
   const handleSaveAppointment = (appointment: Appointment) => {
+    if (!currentUserEmail) return;
+
+    // --- Save to calendar appointment list ---
     let updatedAppointments
     const existingIndex = appointments.findIndex((a) => a.id === appointment.id)
     if (existingIndex > -1) {
@@ -227,13 +241,52 @@ export default function CalendarPage() {
     }
     setAppointments(updatedAppointments)
     saveAppointments(updatedAppointments)
+    
+    // --- Save to main activity feed ---
+    const activityKey = `conversationSummaries_${currentUserEmail}`;
+    const storedActivities = localStorage.getItem(activityKey);
+    const activities = storedActivities ? JSON.parse(storedActivities) : [];
+
+    const newActivity: AppointmentActivity = {
+        id: `appt-${appointment.id}`,
+        type: 'appointment',
+        date: appointment.date,
+        subject: appointment.subject,
+        location: appointment.location,
+    };
+    
+    // Check if an activity for this appointment already exists
+    const existingActivityIndex = activities.findIndex((a: any) => a.id === newActivity.id);
+    if(existingActivityIndex > -1) {
+        activities[existingActivityIndex] = newActivity;
+    } else {
+        activities.push(newActivity);
+    }
+
+    // Sort activities by date to keep the feed in order
+    activities.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    localStorage.setItem(activityKey, JSON.stringify(activities));
   }
+
 
   const handleDeleteAppointment = (e: React.MouseEvent, id: string) => {
     e.stopPropagation(); // Prevent the li's onClick from firing
+    if (!currentUserEmail) return;
+    
+    // --- Delete from calendar list ---
     const updatedAppointments = appointments.filter((a) => a.id !== id)
     setAppointments(updatedAppointments)
     saveAppointments(updatedAppointments)
+
+    // --- Delete from activity feed ---
+    const activityKey = `conversationSummaries_${currentUserEmail}`;
+    const storedActivities = localStorage.getItem(activityKey);
+    if (storedActivities) {
+        let activities = JSON.parse(storedActivities);
+        const activityIdToDelete = `appt-${id}`;
+        const updatedActivities = activities.filter((a: any) => a.id !== activityIdToDelete);
+        localStorage.setItem(activityKey, JSON.stringify(updatedActivities));
+    }
   }
 
   const handleNewAppointment = () => {
@@ -315,7 +368,12 @@ export default function CalendarPage() {
                                 <span>{app.attendees}</span>
                             </div>
                         )}
-                         {app.notes && <p className="text-sm mt-2 whitespace-pre-wrap pt-2 border-t">{app.notes}</p>}
+                         {app.notes && (
+                            <div className="flex items-start gap-2 pt-2 border-t mt-2">
+                                <NotebookText className="w-4 h-4 mt-1"/>
+                                <p className="text-sm whitespace-pre-wrap flex-1">{app.notes}</p>
+                            </div>
+                        )}
                     </div>
                   </li>
                 ))}

@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -93,8 +92,6 @@ const GeneratePersonalSummaryInputSchema = z.object({
         nhs_ha: z.string(),
     }).describe("The pre-fetched location information based on the user's postcode."),
     potentialBenefitsText: z.string().describe("A pre-formatted, Markdown-ready string listing potential benefits."),
-    hideFinancialInfo: z.boolean().optional().describe("If true, the 'Financial Summary' and 'Potential Additional Benefits' sections should be excluded from the report."),
-    hideWellnessInfo: z.boolean().optional().describe("If true, the 'Wellness & Diary Insights' section should be excluded from the report."),
 });
 export type GeneratePersonalSummaryInput = z.infer<
   typeof GeneratePersonalSummaryInputSchema
@@ -145,7 +142,7 @@ const prompt = ai.definePrompt({
   prompt: `You are an AI assistant tasked with creating a comprehensive "Personal Summary Report" for a user navigating their health journey.
 
 **TASK:**
-Your primary goal is to synthesize ALL information provided into a clear, organized, factual Markdown report and to identify the user's most current diagnosis.
+Your primary goal is to synthesize ALL information provided into a clear, organized, factual Markdown report and to identify the user's most current diagnosis. The report must contain all sections as specified in the template.
 
 **CRITICAL INSTRUCTIONS:**
 1.  **IDENTIFY THE LATEST DIAGNOSIS (Most Important Task):**
@@ -162,7 +159,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 
 3.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources (Documents, Conversations, Diary, Medications, Timeline, Financials) to build the report. The saved conversation transcripts are a primary source of truth for the user's narrative.
 4.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, a date, or a feeling), you **MUST** cite where you found it using a reference marker, like **[D0]** for the first document or **[C1]** for the second conversation. The letter indicates the type (D for Document, C for Conversation, N for Note) and the number is the index from the source list.
-5.  **FORMAT WITH MARKDOWN:** The entire report output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes as defined in the template.
+5.  **FORMAT WITH MARKDOWN:** The entire report output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes as defined in the template. The section headings must be exactly as written in the template (e.g., \`### Financial Summary\`).
 6.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details or make medical predictions.
 7.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow," you MUST calculate the specific date. If a timeframe is ambiguous (e.g., "in two weeks"), state it exactly as provided.
 8.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
@@ -171,7 +168,6 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 11. **INJECT BENEFITS TEXT:** The "Potential Additional Benefits" section MUST be populated *only* by inserting the exact pre-formatted text provided in the \`potentialBenefitsText\` input field.
 12. **FORMAT ADDRESS CORRECTLY**: When creating the address line, you MUST only include fields that have a value. Join them with a comma and a space, but do not add a comma if a field is missing or for the last item in the address.
 13. **USE UPDATED DIAGNOSIS IN REPORT**: In the "Primary Health Condition" field of the report, you MUST use the value you determined for \`updatedDiagnosis\`.
-14. **HANDLE HIDDEN SECTIONS**: If \`hideFinancialInfo\` is true, you MUST completely omit the "Financial Summary" AND "Potential Additional Benefits" sections from the report. If \`hideWellnessInfo\` is true, you MUST completely omit the "Wellness & Diary Insights" section.
 
 ---
 **FIRST, REVIEW ALL AVAILABLE INFORMATION SOURCES TO USE:**
@@ -251,7 +247,6 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 *   No medications listed.
 {{/if}}
 
-{{#unless hideWellnessInfo}}
 ### **Wellness & Diary Insights**
 *(This section should contain the AI-generated diary summaries first, followed by the detailed daily log. Generate the summaries based on the provided diaryData as per the instructions at the start of this prompt.)*
 
@@ -271,7 +266,6 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 {{else}}
 *   (No diary entries provided)
 {{/if}}
-{{/unless}}
 
 ### **Timeline & Milestones**
 **Completed Milestones:**
@@ -282,7 +276,6 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 *(Based on all available information, identify the next logical step. Use the current date ({{{currentDate}}}) to calculate specific dates where possible. Cite the source.)*
 *   [Example: Surgical Procedure at Wrexham Maelor Hospital on Friday, 9 August 2024] [C3]
 
-{{#unless hideFinancialInfo}}
 ### **Financial Summary**
 *   **Employment Status:** {{{employmentStatus}}}
 *   **Annual Income:** {{{income}}}
@@ -291,7 +284,6 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 
 ### **Potential Additional Benefits**
 {{{potentialBenefitsText}}}
-{{/unless}}
 
 ---
 ### **Sources**
@@ -332,5 +324,3 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

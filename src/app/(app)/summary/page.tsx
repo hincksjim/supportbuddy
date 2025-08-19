@@ -13,6 +13,7 @@ import html2canvas from "html2canvas"
 import { useToast } from "@/hooks/use-toast"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
 
 
 import { generatePersonalSummary, GeneratePersonalSummaryOutput, SourceConversation, SourceDocument } from "@/ai/flows/generate-personal-summary"
@@ -102,11 +103,9 @@ export default function SummaryPage() {
   const chartsRef = useRef<HTMLDivElement>(null);
   const reportRef = useRef<HTMLDivElement>(null);
   
-  // State for the new checkboxes
   const [hideFinancialInfo, setHideFinancialInfo] = useState(false);
   const [hideWellnessInfo, setHideWellnessInfo] = useState(false);
 
-  // State to hold all the data needed for the report
   const [userData, setUserData] = useState<UserData>({});
   const [timelineData, setTimelineData] = useState<TimelineData | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisResult[]>([])
@@ -121,29 +120,24 @@ export default function SummaryPage() {
     setCurrentUserEmail(email);
   }, []);
 
-  // Load all necessary data from localStorage
   const loadPrerequisites = () => {
     if (!currentUserEmail) return;
     try {
-      // User Details from the single user data object
       const storedUserData = localStorage.getItem(`userData_${currentUserEmail}`);
       if (storedUserData) {
           setUserData(JSON.parse(storedUserData));
       }
       
-      // Timeline Data
       const storedTimeline = localStorage.getItem(`treatmentTimeline_${currentUserEmail}`);
       if (storedTimeline) {
         setTimelineData(JSON.parse(storedTimeline));
       }
 
-      // Analysis Data
       const storedAnalyses = localStorage.getItem(`analysisResults_${currentUserEmail}`);
       if (storedAnalyses) {
         setAnalysisData(JSON.parse(storedAnalyses));
       }
       
-      // All Saved Conversations and text notes
       const storedSummaries = localStorage.getItem(`conversationSummaries_${currentUserEmail}`);
       const summariesAndNotes = storedSummaries ? JSON.parse(storedSummaries) : [];
       setTextNotes(summariesAndNotes.filter((item: any) => item.type === 'textNote'));
@@ -155,7 +149,6 @@ export default function SummaryPage() {
         setSourceConversationsData([]);
       }
 
-      // Diary Entries
       const storedDiaryEntries = localStorage.getItem(`diaryEntries_${currentUserEmail}`);
       if (storedDiaryEntries) {
           const parsedEntries = JSON.parse(storedDiaryEntries);
@@ -164,7 +157,6 @@ export default function SummaryPage() {
           setDiaryEntries([]);
       }
 
-       // Medication Data
       const storedMedications = localStorage.getItem(`medications_${currentUserEmail}`);
       if (storedMedications) {
         setMedicationData(JSON.parse(storedMedications));
@@ -186,14 +178,12 @@ export default function SummaryPage() {
         if (savedReport) {
             setReport(savedReport);
         }
-        // Always load fresh data
         loadPrerequisites();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserEmail]);
 
 
-  // Effect to check for data on initial load and maybe auto-generate
   useEffect(() => {
     if (hasLoaded && !report) {
       const hasContent = analysisData.length > 0 || sourceConversationsData.length > 0;
@@ -211,9 +201,8 @@ export default function SummaryPage() {
         return;
     };
 
-    loadPrerequisites(); // Force a refresh of all data
+    loadPrerequisites();
     
-    // Give UI time to update before blocking with AI call
     setTimeout(async () => {
         const hasContent = analysisData.length > 0 || sourceConversationsData.length > 0 || diaryEntries.length > 0;
         if (!hasContent) {
@@ -224,26 +213,22 @@ export default function SummaryPage() {
         setIsLoading(true);
         setError(null);
         try {
-            // --- Postcode Caching Logic ---
             let locationInfo;
             const locationCacheKey = `locationInfo_${currentUserEmail}`;
             const cachedLocation = localStorage.getItem(locationCacheKey);
             if (cachedLocation) {
                 const parsedCache: CachedLocationInfo = JSON.parse(cachedLocation);
                 if (parsedCache.postcode === userData.postcode) {
-                    locationInfo = parsedCache.data; // Use cache
+                    locationInfo = parsedCache.data;
                 }
             }
             
             if (!locationInfo) {
-                // Fetch new data and update cache
                 locationInfo = await lookupPostcode({ postcode: userData.postcode! });
                 const newCache: CachedLocationInfo = { postcode: userData.postcode!, data: locationInfo };
                 localStorage.setItem(locationCacheKey, JSON.stringify(newCache));
             }
-            // --- End Caching Logic ---
             
-            // --- Benefits Caching Logic ---
             let potentialBenefitsText = "*   No additional benefits were identified at this time. Visit the Finance page to check.";
             const benefitsCacheKey = `financialSuggestionsCache_${currentUserEmail}`;
             const cachedBenefits = localStorage.getItem(benefitsCacheKey);
@@ -255,8 +240,6 @@ export default function SummaryPage() {
                         .join('\n');
                 }
             }
-            // --- End Benefits Logic ---
-
 
             const sourceDocuments: SourceDocument[] = analysisData.map(a => ({
                 id: a.id,
@@ -279,9 +262,8 @@ export default function SummaryPage() {
                 }
             });
 
-            // --- Fingerprint Caching Logic ---
             const dataToFingerprint = {
-                userData, timelineData, analysisData, sourceConversationsData, textNotes, diaryEntries, medicationData, locationInfo, potentialBenefitsText, hideFinancialInfo, hideWellnessInfo
+                userData, timelineData, analysisData, sourceConversationsData, textNotes, diaryEntries, medicationData, locationInfo, potentialBenefitsText
             };
             const currentFingerprint = JSON.stringify(dataToFingerprint);
             const fingerprintKey = `personalSummaryFingerprint_${currentUserEmail}`;
@@ -292,7 +274,6 @@ export default function SummaryPage() {
                 setIsLoading(false);
                 return;
             }
-            // --- End Fingerprint Caching ---
 
             const result: GeneratePersonalSummaryOutput = await generatePersonalSummary({
                 userName: userData.name || "User",
@@ -317,15 +298,12 @@ export default function SummaryPage() {
                 medicationData: medicationData,
                 locationInfo: locationInfo,
                 potentialBenefitsText: potentialBenefitsText,
-                hideFinancialInfo,
-                hideWellnessInfo,
             });
 
             setReport(result.report);
             localStorage.setItem(`personalSummaryReport_${currentUserEmail}`, result.report);
-            localStorage.setItem(fingerprintKey, currentFingerprint); // Save the new fingerprint
+            localStorage.setItem(fingerprintKey, currentFingerprint);
 
-            // Automatically update the user's diagnosis in their profile if it has changed.
             if (result.updatedDiagnosis && result.updatedDiagnosis !== userData.initialDiagnosis) {
                 const updatedUserData = { ...userData, initialDiagnosis: result.updatedDiagnosis };
                 setUserData(updatedUserData);
@@ -363,11 +341,9 @@ export default function SummaryPage() {
           const pdfHeight = pdf.internal.pageSize.getHeight();
           const margin = 15;
 
-          // --- 1. Add Title Page ---
           pdf.setFontSize(28);
           pdf.text("Personal Summary Report", pdfWidth / 2, pdfHeight / 2, { align: 'center' });
           
-          // --- 2. Add Charts ---
           pdf.addPage();
           let yPos = margin;
           
@@ -385,12 +361,10 @@ export default function SummaryPage() {
                   yPos = margin;
               }
 
-              // Left chart
               const canvas1 = await html2canvas(chartElements[i], { scale: 2 });
               const imgData1 = canvas1.toDataURL('image/png');
               pdf.addImage(imgData1, 'PNG', margin, yPos, chartWidth, chartHeight);
               
-              // Right chart (if it exists)
               if (i + 1 < chartElements.length) {
                   const canvas2 = await html2canvas(chartElements[i+1], { scale: 2 });
                   const imgData2 = canvas2.toDataURL('image/png');
@@ -399,7 +373,6 @@ export default function SummaryPage() {
               yPos += chartHeight + 10;
           }
 
-          // --- 3. Add AI Generated Report ---
           pdf.addPage();
           (pdf as any).html(reportElement, {
               callback: function(doc: jsPDF) {
@@ -421,6 +394,20 @@ export default function SummaryPage() {
 
   const reportHtml = report ? marked.parse(report) : "";
   
+  useEffect(() => {
+    if (report && reportRef.current) {
+      const headings = reportRef.current.querySelectorAll('h3');
+      headings.forEach(h => {
+        const text = h.textContent || '';
+        if (text.includes('Financial Summary')) {
+          h.id = 'financial-summary-heading';
+        } else if (text.includes('Wellness & Diary Insights')) {
+          h.id = 'wellness-summary-heading';
+        }
+      });
+    }
+  }, [report]);
+
   return (
     <div className="p-4 md:p-6 space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -429,16 +416,6 @@ export default function SummaryPage() {
           <p className="text-muted-foreground">
             A consolidated report of your journey so far.
           </p>
-        </div>
-        <div className="flex items-center gap-4">
-            <div className="flex items-center space-x-2">
-                <Checkbox id="hide-financial" checked={hideFinancialInfo} onCheckedChange={(checked) => setHideFinancialInfo(!!checked)} />
-                <Label htmlFor="hide-financial" className="text-sm font-medium">Hide Financial Info</Label>
-            </div>
-             <div className="flex items-center space-x-2">
-                <Checkbox id="hide-wellness" checked={hideWellnessInfo} onCheckedChange={(checked) => setHideWellnessInfo(!!checked)} />
-                <Label htmlFor="hide-wellness" className="text-sm font-medium">Hide Wellness Info</Label>
-            </div>
         </div>
         <div className="flex gap-2">
             <Button onClick={handleGenerateReport} disabled={isLoading}>
@@ -452,7 +429,7 @@ export default function SummaryPage() {
         </div>
       </div>
 
-       <div className="space-y-8">
+      <div className="space-y-8">
          <Card ref={chartsRef}>
             <CardHeader>
                 <div className="flex items-center justify-between">
@@ -529,11 +506,25 @@ export default function SummaryPage() {
             </CardContent>
          </Card>
       
-        <div ref={reportRef}>
+        <div ref={reportRef} className={cn(hideFinancialInfo && "hide-financial", hideWellnessInfo && "hide-wellness")}>
             <Card>
                 <CardHeader>
-                    <CardTitle>AI Generated Report</CardTitle>
-                    <CardDescription>This report is generated from your conversations, documents, and timeline.</CardDescription>
+                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <CardTitle>AI Generated Report</CardTitle>
+                            <CardDescription>This report is generated from your conversations, documents, and timeline.</CardDescription>
+                        </div>
+                         <div className="flex items-center gap-4">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox id="hide-financial" checked={hideFinancialInfo} onCheckedChange={(checked) => setHideFinancialInfo(!!checked)} />
+                                <Label htmlFor="hide-financial" className="text-sm font-medium">Hide Financial Info</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox id="hide-wellness" checked={hideWellnessInfo} onCheckedChange={(checked) => setHideWellnessInfo(!!checked)} />
+                                <Label htmlFor="hide-wellness" className="text-sm font-medium">Hide Wellness Info</Label>
+                            </div>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
                 {isLoading && !report && (
@@ -567,5 +558,3 @@ export default function SummaryPage() {
     </div>
   )
 }
-
-    

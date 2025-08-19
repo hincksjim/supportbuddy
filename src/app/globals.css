@@ -86,3 +86,30 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .hide-financial #financial-summary-heading,
+  .hide-financial #financial-summary-heading ~ * {
+    display: none;
+  }
+  
+  /* This rule stops the hiding at the next h3 */
+  .hide-financial #financial-summary-heading ~ h3 ~ * {
+    display: block;
+  }
+  .hide-financial #financial-summary-heading ~ h3 {
+    display: block;
+  }
+
+  .hide-wellness #wellness-summary-heading,
+  .hide-wellness #wellness-summary-heading ~ * {
+    display: none;
+  }
+
+  .hide-wellness #wellness-summary-heading ~ h3 ~ * {
+    display: block;
+  }
+  .hide-wellness #wellness-summary-heading ~ h3 {
+    display: block;
+  }
+}

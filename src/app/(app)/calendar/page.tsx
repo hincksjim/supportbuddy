@@ -68,11 +68,11 @@ function AppointmentDialog({
   useEffect(() => {
     if (open) {
       if (existingAppointment) {
-        setSubject(existingAppointment.subject)
-        setTime(existingAppointment.time)
-        setNotes(existingAppointment.notes)
-        setLocation(existingAppointment.location)
-        setAttendees(existingAppointment.attendees)
+        setSubject(existingAppointment.subject || '')
+        setTime(existingAppointment.time || '09:00')
+        setNotes(existingAppointment.notes || '')
+        setLocation(existingAppointment.location || 'in-person')
+        setAttendees(existingAppointment.attendees || '')
         setAppointmentDate(new Date(existingAppointment.date));
       } else {
         setSubject("")

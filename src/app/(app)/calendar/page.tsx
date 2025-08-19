@@ -22,7 +22,7 @@ import { PlusCircle, Trash2, Edit, CalendarIcon } from "lucide-react"
 import { format, isSameDay } from "date-fns"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { Day } from "@/components/ui/calendar"
+import { Calendar } from "@/components/ui/calendar"
 
 interface Appointment {
   id: string
@@ -215,12 +215,17 @@ export default function CalendarPage() {
     .filter((app) => date && isSameDay(new Date(app.date), date))
     .sort((a, b) => a.time.localeCompare(b.time))
 
-  const CustomDay = (props: DayProps) => {
-    const hasAppointment = appointments.some((app) => isSameDay(new Date(app.date), props.date));
+  const CustomDay = (dayProps: DayProps) => {
+    const { date, displayMonth } = dayProps;
+    const hasAppointment = appointments.some((app) => isSameDay(new Date(app.date), date));
     return (
       <div className="relative">
-        <Day {...props} />
-        {hasAppointment && <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />}
+        <button {...dayProps} className="react-day-picker-Day-button">
+          {date.getDate()}
+        </button>
+        {hasAppointment && (
+          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
+        )}
       </div>
     );
   };
@@ -230,14 +235,12 @@ export default function CalendarPage() {
       <div className="grid h-full grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-6">
         <Card>
           <CardContent className="p-2 md:p-4 flex justify-center">
-            <DayPickerCalendar
+            <Calendar
               mode="single"
               selected={date}
               onSelect={setDate}
               className="rounded-md"
-              components={{
-                Day: CustomDay,
-              }}
+              appointments={appointments}
             />
           </CardContent>
         </Card>

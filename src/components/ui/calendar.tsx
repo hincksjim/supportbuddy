@@ -7,15 +7,32 @@ import { DayPicker, DayContent, DayContentProps } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+import { isSameDay } from "date-fns"
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+interface Appointment {
+  date: string
+}
+
+export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+  appointments?: Appointment[]
+}
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  appointments = [],
   ...props
 }: CalendarProps) {
+  const CustomDay = ({ date, ...dayProps }: DayContentProps) => {
+    const hasAppointment = appointments.some((app) => isSameDay(new Date(app.date), date));
+    return (
+      <div className="relative">
+        <DayContent date={date} {...dayProps} />
+        {hasAppointment && <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />}
+      </div>
+    );
+  };
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -61,9 +78,7 @@ function Calendar({
         IconRight: ({ className, ...props }) => (
           <ChevronRight className={cn("h-4 w-4", className)} {...props} />
         ),
-        Day: ({ date, ...props }) => (
-          <DayContent date={date} {...props} />
-        ),
+        Day: CustomDay
       }}
       {...props}
     />

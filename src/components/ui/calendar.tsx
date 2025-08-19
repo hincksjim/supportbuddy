@@ -31,6 +31,7 @@ function Calendar({
     
     return (
       <div className="relative">
+        {date.getDate()}
         {hasAppointment && (
           <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary pointer-events-none" />
         )}

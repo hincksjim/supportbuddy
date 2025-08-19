@@ -29,13 +29,8 @@ function Calendar({
     const { date } = dayProps;
     const hasAppointment = appointments.some((app) => date && isSameDay(new Date(app.date), date));
     
-    // Use the default Day component from react-day-picker's `components` prop
-    // This was the source of the previous error. Now using it correctly.
-    const { Day } = DayPicker.components;
-
     return (
       <div className="relative">
-        <Day {...dayProps} />
         {hasAppointment && (
           <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary pointer-events-none" />
         )}
@@ -82,7 +77,7 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Day: DayWithAppointment,
+        DayContent: DayWithAppointment,
         IconLeft: ({ className, ...props }) => (
           <ChevronLeft className={cn("h-4 w-4", className)} {...props} />
         ),

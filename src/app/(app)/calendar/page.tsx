@@ -225,7 +225,7 @@ export default function CalendarPage() {
               onSelect={setDate}
               className="rounded-md"
               components={{
-                Day: ({ date, ...props }) => {
+                Day: ({ date, displayMonth, ...props }) => {
                   const hasAppointment = appointments.some((app) => isSameDay(new Date(app.date), date))
                   return (
                     <div className="relative">

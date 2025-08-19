@@ -25,14 +25,13 @@ function Calendar({
   ...props
 }: CalendarProps) {
 
-  // This is the correct way to customize the Day component
-  // without losing its built-in props and functionality.
   const DayWithAppointment = (dayProps: DayProps) => {
     const { date } = dayProps;
-    const hasAppointment = appointments.some((app) => isSameDay(new Date(app.date), date));
+    const hasAppointment = appointments.some((app) => date && isSameDay(new Date(app.date), date));
     
-    // Use the default Day component from react-day-picker
-    const Day = DayPicker.components.Day;
+    // Use the default Day component from react-day-picker's `components` prop
+    // This was the source of the previous error. Now using it correctly.
+    const { Day } = DayPicker.components;
 
     return (
       <div className="relative">

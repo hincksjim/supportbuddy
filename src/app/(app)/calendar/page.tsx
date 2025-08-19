@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -19,7 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { PlusCircle, Trash2, Edit, CalendarIcon } from "lucide-react"
-import { format, isSameDay } from "date-fns"
+import { format, isSameDay, startOfDay } from "date-fns"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
@@ -213,23 +212,8 @@ export default function CalendarPage() {
   }
 
   const selectedDayAppointments = appointments
-    .filter((app) => date && isSameDay(new Date(app.date), date))
+    .filter((app) => date && isSameDay(startOfDay(new Date(app.date)), startOfDay(date)))
     .sort((a, b) => a.time.localeCompare(b.time))
-
-  const CustomDay = (dayProps: DayProps) => {
-    const { date, displayMonth } = dayProps;
-    const hasAppointment = appointments.some((app) => isSameDay(new Date(app.date), date));
-    return (
-      <div className="relative">
-        <button {...dayProps} className="react-day-picker-Day-button">
-          {date.getDate()}
-        </button>
-        {hasAppointment && (
-          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
-        )}
-      </div>
-    );
-  };
 
   return (
     <>

@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { DayPicker as DayPickerCalendar, type DayProps } from "react-day-picker"
+import { DayPicker, type DayProps } from "react-day-picker"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -103,7 +103,7 @@ function AppointmentDialog({
                   </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
-                  <DayPickerCalendar
+                  <DayPicker
                       mode="single"
                       selected={appointmentDate}
                       onSelect={setAppointmentDate}

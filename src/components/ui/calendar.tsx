@@ -25,15 +25,21 @@ function Calendar({
   ...props
 }: CalendarProps) {
 
-  const CustomDay = (dayProps: DayProps) => {
+  // This is the correct way to customize the Day component
+  // without losing its built-in props and functionality.
+  const DayWithAppointment = (dayProps: DayProps) => {
     const { date } = dayProps;
     const hasAppointment = appointments.some((app) => isSameDay(new Date(app.date), date));
+    
+    // Use the default Day component from react-day-picker
+    const Day = DayPicker.components.Day;
+
     return (
       <div className="relative">
-        <button {...dayProps.buttonProps} className={cn("h-9 w-9 p-0 font-normal", dayProps.buttonProps?.className)}>
-          {date.getDate()}
-        </button>
-        {hasAppointment && <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />}
+        <Day {...dayProps} />
+        {hasAppointment && (
+          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary pointer-events-none" />
+        )}
       </div>
     );
   };
@@ -77,7 +83,7 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Day: CustomDay,
+        Day: DayWithAppointment,
         IconLeft: ({ className, ...props }) => (
           <ChevronLeft className={cn("h-4 w-4", className)} {...props} />
         ),

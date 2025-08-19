@@ -3,7 +3,7 @@
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker, DayContent, DayContentProps } from "react-day-picker"
+import { DayPicker, DayProps } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
@@ -24,15 +24,20 @@ function Calendar({
   appointments = [],
   ...props
 }: CalendarProps) {
-  const CustomDay = ({ date, ...dayProps }: DayContentProps) => {
+
+  const CustomDay = (dayProps: DayProps) => {
+    const { date } = dayProps;
     const hasAppointment = appointments.some((app) => isSameDay(new Date(app.date), date));
     return (
       <div className="relative">
-        <DayContent date={date} {...dayProps} />
+        <button {...dayProps.buttonProps} className={cn("h-9 w-9 p-0 font-normal", dayProps.buttonProps.className)}>
+          {date.getDate()}
+        </button>
         {hasAppointment && <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />}
       </div>
     );
   };
+  
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -64,7 +69,7 @@ function Calendar({
           "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
         day_today: "bg-accent text-accent-foreground",
         day_outside:
-          "day-outside text-muted-foreground aria-selected:bg-accent/50 aria-selected:text-muted-foreground",
+          "day-outside text-muted-foreground opacity-50",
         day_disabled: "text-muted-foreground opacity-50",
         day_range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
@@ -72,13 +77,13 @@ function Calendar({
         ...classNames,
       }}
       components={{
+        Day: CustomDay,
         IconLeft: ({ className, ...props }) => (
           <ChevronLeft className={cn("h-4 w-4", className)} {...props} />
         ),
         IconRight: ({ className, ...props }) => (
           <ChevronRight className={cn("h-4 w-4", className)} {...props} />
         ),
-        Day: CustomDay
       }}
       {...props}
     />
@@ -86,7 +91,4 @@ function Calendar({
 }
 Calendar.displayName = "Calendar"
 
-// Re-export Day to be used in custom components
-const Day = DayContent;
-
-export { Calendar, Day }
+export { Calendar }

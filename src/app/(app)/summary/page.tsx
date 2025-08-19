@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -392,7 +391,11 @@ export default function SummaryPage() {
       }
   };
 
-  const reportHtml = report ? marked.parse(report) : "";
+  const reportHtml = report ? marked.parse(report, {
+    // This allows links to open in a new tab if needed, but for internal links, this is not required.
+    // It's here for completeness if external links were ever added.
+    renderer: new marked.Renderer(),
+  }) : "";
   
   useEffect(() => {
     if (report && reportRef.current) {
@@ -408,7 +411,7 @@ export default function SummaryPage() {
         }
       });
     }
-  }, [report]);
+  }, [report, hideFinancialInfo, hideWellnessInfo]);
 
   return (
     <div className="p-4 md:p-6 space-y-8">
@@ -560,3 +563,5 @@ export default function SummaryPage() {
     </div>
   )
 }
+
+    

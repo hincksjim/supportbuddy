@@ -164,7 +164,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 7.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow," you MUST calculate the specific date. If a timeframe is ambiguous (e.g., "in two weeks"), state it exactly as provided.
 8.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
 9.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, contact details, **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections. When you find a phone number, you **MUST** format it in bold text (e.g., **01234 567890**).
-10. **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents and conversations you were provided, using the title, date, and ID for each, along with their citation marker.
+10. **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents and conversations you were provided, using the title, date, and ID for each, along with their citation marker. You MUST format these as Markdown links.
 11. **INJECT BENEFITS TEXT:** The "Potential Additional Benefits" section MUST be populated *only* by inserting the exact pre-formatted text provided in the \`potentialBenefitsText\` input field.
 12. **FORMAT ADDRESS CORRECTLY**: When creating the address line, you MUST only include fields that have a value. Join them with a comma and a space, but do not add a comma if a field is missing or for the last item in the address.
 13. **USE UPDATED DIAGNOSIS IN REPORT**: In the "Primary Health Condition" field of the report, you MUST use the value you determined for \`updatedDiagnosis\`.
@@ -218,7 +218,7 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 
 **NOW, POPULATE THE REPORT TEMPLATE BELOW:**
 
-### **Personal Summary Report**
+### **Personal Summary for {{{userName}}} on {{{currentDate}}}**
 > **Disclaimer:** This report is a summary of the information you have provided. It is for personal reference only and should not be considered a medical document. Always consult with your healthcare provider for official information and advice.
 
 ### **Personal Details**
@@ -289,13 +289,13 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 ### **Sources**
 *(List all the source documents and conversations as a numbered list with their citation marker.)*
 {{#each sourceDocuments as |doc|}}
-*   [D{{@index}}] Document: "{{doc.title}}" (Analyzed: {{doc.date}}, ID: {{doc.id}})
+*   [D{{@index}}] Document: [**{{doc.title}}**](/document-analysis?id={{doc.id}}) (Analyzed: {{doc.date}})
 {{/each}}
 {{#each sourceConversations as |convo|}}
-*   [C{{@index}}] Conversation: "{{convo.title}}" (Summarized: {{convo.date}}, ID: {{convo.id}})
+*   [C{{@index}}] Conversation: [**{{convo.title}}**](/support-chat?id={{convo.id}}) (Summarized: {{convo.date}})
 {{/each}}
 {{#each textNotes as |note|}}
-*   [N{{@index}}] Note: "{{note.title}}" ({{note.date}}, ID: {{note.id}})
+*   [N{{@index}}] Note: **{{note.title}}** ({{note.date}}, ID: {{note.id}})
 {{/each}}
 `,
 });
@@ -324,3 +324,5 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

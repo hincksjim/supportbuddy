@@ -195,7 +195,8 @@ export default function CalendarPage() {
     saveAppointments(updatedAppointments)
   }
 
-  const handleDeleteAppointment = (id: string) => {
+  const handleDeleteAppointment = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Prevent the li's onClick from firing
     const updatedAppointments = appointments.filter((a) => a.id !== id)
     setAppointments(updatedAppointments)
     saveAppointments(updatedAppointments)
@@ -262,7 +263,8 @@ export default function CalendarPage() {
                 {selectedDayAppointments.map((app) => (
                   <li
                     key={app.id}
-                    className="p-4 border rounded-lg bg-muted/50 flex justify-between items-start"
+                    className="p-4 border rounded-lg bg-muted/50 flex justify-between items-start cursor-pointer hover:bg-accent"
+                    onClick={() => handleEditAppointment(app)}
                   >
                     <div>
                       <p className="font-semibold">{app.title}</p>
@@ -270,14 +272,14 @@ export default function CalendarPage() {
                       {app.notes && <p className="text-sm mt-2 whitespace-pre-wrap">{app.notes}</p>}
                     </div>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAppointment(app)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEditAppointment(app); }}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive"
-                        onClick={() => handleDeleteAppointment(app.id)}
+                        onClick={(e) => handleDeleteAppointment(e, app.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

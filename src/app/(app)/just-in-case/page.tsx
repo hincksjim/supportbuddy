@@ -690,5 +690,3 @@ export default function GoodbyePage() {
     </div>
   )
 }
-
-    

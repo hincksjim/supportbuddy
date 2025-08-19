@@ -1,0 +1,275 @@
+
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import { Calendar } from "@/components/ui/calendar"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { PlusCircle, Trash2, Edit } from "lucide-react"
+import { format, isSameDay } from "date-fns"
+
+interface Appointment {
+  id: string
+  date: string // ISO string
+  time: string
+  title: string
+  notes: string
+}
+
+function AppointmentDialog({
+  onSave,
+  existingAppointment,
+  selectedDate,
+  open,
+  onOpenChange,
+}: {
+  onSave: (appointment: Appointment) => void
+  existingAppointment?: Appointment | null
+  selectedDate: Date
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const [title, setTitle] = useState("")
+  const [time, setTime] = useState("09:00")
+  const [notes, setNotes] = useState("")
+
+  useEffect(() => {
+    if (open) {
+      if (existingAppointment) {
+        setTitle(existingAppointment.title)
+        setTime(existingAppointment.time)
+        setNotes(existingAppointment.notes)
+      } else {
+        setTitle("")
+        setTime("09:00")
+        setNotes("")
+      }
+    }
+  }, [open, existingAppointment])
+
+  const handleSave = () => {
+    const newAppointment: Appointment = {
+      id: existingAppointment?.id || new Date().toISOString(),
+      date: selectedDate.toISOString(),
+      time,
+      title,
+      notes,
+    }
+    onSave(newAppointment)
+    onOpenChange(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {existingAppointment ? "Edit" : "New"} Appointment on {format(selectedDate, "PPP")}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., GP Appointment"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="time">Time</Label>
+            <Input id="time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="e.g., Discuss scan results"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="ghost">Cancel</Button>
+          </DialogClose>
+          <Button onClick={handleSave}>Save Appointment</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export default function CalendarPage() {
+  const [date, setDate] = useState<Date | undefined>(new Date())
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
+
+  const getStorageKey = (email: string) => `appointments_${email}`
+
+  const loadAppointments = useCallback(() => {
+    if (!currentUserEmail) return
+    try {
+      const stored = localStorage.getItem(getStorageKey(currentUserEmail))
+      if (stored) {
+        setAppointments(JSON.parse(stored))
+      }
+    } catch (e) {
+      console.error("Failed to load appointments:", e)
+    }
+  }, [currentUserEmail])
+
+  const saveAppointments = (apps: Appointment[]) => {
+    if (!currentUserEmail) return
+    localStorage.setItem(getStorageKey(currentUserEmail), JSON.stringify(apps))
+  }
+
+  useEffect(() => {
+    const email = localStorage.getItem("currentUserEmail")
+    setCurrentUserEmail(email)
+  }, [])
+
+  useEffect(() => {
+    loadAppointments()
+  }, [loadAppointments])
+
+  const handleSaveAppointment = (appointment: Appointment) => {
+    let updatedAppointments
+    const existingIndex = appointments.findIndex((a) => a.id === appointment.id)
+    if (existingIndex > -1) {
+      updatedAppointments = [...appointments]
+      updatedAppointments[existingIndex] = appointment
+    } else {
+      updatedAppointments = [...appointments, appointment]
+    }
+    setAppointments(updatedAppointments)
+    saveAppointments(updatedAppointments)
+  }
+
+  const handleDeleteAppointment = (id: string) => {
+    const updatedAppointments = appointments.filter((a) => a.id !== id)
+    setAppointments(updatedAppointments)
+    saveAppointments(updatedAppointments)
+  }
+
+  const handleNewAppointment = () => {
+    setEditingAppointment(null)
+    setIsDialogOpen(true)
+  }
+
+  const handleEditAppointment = (appointment: Appointment) => {
+    setEditingAppointment(appointment)
+    setIsDialogOpen(true)
+  }
+
+  const selectedDayAppointments = appointments
+    .filter((app) => date && isSameDay(new Date(app.date), date))
+    .sort((a, b) => a.time.localeCompare(b.time))
+
+  return (
+    <>
+      <div className="grid h-full grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-6">
+        <Card>
+          <CardContent className="p-2 md:p-4 flex justify-center">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              className="rounded-md"
+              components={{
+                Day: ({ date, ...props }) => {
+                  const hasAppointment = appointments.some((app) => isSameDay(new Date(app.date), date))
+                  return (
+                    <div className="relative">
+                      <button {...props} className="react-day-picker-Day-button">
+                        {date.getDate()}
+                      </button>
+                      {hasAppointment && (
+                        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
+                      )}
+                    </div>
+                  )
+                },
+              }}
+            />
+          </CardContent>
+        </Card>
+        <Card className="flex flex-col">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Appointments</CardTitle>
+                <CardDescription>{date ? format(date, "PPP") : "Select a date"}</CardDescription>
+              </div>
+              <Button onClick={handleNewAppointment} disabled={!date}>
+                <PlusCircle className="mr-2" /> New
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-y-auto">
+            {date && selectedDayAppointments.length > 0 ? (
+              <ul className="space-y-4">
+                {selectedDayAppointments.map((app) => (
+                  <li
+                    key={app.id}
+                    className="p-4 border rounded-lg bg-muted/50 flex justify-between items-start"
+                  >
+                    <div>
+                      <p className="font-semibold">{app.title}</p>
+                      <p className="text-sm text-muted-foreground">{app.time}</p>
+                      {app.notes && <p className="text-sm mt-2 whitespace-pre-wrap">{app.notes}</p>}
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAppointment(app)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => handleDeleteAppointment(app.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-center py-10 rounded-lg border-2 border-dashed">
+                <h3 className="text-lg font-semibold">No Appointments</h3>
+                <p className="text-muted-foreground mt-1">
+                  {date ? "You have no appointments for this day." : "Select a day to see appointments."}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      <AppointmentDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onSave={handleSaveAppointment}
+        existingAppointment={editingAppointment}
+        selectedDate={date || new Date()}
+      />
+    </>
+  )
+}

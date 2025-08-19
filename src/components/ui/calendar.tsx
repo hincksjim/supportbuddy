@@ -30,7 +30,7 @@ function Calendar({
     const hasAppointment = appointments.some((app) => isSameDay(new Date(app.date), date));
     return (
       <div className="relative">
-        <button {...dayProps.buttonProps} className={cn("h-9 w-9 p-0 font-normal", dayProps.buttonProps.className)}>
+        <button {...dayProps.buttonProps} className={cn("h-9 w-9 p-0 font-normal", dayProps.buttonProps?.className)}>
           {date.getDate()}
         </button>
         {hasAppointment && <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />}

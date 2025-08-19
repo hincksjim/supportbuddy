@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -506,7 +505,7 @@ export default function SummaryPage() {
             </CardContent>
          </Card>
       
-        <div ref={reportRef} className={cn(hideFinancialInfo && "hide-financial", hideWellnessInfo && "hide-wellness")}>
+        <div className={cn(hideFinancialInfo && "hide-financial", hideWellnessInfo && "hide-wellness")}>
             <Card>
                 <CardHeader>
                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -526,7 +525,7 @@ export default function SummaryPage() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent ref={reportRef}>
                 {isLoading && !report && (
                     <div className="flex flex-col items-center justify-center py-20">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />

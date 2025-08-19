@@ -11,6 +11,8 @@ import jsPDF from "jspdf"
 import "jspdf-autotable"
 import html2canvas from "html2canvas"
 import { useToast } from "@/hooks/use-toast"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 
 
 import { generatePersonalSummary, GeneratePersonalSummaryOutput, SourceConversation, SourceDocument } from "@/ai/flows/generate-personal-summary"
@@ -100,6 +102,10 @@ export default function SummaryPage() {
   const chartsRef = useRef<HTMLDivElement>(null);
   const reportRef = useRef<HTMLDivElement>(null);
   
+  // State for the new checkboxes
+  const [hideFinancialInfo, setHideFinancialInfo] = useState(false);
+  const [hideWellnessInfo, setHideWellnessInfo] = useState(false);
+
   // State to hold all the data needed for the report
   const [userData, setUserData] = useState<UserData>({});
   const [timelineData, setTimelineData] = useState<TimelineData | null>(null)
@@ -275,7 +281,7 @@ export default function SummaryPage() {
 
             // --- Fingerprint Caching Logic ---
             const dataToFingerprint = {
-                userData, timelineData, analysisData, sourceConversationsData, textNotes, diaryEntries, medicationData, locationInfo, potentialBenefitsText
+                userData, timelineData, analysisData, sourceConversationsData, textNotes, diaryEntries, medicationData, locationInfo, potentialBenefitsText, hideFinancialInfo, hideWellnessInfo
             };
             const currentFingerprint = JSON.stringify(dataToFingerprint);
             const fingerprintKey = `personalSummaryFingerprint_${currentUserEmail}`;
@@ -311,6 +317,8 @@ export default function SummaryPage() {
                 medicationData: medicationData,
                 locationInfo: locationInfo,
                 potentialBenefitsText: potentialBenefitsText,
+                hideFinancialInfo,
+                hideWellnessInfo,
             });
 
             setReport(result.report);
@@ -421,6 +429,16 @@ export default function SummaryPage() {
           <p className="text-muted-foreground">
             A consolidated report of your journey so far.
           </p>
+        </div>
+        <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-2">
+                <Checkbox id="hide-financial" checked={hideFinancialInfo} onCheckedChange={(checked) => setHideFinancialInfo(!!checked)} />
+                <Label htmlFor="hide-financial" className="text-sm font-medium">Hide Financial Info</Label>
+            </div>
+             <div className="flex items-center space-x-2">
+                <Checkbox id="hide-wellness" checked={hideWellnessInfo} onCheckedChange={(checked) => setHideWellnessInfo(!!checked)} />
+                <Label htmlFor="hide-wellness" className="text-sm font-medium">Hide Wellness Info</Label>
+            </div>
         </div>
         <div className="flex gap-2">
             <Button onClick={handleGenerateReport} disabled={isLoading}>
@@ -549,3 +567,5 @@ export default function SummaryPage() {
     </div>
   )
 }
+
+    

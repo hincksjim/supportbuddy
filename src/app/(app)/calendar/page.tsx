@@ -17,18 +17,21 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { PlusCircle, Trash2, Edit, CalendarIcon } from "lucide-react"
+import { PlusCircle, Trash2, Edit, CalendarIcon, Users, MapPin } from "lucide-react"
 import { format, isSameDay, startOfDay } from "date-fns"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 
 interface Appointment {
   id: string
   date: string // ISO string
   time: string
-  title: string
+  subject: string
   notes: string
+  location: 'in-person' | 'phone' | 'video-call';
+  attendees: string;
 }
 
 function AppointmentDialog({
@@ -44,22 +47,28 @@ function AppointmentDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const [title, setTitle] = useState("")
+  const [subject, setSubject] = useState("")
   const [time, setTime] = useState("09:00")
   const [notes, setNotes] = useState("")
   const [appointmentDate, setAppointmentDate] = useState<Date | undefined>(new Date());
+  const [location, setLocation] = useState<'in-person' | 'phone' | 'video-call'>('in-person');
+  const [attendees, setAttendees] = useState('');
 
   useEffect(() => {
     if (open) {
       if (existingAppointment) {
-        setTitle(existingAppointment.title)
+        setSubject(existingAppointment.subject)
         setTime(existingAppointment.time)
         setNotes(existingAppointment.notes)
+        setLocation(existingAppointment.location)
+        setAttendees(existingAppointment.attendees)
         setAppointmentDate(new Date(existingAppointment.date));
       } else {
-        setTitle("")
+        setSubject("")
         setTime("09:00")
         setNotes("")
+        setLocation('in-person');
+        setAttendees('');
         setAppointmentDate(initialDate || new Date());
       }
     }
@@ -71,8 +80,10 @@ function AppointmentDialog({
       id: existingAppointment?.id || new Date().toISOString(),
       date: appointmentDate.toISOString(),
       time,
-      title,
+      subject,
       notes,
+      location,
+      attendees,
     }
     onSave(newAppointment)
     onOpenChange(false)
@@ -86,44 +97,68 @@ function AppointmentDialog({
             {existingAppointment ? "Edit" : "New"} Appointment
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-              <Label>Date</Label>
-              <Popover>
-                  <PopoverTrigger asChild>
-                  <Button
-                      variant={"outline"}
-                      className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !appointmentDate && "text-muted-foreground"
-                      )}
-                  >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {appointmentDate ? format(appointmentDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                  <DayPicker
-                      mode="single"
-                      selected={appointmentDate}
-                      onSelect={setAppointmentDate}
-                      initialFocus
-                  />
-                  </PopoverContent>
-              </Popover>
+        <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                  <Label>Date</Label>
+                  <Popover>
+                      <PopoverTrigger asChild>
+                      <Button
+                          variant={"outline"}
+                          className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !appointmentDate && "text-muted-foreground"
+                          )}
+                      >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {appointmentDate ? format(appointmentDate, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                      <DayPicker
+                          mode="single"
+                          selected={appointmentDate}
+                          onSelect={setAppointmentDate}
+                          initialFocus
+                      />
+                      </PopoverContent>
+                  </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="time">Time</Label>
+                <Input id="time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+              </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="subject">Subject / Regarding</Label>
             <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., GP Appointment"
+              id="subject"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="e.g., GP Appointment, Scan Results"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="time">Time</Label>
-            <Input id="time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            <Label>Location</Label>
+            <Select value={location} onValueChange={(v) => setLocation(v as any)}>
+              <SelectTrigger>
+                  <SelectValue placeholder="Select location" />
+              </SelectTrigger>
+              <SelectContent>
+                  <SelectItem value="in-person">In-Person</SelectItem>
+                  <SelectItem value="phone">Phone Call</SelectItem>
+                  <SelectItem value="video-call">Video Call</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+           <div className="space-y-2">
+            <Label htmlFor="attendees">Attendees</Label>
+            <Input
+              id="attendees"
+              value={attendees}
+              onChange={(e) => setAttendees(e.target.value)}
+              placeholder="e.g., Dr. Smith, Partner"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
@@ -131,7 +166,7 @@ function AppointmentDialog({
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g., Discuss scan results"
+              placeholder="e.g., Questions to ask, key discussion points"
             />
           </div>
         </div>
@@ -247,26 +282,40 @@ export default function CalendarPage() {
                 {selectedDayAppointments.map((app) => (
                   <li
                     key={app.id}
-                    className="p-4 border rounded-lg bg-muted/50 flex justify-between items-start cursor-pointer hover:bg-accent"
+                    className="p-4 border rounded-lg bg-muted/50  cursor-pointer hover:bg-accent"
                     onClick={() => handleEditAppointment(app)}
                   >
-                    <div>
-                      <p className="font-semibold">{app.title}</p>
-                      <p className="text-sm text-muted-foreground">{app.time}</p>
-                      {app.notes && <p className="text-sm mt-2 whitespace-pre-wrap">{app.notes}</p>}
+                    <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold">{app.subject}</p>
+                          <p className="text-sm text-muted-foreground">{app.time}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEditAppointment(app); }}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={(e) => handleDeleteAppointment(e, app.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                     </div>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEditAppointment(app); }}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive"
-                        onClick={(e) => handleDeleteAppointment(e, app.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4"/>
+                            <span>{app.location}</span>
+                        </div>
+                        {app.attendees && (
+                            <div className="flex items-center gap-2">
+                                <Users className="w-4 h-4"/>
+                                <span>{app.attendees}</span>
+                            </div>
+                        )}
+                         {app.notes && <p className="text-sm mt-2 whitespace-pre-wrap pt-2 border-t">{app.notes}</p>}
                     </div>
                   </li>
                 ))}

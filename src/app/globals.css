@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -89,15 +90,18 @@ body {
 
 @layer utilities {
   .hide-financial #financial-summary-heading,
-  .hide-financial #financial-summary-heading ~ * {
+  .hide-financial #financial-summary-heading ~ *,
+  .hide-financial #benefits-summary-heading,
+  .hide-financial #benefits-summary-heading ~ * {
     display: none;
   }
   
-  /* This rule stops the hiding at the next h3 */
-  .hide-financial #financial-summary-heading ~ h3 ~ * {
+  .hide-financial #financial-summary-heading ~ h3 ~ *,
+  .hide-financial #benefits-summary-heading ~ h3 ~ * {
     display: block;
   }
-  .hide-financial #financial-summary-heading ~ h3 {
+   .hide-financial #financial-summary-heading ~ h3,
+  .hide-financial #benefits-summary-heading ~ h3 {
     display: block;
   }
 

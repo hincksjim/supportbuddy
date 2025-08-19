@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -402,6 +403,8 @@ export default function SummaryPage() {
           h.id = 'financial-summary-heading';
         } else if (text.includes('Wellness & Diary Insights')) {
           h.id = 'wellness-summary-heading';
+        } else if (text.includes('Potential Additional Benefits')) {
+          h.id = 'benefits-summary-heading';
         }
       });
     }

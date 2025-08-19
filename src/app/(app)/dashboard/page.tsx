@@ -39,6 +39,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Checkbox } from "@/components/ui/checkbox"
+import { MeetingNote } from "@/ai/flows/types"
 
 type Specialist = "medical" | "mental_health" | "financial";
 
@@ -106,17 +107,6 @@ interface ActionItem {
     assignedTo: string[]; // Attendee names
     dueDate: string | null; // ISO date string
     priority: 'low' | 'medium' | 'high';
-}
-
-interface MeetingNote {
-    id: string;
-    type: 'meetingNote';
-    date: string; // ISO date string
-    location: 'in-person' | 'phone' | 'video-call';
-    attendees: string[];
-    subject: string;
-    notes: string;
-    actions: ActionItem[];
 }
 
 interface StoredConversation {
@@ -1089,7 +1079,7 @@ export default function DashboardPage() {
                                 return <TextNoteCard key={`textnote-${item.data.id}-${index}`} note={item.data} onDelete={handleDelete} />;
                             }
                             if (item.type === 'meetingNote') {
-                                return <MeetingNoteCard key={`meetingnote-${item.data.id}-${index}`} note={item.data} onDelete={handleDelete} />;
+                                return <MeetingNoteCard key={`meetingnote-${item.data.id}-${index}`} note={item.data as MeetingNote} onDelete={handleDelete} />;
                             }
                             if (item.type === 'savedMessage') {
                                 return <SavedMessageCard key={`saved-${item.data.id}-${index}`} message={item.data} onDelete={handleDelete} />;

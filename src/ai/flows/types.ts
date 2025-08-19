@@ -79,3 +79,21 @@ export const DiaryEntrySchemaForAI = z.object({
     notes: z.string(),
 });
 export type DiaryEntryForAI = z.infer<typeof DiaryEntrySchemaForAI>;
+
+export const MeetingNoteSchema = z.object({
+    id: z.string(),
+    type: z.literal('meetingNote'),
+    date: z.string(),
+    location: z.enum(['in-person', 'phone', 'video-call']),
+    attendees: z.array(z.string()),
+    subject: z.string(),
+    notes: z.string(),
+    actions: z.array(z.object({
+        id: z.string(),
+        description: z.string(),
+        assignedTo: z.array(z.string()),
+        dueDate: z.string().nullable(),
+        priority: z.enum(['low', 'medium', 'high']),
+    })),
+});
+export type MeetingNote = z.infer<typeof MeetingNoteSchema>;

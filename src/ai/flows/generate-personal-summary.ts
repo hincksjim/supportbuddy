@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -10,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { SourceConversation, SourceDocument, TextNoteSchema } from './types';
+import { SourceConversation, SourceDocument, TextNoteSchema, MeetingNoteSchema } from './types';
 
 
 const TimelineStepSchema = z.object({
@@ -85,6 +86,7 @@ const GeneratePersonalSummaryInputSchema = z.object({
     sourceDocuments: z.array(SourceDocument).describe('An array of previously analyzed documents, including their titles and analysis content.'),
     sourceConversations: z.array(SourceConversation).describe('An array of summaries and full transcripts from previous conversations.'),
     textNotes: z.array(TextNoteSchema.omit({ type: true })).optional().describe('An array of general text notes saved by the user.'),
+    meetingNotes: z.array(MeetingNoteSchema.omit({ type: true })).optional().describe('An array of meeting notes saved by the user.'),
     diaryData: z.array(DiaryEntrySchema).describe('An array of the user\'s diary entries.'),
     medicationData: z.array(MedicationSchema).describe('An array of the user\'s prescribed medications.'),
     locationInfo: z.object({
@@ -157,14 +159,14 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
     *   Each summary should be 2-3 paragraphs, identifying trends in mood, pain, and key themes from their worries and positive notes. Use an observational tone ("It seems like...", "The entries suggest...").
     *   You MUST format these summaries inside Markdown blockquotes. Example: \`> **Summary for Week of Aug 05:** This week's entries suggest... \`
 
-3.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources (Documents, Conversations, Diary, Medications, Timeline, Financials) to build the report. The saved conversation transcripts are a primary source of truth for the user's narrative.
-4.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, a date, or a feeling), you **MUST** cite where you found it using a reference marker, like **[D0]** for the first document or **[C1]** for the second conversation. The letter indicates the type (D for Document, C for Conversation, N for Note) and the number is the index from the source list.
+3.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources (Documents, Conversations, Meeting Notes, Diary, Medications, Timeline, Financials) to build the report. The saved conversation transcripts are a primary source of truth for the user's narrative.
+4.  **CITE YOUR SOURCES:** When you extract a specific piece of information (like a doctor's name, a test result, a date, or a feeling), you **MUST** cite where you found it using a reference marker, like **[D0]** for the first document, **[C1]** for the second conversation, or **[M2]** for the third meeting note. The letter indicates the type (D for Document, C for Conversation, N for Note, M for Meeting) and the number is the index from the source list.
 5.  **FORMAT WITH MARKDOWN:** The entire report output must be a single Markdown string. Use headings, bold text, bullet points, and blockquotes as defined in the template. The section headings must be exactly as written in the template (e.g., \`### Financial Summary\`).
 6.  **BE FACTUAL AND OBJECTIVE:** Extract and present information as it is given. Do not invent details or make medical predictions.
 7.  **INFER DATES CAREFULLY:** The current date is **{{{currentDate}}}**. When a user mentions a relative date like "tomorrow," you MUST calculate the specific date. If a timeframe is ambiguous (e.g., "in two weeks"), state it exactly as provided.
 8.  **PRIVACY DISCLAIMER:** Start the report with the exact disclaimer provided in the template.
 9.  **EXTRACT CONTACTS & NUMBERS:** Scour all available data sources for any mention of doctor names, nurse names, hospital names, contact details, **NHS Numbers**, and **Hospital Numbers**. Synthesize this into the appropriate sections. When you find a phone number, you **MUST** format it in bold text (e.g., **01234 567890**).
-10. **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents and conversations you were provided, using the title, date, and ID for each, along with their citation marker. You MUST format these as Markdown links.
+10. **CREATE A NUMBERED SOURCE LIST:** At the end of the report, create a section called "### Sources". List all the source documents, conversations, and notes you were provided, using the title, date, and ID for each, along with their citation marker. You MUST format these as Markdown links where appropriate.
 11. **INJECT BENEFITS TEXT:** The "Potential Additional Benefits" section MUST be populated *only* by inserting the exact pre-formatted text provided in the \`potentialBenefitsText\` input field.
 12. **FORMAT ADDRESS CORRECTLY**: When creating the address line, you MUST only include fields that have a value. Join them with a comma and a space, but do not add a comma if a field is missing or for the last item in the address.
 13. **USE UPDATED DIAGNOSIS IN REPORT**: In the "Primary Health Condition" field of the report, you MUST use the value you determined for \`updatedDiagnosis\`.
@@ -197,7 +199,22 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 ---
 {{/each}}
 
-**4. General Text Notes (For additional context):**
+**4. Meeting Notes (For recent decisions and actions):**
+{{#each meetingNotes}}
+*   **Source ID (for citation):** M{{@index}}
+*   **Meeting Subject:** "{{subject}}" ({{date}})
+*   **Attendees:** {{attendees}}
+*   **Notes:**
+    {{{notes}}}
+*   **Actions:**
+    {{#each actions}}
+    - {{description}} (Due: {{dueDate}}, Assigned to: {{assignedTo}})
+    {{/each}}
+---
+{{/each}}
+
+
+**5. General Text Notes (For additional context):**
 {{#each textNotes}}
 *   **Source ID (for citation):** N{{@index}}
 *   **Note Title:** "{{title}}" ({{date}})
@@ -206,13 +223,13 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 ---
 {{/each}}
 
-**5. Diary Entries (For Wellness Summaries and Daily Log):**
+**6. Diary Entries (For Wellness Summaries and Daily Log):**
 {{#each diaryData}}
 - **Date:** {{date}} - Mood: {{mood}}, Pain: {{painScore}}, Worried: "{{worriedAbout}}", Positive: "{{positiveAbout}}", Notes: "{{notes}}"
 {{/each}}
 ---
 
-**6. Other Data Sources:**
+**7. Other Data Sources:**
 *   Medication Lists and Timelines are available for context.
 ---
 
@@ -294,6 +311,9 @@ Your primary goal is to synthesize ALL information provided into a clear, organi
 {{#each sourceConversations as |convo|}}
 *   [C{{@index}}] Conversation: [**{{convo.title}}**](/support-chat?id={{convo.id}}) (Summarized: {{convo.date}})
 {{/each}}
+{{#each meetingNotes as |note|}}
+*   [M{{@index}}] Meeting Note: **{{note.subject}}** ({{note.date}}, ID: {{note.id}})
+{{/each}}
 {{#each textNotes as |note|}}
 *   [N{{@index}}] Note: **{{note.title}}** ({{note.date}}, ID: {{note.id}})
 {{/each}}
@@ -324,5 +344,3 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils"
 
 
 import { generatePersonalSummary, GeneratePersonalSummaryOutput, SourceConversation, SourceDocument, MeetingNote } from "@/ai/flows/generate-personal-summary"
-import type { GenerateTreatmentTimelineOutput } from "@/ai/flows/generate-treatment-timeline"
+import type { GenerateTreatmentTimelineOutput } from "@/app/(app)/timeline/page"
 import { DiaryEntry } from "@/app/(app)/diary/page"
 import { Medication } from "@/app/(app)/medication/page"
 import { DiaryChart } from "@/components/diary-chart"
@@ -330,56 +330,68 @@ export default function SummaryPage() {
 
   const handleDownloadPdf = async () => {
     const reportElement = reportRef.current;
-    if (!reportElement) return;
+    const chartsContainer = chartsRef.current;
+    if (!reportElement || !chartsContainer) return;
 
     setIsLoading(true);
     try {
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
-        const margin = 15;
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const margin = 10;
+        const contentWidth = pdfWidth - margin * 2;
 
-        // Add Charts
-        const chartsContainer = chartsRef.current;
-        if (chartsContainer) {
-            const chartElements = Array.from(chartsContainer.querySelectorAll('.chart-card-pdf')) as HTMLElement[];
-            if (chartElements.length > 0) {
-                 pdf.setFontSize(22);
-                 pdf.text("Wellness Trends", pdfWidth / 2, 20, { align: 'center' });
-                 
-                 const chartHeight = 80;
-                 const chartWidth = (pdfWidth - (margin * 3)) / 2;
-                 let yPos = 35;
-                 
-                 for (let i = 0; i < chartElements.length; i += 2) {
-                    const canvas1 = await html2canvas(chartElements[i], { scale: 2 });
-                    pdf.addImage(canvas1.toDataURL('image/png'), 'PNG', margin, yPos, chartWidth, chartHeight);
-                    
-                    if (i + 1 < chartElements.length) {
-                        const canvas2 = await html2canvas(chartElements[i+1], { scale: 2 });
-                        pdf.addImage(canvas2.toDataURL('image/png'), 'PNG', margin + chartWidth + margin, yPos, chartWidth, chartHeight);
-                    }
-                    
-                    yPos += chartHeight + 10;
+        // --- 1. Add Charts ---
+        const chartElements = Array.from(chartsContainer.querySelectorAll('.chart-card-pdf')) as HTMLElement[];
+        if (chartElements.length > 0) {
+            pdf.setFontSize(22);
+            pdf.text("Wellness Trends", pdfWidth / 2, 20, { align: 'center' });
+            
+            const chartCanvasPromises = chartElements.map(el => html2canvas(el, { scale: 2 }));
+            const chartCanvases = await Promise.all(chartCanvasPromises);
 
-                    if (i + 2 < chartElements.length && yPos + chartHeight > pdf.internal.pageSize.getHeight() - margin) {
-                        pdf.addPage();
-                        yPos = margin;
-                    }
+            let yPos = 30;
+            for (const canvas of chartCanvases) {
+                const imgData = canvas.toDataURL('image/png');
+                const imgHeight = (canvas.height * contentWidth) / canvas.width;
+                if (yPos + imgHeight > pdfHeight - margin) {
+                    pdf.addPage();
+                    yPos = margin;
                 }
+                pdf.addImage(imgData, 'PNG', margin, yPos, contentWidth, imgHeight);
+                yPos += imgHeight + 10;
+            }
+        }
+
+        // --- 2. Add Report ---
+        pdf.addPage();
+        
+        const reportCanvas = await html2canvas(reportElement, { scale: 2, windowWidth: reportElement.scrollWidth });
+        const reportImgData = reportCanvas.toDataURL('image/png');
+        const reportImgHeight = (reportCanvas.height * contentWidth) / reportCanvas.width;
+        let reportYPos = 0;
+        let remainingHeight = reportImgHeight;
+
+        while (remainingHeight > 0) {
+            const pageHeight = pdfHeight - (margin * 2);
+            pdf.addImage(
+                reportImgData, 
+                'PNG', 
+                margin, 
+                margin - reportYPos, // Start drawing from the correct vertical slice
+                contentWidth, 
+                reportImgHeight
+            );
+            
+            remainingHeight -= pageHeight;
+            reportYPos += pageHeight;
+            
+            if (remainingHeight > 0) {
+                pdf.addPage();
             }
         }
         
-        // Add Report
-        pdf.addPage();
-        (pdf as any).html(reportElement, {
-            callback: function(doc: jsPDF) {
-                doc.save("Personal-Summary-Report.pdf");
-            },
-            x: margin,
-            y: margin,
-            width: pdfWidth - (margin * 2),
-            windowWidth: reportElement.scrollWidth
-        });
+        pdf.save("Personal-Summary-Report.pdf");
 
     } catch (err) {
         console.error("Could not generate PDF", err);
@@ -450,38 +462,24 @@ export default function SummaryPage() {
                 <div className="space-y-6">
                     {diaryEntries.length > 1 ? (
                         <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
-                            <Card className="chart-card-pdf">
-                                <CardHeader>
-                                    <CardTitle className="text-base">Overall Mood</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <DiaryChart data={diaryEntries} chartType="mood" />
-                                </CardContent>
-                            </Card>
-                             <Card className="chart-card-pdf">
-                                <CardHeader>
-                                    <CardTitle className="text-base">Pain Score</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <DiaryChart data={diaryEntries} chartType="pain" />
-                                </CardContent>
-                            </Card>
-                             <Card className="chart-card-pdf">
-                                <CardHeader>
-                                    <CardTitle className="text-base">Weight</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <DiaryChart data={diaryEntries} chartType="weight" />
-                                </CardContent>
-                            </Card>
-                            <Card className="chart-card-pdf">
-                                <CardHeader>
-                                    <CardTitle className="text-base">Sleep</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <DiaryChart data={diaryEntries} chartType="sleep" />
-                                </CardContent>
-                            </Card>
+                           <div className="chart-card-pdf">
+                              <DiaryChart data={diaryEntries} chartType="mood" />
+                           </div>
+                           <div className="chart-card-pdf">
+                              <DiaryChart data={diaryEntries} chartType="pain" />
+                           </div>
+                           <div className="chart-card-pdf">
+                              <DiaryChart data={diaryEntries} chartType="weight" />
+                           </div>
+                           <div className="chart-card-pdf">
+                               <DiaryChart data={diaryEntries} chartType="sleep" />
+                           </div>
+                           <div className="chart-card-pdf">
+                               <DiaryChart data={diaryEntries} chartType="diagnosis" />
+                           </div>
+                           <div className="chart-card-pdf">
+                               <DiaryChart data={diaryEntries} chartType="treatment" />
+                           </div>
                         </div>
                     ) : (
                         <div className="text-center py-10 rounded-lg border-2 border-dashed">
@@ -513,7 +511,7 @@ export default function SummaryPage() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent ref={reportRef}>
+                <CardContent>
                 {isLoading && !report && (
                     <div className="flex flex-col items-center justify-center py-20">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -533,10 +531,12 @@ export default function SummaryPage() {
                     </div>
                 )}
                 {report && (
-                    <div
-                        className="prose dark:prose-invert max-w-none text-foreground"
-                        dangerouslySetInnerHTML={{ __html: reportHtml as string }}
-                    />
+                    <div ref={reportRef}>
+                        <div
+                            className="prose dark:prose-invert max-w-none text-foreground"
+                            dangerouslySetInnerHTML={{ __html: reportHtml as string }}
+                        />
+                    </div>
                 )}
                 </CardContent>
             </Card>
@@ -545,3 +545,5 @@ export default function SummaryPage() {
     </div>
   )
 }
+
+    

@@ -71,16 +71,18 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
             return [1, 5];
         case 'pain':
             return [0, 10];
-        case 'weight':
-            const weights = chartData.map(d => d.weight).filter(w => w !== null) as number[];
+        case 'weight': {
+            const weights = chartData.map(d => d.weight).filter(w => w !== null && !isNaN(w)) as number[];
             if (weights.length === 0) return [0, 100];
             const minWeight = Math.min(...weights);
             const maxWeight = Math.max(...weights);
             return [Math.floor(minWeight - 5), Math.ceil(maxWeight + 5)];
-        case 'sleep':
-            const sleeps = chartData.map(d => d.sleep).filter(s => s !== null) as number[];
+        }
+        case 'sleep': {
+            const sleeps = chartData.map(d => d.sleep).filter(s => s !== null && !isNaN(s)) as number[];
              if (sleeps.length === 0) return [0, 12];
             return [0, Math.ceil(Math.max(...sleeps) + 2)];
+        }
         default:
             return [0, 'auto'];
     }

@@ -458,23 +458,7 @@ export default function SummaryPage() {
                                     <DiaryChart data={diaryEntries} chartType="mood" />
                                 </CardContent>
                             </Card>
-                            <Card className="chart-card-pdf">
-                                <CardHeader>
-                                    <CardTitle className="text-base">Treatment Mood</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <DiaryChart data={diaryEntries} chartType="treatment" />
-                                </CardContent>
-                            </Card>
-                            <Card className="chart-card-pdf">
-                                <CardHeader>
-                                    <CardTitle className="text-base">Diagnosis Mood</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <DiaryChart data={diaryEntries} chartType="diagnosis" />
-                                </CardContent>
-                            </Card>
-                            <Card className="chart-card-pdf">
+                             <Card className="chart-card-pdf">
                                 <CardHeader>
                                     <CardTitle className="text-base">Pain Score</CardTitle>
                                 </CardHeader>
@@ -482,7 +466,7 @@ export default function SummaryPage() {
                                     <DiaryChart data={diaryEntries} chartType="pain" />
                                 </CardContent>
                             </Card>
-                            <Card className="chart-card-pdf">
+                             <Card className="chart-card-pdf">
                                 <CardHeader>
                                     <CardTitle className="text-base">Weight</CardTitle>
                                 </CardHeader>

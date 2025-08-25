@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -15,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 
 
-import { generatePersonalSummary, GeneratePersonalSummaryOutput, SourceConversation, SourceDocument } from "@/ai/flows/generate-personal-summary"
+import { generatePersonalSummary, GeneratePersonalSummaryOutput, SourceConversation, SourceDocument, MeetingNote } from "@/ai/flows/generate-personal-summary"
 import type { GenerateTreatmentTimelineOutput } from "@/ai/flows/generate-treatment-timeline"
 import { DiaryEntry } from "@/app/(app)/diary/page"
 import { Medication } from "@/app/(app)/medication/page"
@@ -110,6 +111,7 @@ export default function SummaryPage() {
   const [analysisData, setAnalysisData] = useState<AnalysisResult[]>([])
   const [sourceConversationsData, setSourceConversationsData] = useState<StoredConversation[]>([])
   const [textNotes, setTextNotes] = useState<TextNote[]>([])
+  const [meetingNotes, setMeetingNotes] = useState<MeetingNote[]>([]);
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([])
   const [medicationData, setMedicationData] = useState<Medication[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -140,6 +142,7 @@ export default function SummaryPage() {
       const storedSummaries = localStorage.getItem(`conversationSummaries_${currentUserEmail}`);
       const summariesAndNotes = storedSummaries ? JSON.parse(storedSummaries) : [];
       setTextNotes(summariesAndNotes.filter((item: any) => item.type === 'textNote'));
+      setMeetingNotes(summariesAndNotes.filter((item: any) => item.type === 'meetingNote'));
 
       const storedConversations = localStorage.getItem(`allConversations_${currentUserEmail}`);
       if (storedConversations) {
@@ -262,7 +265,7 @@ export default function SummaryPage() {
             });
 
             const dataToFingerprint = {
-                userData, timelineData, analysisData, sourceConversationsData, textNotes, diaryEntries, medicationData, locationInfo, potentialBenefitsText
+                userData, timelineData, analysisData, sourceConversationsData, textNotes, meetingNotes, diaryEntries, medicationData, locationInfo, potentialBenefitsText
             };
             const currentFingerprint = JSON.stringify(dataToFingerprint);
             const fingerprintKey = `personalSummaryFingerprint_${currentUserEmail}`;
@@ -293,6 +296,7 @@ export default function SummaryPage() {
                 sourceDocuments,
                 sourceConversations,
                 textNotes: textNotes.map(n => ({ id: n.id, title: n.title, content: n.content, date: new Date(n.date).toLocaleDateString() })),
+                meetingNotes: meetingNotes,
                 diaryData: diaryEntries,
                 medicationData: medicationData,
                 locationInfo: locationInfo,
@@ -325,70 +329,64 @@ export default function SummaryPage() {
   }
 
   const handleDownloadPdf = async () => {
-      const reportElement = reportRef.current;
-      const chartsContainer = chartsRef.current;
+    const reportElement = reportRef.current;
+    if (!reportElement) return;
 
-      if (!reportElement || !chartsContainer) {
-          console.error("One or more elements for PDF generation are not found.");
-          return;
-      }
-      setIsLoading(true);
+    setIsLoading(true);
+    try {
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const margin = 15;
 
-      try {
-          const pdf = new jsPDF('p', 'mm', 'a4');
-          const pdfWidth = pdf.internal.pageSize.getWidth();
-          const pdfHeight = pdf.internal.pageSize.getHeight();
-          const margin = 15;
+        // Add Charts
+        const chartsContainer = chartsRef.current;
+        if (chartsContainer) {
+            const chartElements = Array.from(chartsContainer.querySelectorAll('.chart-card-pdf')) as HTMLElement[];
+            if (chartElements.length > 0) {
+                 pdf.setFontSize(22);
+                 pdf.text("Wellness Trends", pdfWidth / 2, 20, { align: 'center' });
+                 
+                 const chartHeight = 80;
+                 const chartWidth = (pdfWidth - (margin * 3)) / 2;
+                 let yPos = 35;
+                 
+                 for (let i = 0; i < chartElements.length; i += 2) {
+                    const canvas1 = await html2canvas(chartElements[i], { scale: 2 });
+                    pdf.addImage(canvas1.toDataURL('image/png'), 'PNG', margin, yPos, chartWidth, chartHeight);
+                    
+                    if (i + 1 < chartElements.length) {
+                        const canvas2 = await html2canvas(chartElements[i+1], { scale: 2 });
+                        pdf.addImage(canvas2.toDataURL('image/png'), 'PNG', margin + chartWidth + margin, yPos, chartWidth, chartHeight);
+                    }
+                    
+                    yPos += chartHeight + 10;
 
-          pdf.setFontSize(28);
-          pdf.text("Personal Summary Report", pdfWidth / 2, pdfHeight / 2, { align: 'center' });
-          
-          pdf.addPage();
-          let yPos = margin;
-          
-          pdf.setFontSize(18);
-          pdf.text("Wellness Trends", margin, yPos);
-          yPos += 10;
-          
-          const chartElements = Array.from(chartsContainer.querySelectorAll('.chart-card-pdf')) as HTMLElement[];
-          const chartHeight = 80;
-          const chartWidth = (pdfWidth - (margin * 3)) / 2;
+                    if (i + 2 < chartElements.length && yPos + chartHeight > pdf.internal.pageSize.getHeight() - margin) {
+                        pdf.addPage();
+                        yPos = margin;
+                    }
+                }
+            }
+        }
+        
+        // Add Report
+        pdf.addPage();
+        (pdf as any).html(reportElement, {
+            callback: function(doc: jsPDF) {
+                doc.save("Personal-Summary-Report.pdf");
+            },
+            x: margin,
+            y: margin,
+            width: pdfWidth - (margin * 2),
+            windowWidth: reportElement.scrollWidth
+        });
 
-          for (let i = 0; i < chartElements.length; i += 2) {
-              if (yPos + chartHeight > pdfHeight - margin) {
-                  pdf.addPage();
-                  yPos = margin;
-              }
-
-              const canvas1 = await html2canvas(chartElements[i], { scale: 2 });
-              const imgData1 = canvas1.toDataURL('image/png');
-              pdf.addImage(imgData1, 'PNG', margin, yPos, chartWidth, chartHeight);
-              
-              if (i + 1 < chartElements.length) {
-                  const canvas2 = await html2canvas(chartElements[i+1], { scale: 2 });
-                  const imgData2 = canvas2.toDataURL('image/png');
-                  pdf.addImage(imgData2, 'PNG', margin + chartWidth + margin, yPos, chartWidth, chartHeight);
-              }
-              yPos += chartHeight + 10;
-          }
-
-          pdf.addPage();
-          (pdf as any).html(reportElement, {
-              callback: function(doc: jsPDF) {
-                  doc.save("Personal-Summary-Report.pdf");
-              },
-              x: margin,
-              y: margin,
-              width: pdfWidth - (margin * 2),
-              windowWidth: reportElement.scrollWidth
-          });
-
-      } catch (err) {
-          console.error("Could not generate PDF", err);
-          setError("There was an error creating the PDF file.");
-      } finally {
-          setIsLoading(false);
-      }
+    } catch (err) {
+        console.error("Could not generate PDF", err);
+        setError("There was an error creating the PDF file.");
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const reportHtml = report ? marked.parse(report, {
@@ -454,7 +452,7 @@ export default function SummaryPage() {
                         <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
                             <Card className="chart-card-pdf">
                                 <CardHeader>
-                                    <CardTitle className="text-base">Overall Mood Trends</CardTitle>
+                                    <CardTitle className="text-base">Overall Mood</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <DiaryChart data={diaryEntries} chartType="mood" />
@@ -462,7 +460,7 @@ export default function SummaryPage() {
                             </Card>
                             <Card className="chart-card-pdf">
                                 <CardHeader>
-                                    <CardTitle className="text-base">Treatment Mood Trends</CardTitle>
+                                    <CardTitle className="text-base">Treatment Mood</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <DiaryChart data={diaryEntries} chartType="treatment" />
@@ -470,7 +468,7 @@ export default function SummaryPage() {
                             </Card>
                             <Card className="chart-card-pdf">
                                 <CardHeader>
-                                    <CardTitle className="text-base">Diagnosis Mood Trends</CardTitle>
+                                    <CardTitle className="text-base">Diagnosis Mood</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <DiaryChart data={diaryEntries} chartType="diagnosis" />
@@ -478,7 +476,7 @@ export default function SummaryPage() {
                             </Card>
                             <Card className="chart-card-pdf">
                                 <CardHeader>
-                                    <CardTitle className="text-base">Pain Trends</CardTitle>
+                                    <CardTitle className="text-base">Pain Score</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <DiaryChart data={diaryEntries} chartType="pain" />
@@ -486,7 +484,7 @@ export default function SummaryPage() {
                             </Card>
                             <Card className="chart-card-pdf">
                                 <CardHeader>
-                                    <CardTitle className="text-base">Weight Trends</CardTitle>
+                                    <CardTitle className="text-base">Weight</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <DiaryChart data={diaryEntries} chartType="weight" />
@@ -494,7 +492,7 @@ export default function SummaryPage() {
                             </Card>
                             <Card className="chart-card-pdf">
                                 <CardHeader>
-                                    <CardTitle className="text-base">Sleep Trends</CardTitle>
+                                    <CardTitle className="text-base">Sleep</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <DiaryChart data={diaryEntries} chartType="sleep" />
@@ -563,5 +561,3 @@ export default function SummaryPage() {
     </div>
   )
 }
-
-    

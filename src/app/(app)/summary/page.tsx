@@ -329,7 +329,7 @@ export default function SummaryPage() {
   }
 
   const handleDownloadPdf = async () => {
-    const reportElement = reportRef.current;
+    const reportElement = reportRef.current?.querySelector('.prose') as HTMLElement;
     const chartsContainer = chartsRef.current;
     if (!reportElement || !chartsContainer) return;
 
@@ -350,41 +350,45 @@ export default function SummaryPage() {
             const chartCanvasPromises = chartElements.map(el => html2canvas(el, { scale: 2 }));
             const chartCanvases = await Promise.all(chartCanvasPromises);
             
-            const chartWidth = (contentWidth - margin) / 2; // 2 charts per row
+            const chartWidth = contentWidth / 2 - 2.5; // 2 charts per row with 5mm gap
             const chartHeight = chartWidth * (9 / 16); // Assuming a 16:9 aspect ratio for charts
 
             let xPos = margin;
             let yPos = 30;
 
             for (let i = 0; i < chartCanvases.length; i++) {
+                 if (i > 0 && i % 2 === 0) {
+                    yPos += chartHeight + 5;
+                    xPos = margin;
+                }
+                if (yPos + chartHeight > pdfHeight - margin) {
+                    pdf.addPage();
+                    yPos = margin;
+                }
+
                 const canvas = chartCanvases[i];
                 const imgData = canvas.toDataURL('image/png');
                 
                 pdf.addImage(imgData, 'PNG', xPos, yPos, chartWidth, chartHeight);
-
-                if ((i + 1) % 2 === 0) { // Move to next row
-                    xPos = margin;
-                    yPos += chartHeight + 5;
-                } else { // Move to next column
-                    xPos += chartWidth + 5;
-                }
-
-                if ((i + 1) % 6 === 0 && i + 1 < chartCanvases.length) { // After 6 charts, add new page
-                     pdf.addPage();
-                     yPos = margin;
-                     xPos = margin;
-                }
+                xPos += chartWidth + 5;
             }
         }
 
         // --- 2. Add Report Pages ---
         pdf.addPage();
         
+        // Add a temporary class for PDF-specific font sizes
+        reportElement.classList.add('pdf-render');
+
         const reportCanvas = await html2canvas(reportElement, { 
             scale: 2, 
             windowWidth: reportElement.scrollWidth,
             windowHeight: reportElement.scrollHeight
         });
+        
+        // Remove the temporary class
+        reportElement.classList.remove('pdf-render');
+        
         const reportImgData = reportCanvas.toDataURL('image/png');
         const reportImgHeight = (reportCanvas.height * contentWidth) / reportCanvas.width;
         
@@ -397,7 +401,7 @@ export default function SummaryPage() {
                 reportImgData, 
                 'PNG', 
                 margin, 
-                margin - reportYPos, // Start drawing from the correct vertical slice
+                margin - reportYPos, 
                 contentWidth, 
                 reportImgHeight
             );
@@ -422,8 +426,6 @@ export default function SummaryPage() {
 
 
   const reportHtml = report ? marked.parse(report, {
-    // This allows links to open in a new tab if needed, but for internal links, this is not required.
-    // It's here for completeness if external links were ever added.
     renderer: new marked.Renderer(),
   }) : "";
   
@@ -568,8 +570,22 @@ export default function SummaryPage() {
             </Card>
         </div>
        </div>
+       <style jsx global>{`
+          .pdf-render {
+            font-size: 10px;
+          }
+          .pdf-render h1, .pdf-render h2, .pdf-render h3 {
+            font-size: 18px;
+            margin-top: 1.2em;
+            margin-bottom: 0.6em;
+          }
+          .pdf-render h4 {
+            font-size: 14px;
+          }
+           .pdf-render p, .pdf-render li {
+            font-size: 10px;
+          }
+        `}</style>
     </div>
   )
 }
-
-    

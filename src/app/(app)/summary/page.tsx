@@ -341,7 +341,7 @@ export default function SummaryPage() {
         const margin = 10;
         const contentWidth = pdfWidth - margin * 2;
 
-        // --- 1. Add Charts ---
+        // --- 1. Add Charts Page ---
         const chartElements = Array.from(chartsContainer.querySelectorAll('.chart-card-pdf')) as HTMLElement[];
         if (chartElements.length > 0) {
             pdf.setFontSize(22);
@@ -349,26 +349,45 @@ export default function SummaryPage() {
             
             const chartCanvasPromises = chartElements.map(el => html2canvas(el, { scale: 2 }));
             const chartCanvases = await Promise.all(chartCanvasPromises);
+            
+            const chartWidth = (contentWidth - margin) / 2; // 2 charts per row
+            const chartHeight = chartWidth * (9 / 16); // Assuming a 16:9 aspect ratio for charts
 
+            let xPos = margin;
             let yPos = 30;
-            for (const canvas of chartCanvases) {
+
+            for (let i = 0; i < chartCanvases.length; i++) {
+                const canvas = chartCanvases[i];
                 const imgData = canvas.toDataURL('image/png');
-                const imgHeight = (canvas.height * contentWidth) / canvas.width;
-                if (yPos + imgHeight > pdfHeight - margin) {
-                    pdf.addPage();
-                    yPos = margin;
+                
+                pdf.addImage(imgData, 'PNG', xPos, yPos, chartWidth, chartHeight);
+
+                if ((i + 1) % 2 === 0) { // Move to next row
+                    xPos = margin;
+                    yPos += chartHeight + 5;
+                } else { // Move to next column
+                    xPos += chartWidth + 5;
                 }
-                pdf.addImage(imgData, 'PNG', margin, yPos, contentWidth, imgHeight);
-                yPos += imgHeight + 10;
+
+                if ((i + 1) % 6 === 0 && i + 1 < chartCanvases.length) { // After 6 charts, add new page
+                     pdf.addPage();
+                     yPos = margin;
+                     xPos = margin;
+                }
             }
         }
 
-        // --- 2. Add Report ---
+        // --- 2. Add Report Pages ---
         pdf.addPage();
         
-        const reportCanvas = await html2canvas(reportElement, { scale: 2, windowWidth: reportElement.scrollWidth });
+        const reportCanvas = await html2canvas(reportElement, { 
+            scale: 2, 
+            windowWidth: reportElement.scrollWidth,
+            windowHeight: reportElement.scrollHeight
+        });
         const reportImgData = reportCanvas.toDataURL('image/png');
         const reportImgHeight = (reportCanvas.height * contentWidth) / reportCanvas.width;
+        
         let reportYPos = 0;
         let remainingHeight = reportImgHeight;
 
@@ -400,6 +419,7 @@ export default function SummaryPage() {
         setIsLoading(false);
     }
   };
+
 
   const reportHtml = report ? marked.parse(report, {
     // This allows links to open in a new tab if needed, but for internal links, this is not required.
@@ -463,21 +483,27 @@ export default function SummaryPage() {
                     {diaryEntries.length > 1 ? (
                         <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
                            <div className="chart-card-pdf">
+                              <h3 className="text-sm font-semibold mb-2 text-center">Overall Mood</h3>
                               <DiaryChart data={diaryEntries} chartType="mood" />
                            </div>
                            <div className="chart-card-pdf">
-                              <DiaryChart data={diaryEntries} chartType="pain" />
+                               <h3 className="text-sm font-semibold mb-2 text-center">Pain Score</h3>
+                               <DiaryChart data={diaryEntries} chartType="pain" />
                            </div>
                            <div className="chart-card-pdf">
-                              <DiaryChart data={diaryEntries} chartType="weight" />
+                               <h3 className="text-sm font-semibold mb-2 text-center">Weight (kg)</h3>
+                               <DiaryChart data={diaryEntries} chartType="weight" />
                            </div>
                            <div className="chart-card-pdf">
+                               <h3 className="text-sm font-semibold mb-2 text-center">Sleep (hours)</h3>
                                <DiaryChart data={diaryEntries} chartType="sleep" />
                            </div>
                            <div className="chart-card-pdf">
+                               <h3 className="text-sm font-semibold mb-2 text-center">Diagnosis Mood</h3>
                                <DiaryChart data={diaryEntries} chartType="diagnosis" />
                            </div>
                            <div className="chart-card-pdf">
+                               <h3 className="text-sm font-semibold mb-2 text-center">Treatment Mood</h3>
                                <DiaryChart data={diaryEntries} chartType="treatment" />
                            </div>
                         </div>

@@ -153,6 +153,7 @@ const prompt = ai.definePrompt({
   input: {schema: EnrichedAiConversationalSupportInputSchema},
   output: {schema: AiConversationalSupportOutputSchema},
   tools: [lookupPostcode],
+  system: "You are a helpful AI assistant. Your final output MUST be a valid JSON object matching the provided schema, with your response contained within the 'answer' field.",
   prompt: `{{#if isMedical}}
 You are a caring, friendly, and very supportive AI health companion acting as a **Medical Expert**. Your role is to be a direct, factual, and helpful assistant. You are here to support all elements of their care, including their physical well-being. Be empathetic, but prioritize providing clear, actionable medical information.
 
@@ -255,7 +256,8 @@ Adjust your tone based on user preference: 'standard' (default), 'extra_supporti
 
 **Current User Question:** {{{question}}}
 
-Please provide a detailed, supportive, and easy-to-understand answer based on your specialist role and all the context and principles above. Your final output MUST be a valid JSON object matching the provided schema, with your response contained within the "answer" field.`,
+Please provide a detailed, supportive, and easy-to-understand answer based on your specialist role and all the context and principles above.
+`,
 });
 
 const aiConversationalSupportFlow = ai.defineFlow(

@@ -267,7 +267,18 @@ const aiConversationalSupportFlow = ai.defineFlow(
     outputSchema: AiConversationalSupportOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt(input);
-    return output!;
+    try {
+      const {output} = await prompt(input);
+      if (!output) {
+          throw new Error("The AI model returned an empty response.");
+      }
+      return output;
+    } catch(e) {
+       console.error("Error in aiConversationalSupportFlow:", e);
+       // Return a user-friendly error message in the expected format.
+       return {
+           answer: "I'm sorry, I had trouble processing that request. Could you try rephrasing your question? If the problem continues, there might be a temporary issue with the AI service."
+       };
+    }
   }
 );

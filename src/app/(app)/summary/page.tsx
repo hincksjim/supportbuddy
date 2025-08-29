@@ -16,13 +16,13 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 
 
-import { generatePersonalSummary, GeneratePersonalSummaryOutput, SourceConversation, SourceDocument, MeetingNote } from "@/ai/flows/generate-personal-summary"
+import { generatePersonalSummary, GeneratePersonalSummaryOutput, SourceConversation, SourceDocument } from "@/ai/flows/generate-personal-summary"
 import type { GenerateTreatmentTimelineOutput } from "@/app/(app)/timeline/page"
 import { DiaryEntry } from "@/app/(app)/diary/page"
 import { Medication } from "@/app/(app)/medication/page"
 import { DiaryChart } from "@/components/diary-chart"
 import { lookupPostcode } from "@/services/postcode-lookup"
-import { TextNote } from "@/ai/flows/types"
+import { MeetingNote, TextNote } from "@/ai/flows/types"
 
 interface Message {
   role: "user" | "assistant"
@@ -124,6 +124,7 @@ export default function SummaryPage() {
   const loadPrerequisites = () => {
     if (!currentUserEmail) return;
     try {
+      console.log("Summary Page: Loading all prerequisite data from localStorage.");
       const storedUserData = localStorage.getItem(`userData_${currentUserEmail}`);
       if (storedUserData) {
           setUserData(JSON.parse(storedUserData));
@@ -214,6 +215,8 @@ export default function SummaryPage() {
 
         setIsLoading(true);
         setError(null);
+        console.log("Summary Page: Starting report generation process.");
+
         try {
             let locationInfo;
             const locationCacheKey = `locationInfo_${currentUserEmail}`;
@@ -271,11 +274,18 @@ export default function SummaryPage() {
             const fingerprintKey = `personalSummaryFingerprint_${currentUserEmail}`;
             const savedFingerprint = localStorage.getItem(fingerprintKey);
 
-            if (savedFingerprint === currentFingerprint && report) {
+            if (savedFingerprint === currentFingerprint) {
+                console.log("Summary Page: Fingerprint matches. Skipping AI generation.");
+                const savedReport = localStorage.getItem(`personalSummaryReport_${currentUserEmail}`);
+                if (savedReport) {
+                  setReport(savedReport);
+                }
                 toast({ title: "Report is up-to-date", description: "No new information was found to add to the report." });
                 setIsLoading(false);
                 return;
             }
+            
+            console.log("Summary Page: Fingerprint mismatch. Calling AI to generate a new report.");
 
             const result: GeneratePersonalSummaryOutput = await generatePersonalSummary({
                 userName: userData.name || "User",
@@ -296,7 +306,7 @@ export default function SummaryPage() {
                 sourceDocuments,
                 sourceConversations,
                 textNotes: textNotes.map(n => ({ id: n.id, title: n.title, content: n.content, date: new Date(n.date).toLocaleDateString() })),
-                meetingNotes: meetingNotes,
+                meetingNotes,
                 diaryData: diaryEntries,
                 medicationData: medicationData,
                 locationInfo: locationInfo,

@@ -327,20 +327,28 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     inputSchema: EnrichedGeneratePersonalSummaryInputSchema,
     outputSchema: GeneratePersonalSummaryOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    
-    if (output && output.report && output.updatedDiagnosis) {
-        const finalReport = output.report.replace(
-            /{{{updatedDiagnosis}}}/g,
-            output.updatedDiagnosis
-        );
-        return {
-            ...output,
-            report: finalReport,
-        };
+  async (input) => {
+    try {
+      const {output} = await prompt(input);
+      if (!output) {
+        throw new Error('The AI model returned an empty response.');
+      }
+      
+      const diagnosisToUse = output.updatedDiagnosis || input.initialDiagnosis || 'Not specified';
+
+      const finalReport = output.report.replace(
+          /{{{updatedDiagnosis}}}/g,
+          diagnosisToUse
+      );
+      
+      return {
+          report: finalReport,
+          updatedDiagnosis: diagnosisToUse,
+      };
+
+    } catch (e: any) {
+      console.error("Error in generatePersonalSummaryFlow:", e);
+      throw new Error("Failed to generate personal summary. The AI model may have returned an unexpected response. Please try again.");
     }
-    
-    return output!;
   }
 );

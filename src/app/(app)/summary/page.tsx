@@ -316,7 +316,7 @@ export default function SummaryPage() {
             sourceConversations,
             textNotes: textNotes.map(n => ({ id: n.id, title: n.title, content: n.content, date: new Date(n.date).toLocaleDateString() })),
             meetingNotes,
-            diaryData,
+            diaryData: diaryEntries,
             medicationData,
             locationInfo: locationInfo,
             potentialBenefitsText: potentialBenefitsText,

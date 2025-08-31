@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 
 
-import { generatePersonalSummary, GeneratePersonalSummaryInput, PersonalSummaryOutput, SourceConversation, SourceDocument } from "@/ai/flows/generate-personal-summary"
+import { generatePersonalSummary, PersonalSummaryOutput, SourceConversation, SourceDocument } from "@/ai/flows/generate-personal-summary"
 import type { GenerateTreatmentTimelineOutput } from "@/app/(app)/timeline/page"
 import { DiaryEntry } from "@/app/(app)/diary/page"
 import { Medication } from "@/app/(app)/medication/page"
@@ -91,7 +91,7 @@ interface BenefitSuggestion {
 }
 
 type ReportData = Partial<ReportSectionData & { updatedDiagnosis: string }>;
-type FingerprintData = Record<keyof ReportSectionData, string>;
+type FingerprintData = Partial<Record<keyof ReportSectionData, string>>;
 
 // Helper to stringify data for fingerprinting
 const createFingerprint = (data: any) => JSON.stringify(data);
@@ -177,7 +177,20 @@ export default function SummaryPage() {
         if (savedReportKey) {
             const savedReport = localStorage.getItem(savedReportKey);
             if (savedReport) {
-                setReportData(JSON.parse(savedReport));
+                try {
+                    // Try to parse the report. If it fails, it's the old format.
+                    const parsedReport = JSON.parse(savedReport);
+                    // Check if it's an object, not just a string that was stringified
+                    if (typeof parsedReport === 'object' && parsedReport !== null) {
+                        setReportData(parsedReport);
+                    } else {
+                        throw new Error("Report is not a valid object.");
+                    }
+                } catch (e) {
+                    console.warn("Could not parse saved report as JSON. It might be in the old format. Clearing it.");
+                    localStorage.removeItem(savedReportKey);
+                    setReportData(null);
+                }
             }
         }
 
@@ -208,7 +221,7 @@ export default function SummaryPage() {
 
     try {
         // Prepare data fingerprints for each section
-        const fingerprints: Partial<FingerprintData> = {
+        const fingerprints: FingerprintData = {
             personalDetails: createFingerprint({ ...userData, timelineData }),
             medicalTeam: createFingerprint({ sourceDocuments: analysisData, sourceConversations: sourceConversationsData, meetingNotes }),
             diagnosisSummary: createFingerprint({ sourceDocuments: analysisData, sourceConversations: sourceConversationsData }),
@@ -228,21 +241,29 @@ export default function SummaryPage() {
 
         const sectionsToGenerate: Partial<Record<keyof ReportSectionData, boolean>> = {};
         let needsGeneration = false;
-        for (const key in fingerprints) {
-            const sectionKey = key as keyof ReportSectionData;
-            if (fingerprints[sectionKey] !== savedFingerprints[sectionKey]) {
-                sectionsToGenerate[sectionKey] = true;
+        
+        const keys = Object.keys(fingerprints) as Array<keyof FingerprintData>;
+        for (const key of keys) {
+            if (fingerprints[key] !== savedFingerprints[key]) {
+                sectionsToGenerate[key] = true;
                 needsGeneration = true;
             }
         }
 
-        if (!needsGeneration) {
+        if (!needsGeneration && Object.keys(savedReport).length > 0) {
              toast({ title: "Report is up-to-date", description: "No new information was found to add to the report." });
              setIsLoading(false);
              return;
         }
         
-        console.log("Summary Page: Regenerating sections:", Object.keys(sectionsToGenerate));
+        if (Object.keys(sectionsToGenerate).length > 0) {
+            console.log("Summary Page: Regenerating sections:", Object.keys(sectionsToGenerate));
+        } else {
+            console.log("Summary Page: No sections need regeneration, but report is empty. Generating all.");
+            // If no sections need regeneration but the report is empty, generate all sections.
+            keys.forEach(key => sectionsToGenerate[key] = true);
+        }
+
 
         // Common data for the AI call
         let locationInfo;
@@ -295,7 +316,7 @@ export default function SummaryPage() {
             sourceConversations,
             textNotes: textNotes.map(n => ({ id: n.id, title: n.title, content: n.content, date: new Date(n.date).toLocaleDateString() })),
             meetingNotes,
-            diaryEntries,
+            diaryData,
             medicationData,
             locationInfo: locationInfo,
             potentialBenefitsText: potentialBenefitsText,

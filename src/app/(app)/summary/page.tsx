@@ -95,14 +95,21 @@ type FingerprintData = Partial<Record<keyof ReportSectionData, string>>;
 
 // Helper to stringify data for fingerprinting
 const createFingerprint = (data: any): string => {
-    if (!data) return "no-data";
+    if (!data || (Array.isArray(data) && data.length === 0)) {
+        return "no-data";
+    }
 
     if (Array.isArray(data)) {
-        if (data.length === 0) return "count:0";
         // Find the most recent date, which could be in `date` or `issuedDate`
         const latestDate = data.reduce((latest, item) => {
-            const itemDate = new Date(item.date || item.issuedDate || 0);
-            return itemDate > latest ? itemDate : latest;
+            const itemDateStr = item.date || item.issuedDate;
+            if (itemDateStr) {
+                const itemDate = new Date(itemDateStr);
+                if (!isNaN(itemDate.getTime()) && itemDate > latest) {
+                    return itemDate;
+                }
+            }
+            return latest;
         }, new Date(0));
 
         return `count:${data.length}-lastModified:${latestDate.toISOString()}`;
@@ -339,7 +346,7 @@ export default function SummaryPage() {
             sourceConversations,
             textNotes: textNotes.map(n => ({ id: n.id, title: n.title, content: n.content, date: new Date(n.date).toLocaleDateString() })),
             meetingNotes,
-            diaryData,
+            diaryData: diaryEntries,
             medicationData,
             locationInfo: locationInfo,
             potentialBenefitsText: potentialBenefitsText,

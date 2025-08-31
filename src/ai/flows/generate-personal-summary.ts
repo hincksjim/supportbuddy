@@ -64,9 +64,21 @@ const DiaryEntrySchema = z.object({
   })),
 });
 
+const SectionsToGenerateSchema = z.object({
+    personalDetails: z.boolean().optional(),
+    medicalTeam: z.boolean().optional(),
+    diagnosisSummary: z.boolean().optional(),
+    currentMedications: z.boolean().optional(),
+    wellnessInsights: z.boolean().optional(),
+    timelineMilestones: z.boolean().optional(),
+    financialSummary: z.boolean().optional(),
+    potentialBenefits: z.boolean().optional(),
+    sources: z.boolean().optional(),
+}).describe("An object where keys are the report sections to be generated and values are true.");
+
 
 const GeneratePersonalSummaryInputSchema = z.object({
-    sectionsToGenerate: ReportSectionSchema.describe("An object where keys are the report sections to be generated and values are true."),
+    sectionsToGenerate: SectionsToGenerateSchema,
     userName: z.string().describe("The user's first name."),
     initialDiagnosis: z.string().optional().describe("The user's primary diagnosis selected at signup."),
     age: z.string().describe("The user's age."),

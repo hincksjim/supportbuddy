@@ -97,3 +97,25 @@ export const MeetingNoteSchema = z.object({
     })),
 });
 export type MeetingNote = z.infer<typeof MeetingNoteSchema>;
+
+
+// Schema for the individual report sections
+export const ReportSectionSchema = z.object({
+    personalDetails: z.string().optional().describe("Markdown content for the 'Personal Details' section."),
+    medicalTeam: z.string().optional().describe("Markdown content for the 'Medical Team & Contacts' section."),
+    diagnosisSummary: z.string().optional().describe("Markdown content for the 'Diagnosis & Condition Summary' section."),
+    currentMedications: z.string().optional().describe("Markdown content for the 'Current Medications' section."),
+    wellnessInsights: z.string().optional().describe("Markdown content for the 'Wellness & Diary Insights' section."),
+    timelineMilestones: z.string().optional().describe("Markdown content for the 'Timeline & Milestones' section."),
+    financialSummary: z.string().optional().describe("Markdown content for the 'Financial Summary' section."),
+    potentialBenefits: z.string().optional().describe("Markdown content for the 'Potential Additional Benefits' section."),
+    sources: z.string().optional().describe("Markdown content for the 'Sources' section.")
+});
+
+export type ReportSectionData = z.infer<typeof ReportSectionSchema>;
+
+export const PersonalSummaryOutputSchema = ReportSectionSchema.extend({
+    updatedDiagnosis: z.string().describe("The latest, most specific diagnosis found in the source documents or conversations."),
+});
+
+export type PersonalSummaryOutput = z.infer<typeof PersonalSummaryOutputSchema>;

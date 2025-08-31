@@ -93,14 +93,14 @@ interface BenefitSuggestion {
 type ReportData = Partial<ReportSectionData & { updatedDiagnosis: string }>;
 type FingerprintData = Partial<Record<keyof ReportSectionData, string>>;
 
-// Helper to stringify data for fingerprinting
 const createFingerprint = (data: any): string => {
-    if (!data || (Array.isArray(data) && data.length === 0)) {
+    if (!data) {
         return "no-data";
     }
 
     if (Array.isArray(data)) {
-        // Find the most recent date, which could be in `date` or `issuedDate`
+        if (data.length === 0) return "count:0-lastModified:none";
+        
         const latestDate = data.reduce((latest, item) => {
             const itemDateStr = item.date || item.issuedDate;
             if (itemDateStr) {
@@ -116,13 +116,15 @@ const createFingerprint = (data: any): string => {
     }
 
     if (typeof data === 'object' && data !== null) {
-        // For non-array objects like userData or timelineData, a simple JSON stringify is small enough.
-        return JSON.stringify(data);
+        if ('timeline' in data && Array.isArray(data.timeline)) {
+            const stepCount = data.timeline.reduce((acc: number, stage: any) => acc + (stage.steps?.length || 0), 0);
+            return `stages:${data.timeline.length}-steps:${stepCount}`;
+        }
+        return `keys:${Object.keys(data).length}-values:${Object.values(data).map(v => String(v).slice(0, 10)).join(',')}`;
     }
     
     return String(data);
 };
-
 
 export default function SummaryPage() {
   const [reportData, setReportData] = useState<ReportData | null>(null);
@@ -139,7 +141,6 @@ export default function SummaryPage() {
   const [hideFinancialInfo, setHideFinancialInfo] = useState(false);
   const [hideWellnessInfo, setHideWellnessInfo] = useState(false);
   
-  // State for all prerequisite data
   const [prereqData, setPrereqData] = useState<{
       userData: UserData,
       timelineData: TimelineData | null,
@@ -172,7 +173,6 @@ export default function SummaryPage() {
       return type === 'report' ? `personalSummaryReport_${currentUserEmail}` : `personalSummaryFingerprints_${currentUserEmail}`;
   }, [currentUserEmail]);
 
-  // Load all data once on component mount
   useEffect(() => {
     if (!currentUserEmail) return;
 
@@ -205,9 +205,7 @@ export default function SummaryPage() {
             const savedReport = localStorage.getItem(savedReportKey);
             if (savedReport) {
                 try {
-                    // Try to parse the report. If it fails, it's the old format.
                     const parsedReport = JSON.parse(savedReport);
-                    // Check if it's an object, not just a string that was stringified
                     if (typeof parsedReport === 'object' && parsedReport !== null) {
                         setReportData(parsedReport);
                     } else {
@@ -247,7 +245,6 @@ export default function SummaryPage() {
     console.log("Summary Page: Starting report generation process.");
 
     try {
-        // Prepare data fingerprints for each section
         const fingerprints: FingerprintData = {
             personalDetails: createFingerprint({ ...userData, timelineData }),
             medicalTeam: createFingerprint({ sourceDocuments: analysisData, sourceConversations: sourceConversationsData, meetingNotes }),
@@ -294,8 +291,6 @@ export default function SummaryPage() {
             keys.forEach(key => sectionsToGenerate[key] = true);
         }
 
-
-        // Common data for the AI call
         let locationInfo;
         const locationCacheKey = `locationInfo_${currentUserEmail}`;
         const cachedLocation = localStorage.getItem(locationCacheKey);
@@ -330,7 +325,6 @@ export default function SummaryPage() {
             return { id: c.id, title: summary?.title || "Conversation", date: summary ? new Date(summary.date).toLocaleDateString() : 'N/A', summary: summary?.summary || "No summary available.", fullConversation: c.messages };
         });
 
-        // Call the AI flow with the necessary sections
         const result: PersonalSummaryOutput = await generatePersonalSummary({
             sectionsToGenerate: sectionsToGenerate,
             userName: userData.name || "User",
@@ -352,7 +346,6 @@ export default function SummaryPage() {
             potentialBenefitsText: potentialBenefitsText,
         });
 
-        // Merge new sections with existing ones
         const finalReportData = { ...savedReport, ...result };
         setReportData(finalReportData);
         if (reportKey) localStorage.setItem(reportKey, JSON.stringify(finalReportData));
@@ -376,7 +369,6 @@ export default function SummaryPage() {
 
   const handleRefreshCharts = () => {
     setIsChartLoading(true);
-    // Data is already in state, just need to trigger re-render if necessary
     setTimeout(() => setIsChartLoading(false), 300);
   }
 

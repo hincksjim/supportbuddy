@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
@@ -94,7 +93,18 @@ type ReportData = Partial<ReportSectionData & { updatedDiagnosis: string }>;
 type FingerprintData = Partial<Record<keyof ReportSectionData, string>>;
 
 // Helper to stringify data for fingerprinting
-const createFingerprint = (data: any) => JSON.stringify(data);
+const createFingerprint = (data: any): string => {
+    // Create a summary of the data that's small but effective for detecting changes.
+    // We primarily care about the number of items and their IDs/dates.
+    const summary = {
+        count: Array.isArray(data) ? data.length : (typeof data === 'object' && data !== null ? Object.keys(data).length : 0),
+        ids: Array.isArray(data) ? data.map(item => item.id).join(',') : '',
+        dates: Array.isArray(data) ? data.map(item => item.date || item.issuedDate).join(',') : '',
+        // For non-array objects, stringify a small part of it
+        details: typeof data === 'object' && !Array.isArray(data) ? JSON.stringify(data).substring(0, 200) : '',
+    };
+    return JSON.stringify(summary);
+};
 
 
 export default function SummaryPage() {
@@ -316,7 +326,7 @@ export default function SummaryPage() {
             sourceConversations,
             textNotes: textNotes.map(n => ({ id: n.id, title: n.title, content: n.content, date: new Date(n.date).toLocaleDateString() })),
             meetingNotes,
-            diaryData: diaryEntries,
+            diaryData,
             medicationData,
             locationInfo: locationInfo,
             potentialBenefitsText: potentialBenefitsText,

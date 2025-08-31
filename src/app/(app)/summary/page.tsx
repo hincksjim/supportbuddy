@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
@@ -94,16 +95,25 @@ type FingerprintData = Partial<Record<keyof ReportSectionData, string>>;
 
 // Helper to stringify data for fingerprinting
 const createFingerprint = (data: any): string => {
-    // Create a summary of the data that's small but effective for detecting changes.
-    // We primarily care about the number of items and their IDs/dates.
-    const summary = {
-        count: Array.isArray(data) ? data.length : (typeof data === 'object' && data !== null ? Object.keys(data).length : 0),
-        ids: Array.isArray(data) ? data.map(item => item.id).join(',') : '',
-        dates: Array.isArray(data) ? data.map(item => item.date || item.issuedDate).join(',') : '',
-        // For non-array objects, stringify a small part of it
-        details: typeof data === 'object' && !Array.isArray(data) ? JSON.stringify(data).substring(0, 200) : '',
-    };
-    return JSON.stringify(summary);
+    if (!data) return "no-data";
+
+    if (Array.isArray(data)) {
+        if (data.length === 0) return "count:0";
+        // Find the most recent date, which could be in `date` or `issuedDate`
+        const latestDate = data.reduce((latest, item) => {
+            const itemDate = new Date(item.date || item.issuedDate || 0);
+            return itemDate > latest ? itemDate : latest;
+        }, new Date(0));
+
+        return `count:${data.length}-lastModified:${latestDate.toISOString()}`;
+    }
+
+    if (typeof data === 'object' && data !== null) {
+        // For non-array objects like userData or timelineData, a simple JSON stringify is small enough.
+        return JSON.stringify(data);
+    }
+    
+    return String(data);
 };
 
 
@@ -259,8 +269,12 @@ export default function SummaryPage() {
                 needsGeneration = true;
             }
         }
+        
+        const savedReportKey = getStorageKey('report');
+        const isReportEmpty = !savedReportKey || !localStorage.getItem(savedReportKey);
 
-        if (!needsGeneration && Object.keys(savedReport).length > 0) {
+
+        if (!needsGeneration && !isReportEmpty) {
              toast({ title: "Report is up-to-date", description: "No new information was found to add to the report." });
              setIsLoading(false);
              return;
@@ -268,9 +282,8 @@ export default function SummaryPage() {
         
         if (Object.keys(sectionsToGenerate).length > 0) {
             console.log("Summary Page: Regenerating sections:", Object.keys(sectionsToGenerate));
-        } else {
+        } else if (isReportEmpty) {
             console.log("Summary Page: No sections need regeneration, but report is empty. Generating all.");
-            // If no sections need regeneration but the report is empty, generate all sections.
             keys.forEach(key => sectionsToGenerate[key] = true);
         }
 

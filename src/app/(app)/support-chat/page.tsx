@@ -205,13 +205,11 @@ function SupportChatPageContent() {
       const responseMood = userData[responseMoodKey] || 'standard';
 
       let customPersonaText: string | undefined = undefined;
-      if (!['standard', 'extra_supportive', 'direct_factual'].includes(responseMood)) {
-          const customPersonasKey = `customPersonas_${activeSpecialist}` as keyof UserData;
-          const customPersonas: CustomPersona[] = userData[customPersonasKey] || [];
-          const selectedPersona = customPersonas.find(p => p.id === responseMood);
-          if (selectedPersona) {
-              customPersonaText = selectedPersona.persona;
-          }
+      const customPersonasKey = `customPersonas_${activeSpecialist}` as keyof UserData;
+      const customPersonas: CustomPersona[] = userData[customPersonasKey] || [];
+      const selectedPersona = customPersonas.find(p => p.id === responseMood);
+      if (selectedPersona) {
+          customPersonaText = selectedPersona.persona;
       }
 
       const flowInput: AiConversationalSupportInput = { 
@@ -229,7 +227,7 @@ function SupportChatPageContent() {
         dob: userData.dob || "",
         employmentStatus: userData.employmentStatus || "",
         existingBenefits: userData.benefits || [],
-        responseMood: responseMood,
+        responseMood: 'standard', // This is now overridden by persona logic
         customPersona: customPersonaText,
         conversationHistory: messages,
         question: finalInput,
@@ -661,7 +659,7 @@ function SupportChatPageContent() {
                   >
                     {message.role === "assistant" && (
                         <div className="flex items-end gap-2">
-                             <Avatar className="w-48 h-48 border bg-accent/50">
+                             <Avatar className="w-24 h-24 border bg-accent/50">
                                 <AvatarImage src={buddyAvatarUrl} alt={`${specialist} avatar`} />
                                 <AvatarFallback className="bg-transparent text-foreground">
                                     <User />
@@ -692,12 +690,12 @@ function SupportChatPageContent() {
                             >
                             <p className="whitespace-pre-wrap">{message.content}</p>
                             </div>
-                            <Avatar className="w-48 h-48 border">
+                            <Avatar className="w-24 h-24 border">
                                 {userData.profilePicture ? (
                                     <AvatarImage src={userData.profilePicture} alt="Your profile picture" />
                                 ) : null}
                                 <AvatarFallback className="bg-secondary text-secondary-foreground">
-                                    <User className="w-24 h-24" />
+                                    <User className="w-12 h-12" />
                                 </AvatarFallback>
                             </Avatar>
                         </>
@@ -706,7 +704,7 @@ function SupportChatPageContent() {
                   )})}
                 {isLoading && (
                   <div className="flex items-start gap-4 justify-start">
-                    <Avatar className="w-48 h-48 border bg-accent/50">
+                    <Avatar className="w-24 h-24 border bg-accent/50">
                        <AvatarImage src={getAvatarForSpecialist(activeSpecialist)} alt={`${activeSpecialist} avatar`} />
                        <AvatarFallback className="bg-transparent text-foreground">
                             <User />
@@ -788,4 +786,3 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
-

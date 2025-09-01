@@ -38,8 +38,8 @@ function AvatarSelector({ onSelect, selectedAvatar, avatars }: { onSelect: (id: 
                     <Image 
                         src={avatar.imageUrl}
                         alt={avatar.label}
-                        width={200}
-                        height={200}
+                        width={100}
+                        height={100}
                         className="rounded-full aspect-square object-cover"
                         data-ai-hint={avatar.hint}
                     />

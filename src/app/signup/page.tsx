@@ -264,10 +264,10 @@ export default function SignupPage() {
               <div className="space-y-2">
                   <Label>Profile Picture</Label>
                   <div className="flex items-center gap-4">
-                      <Avatar className="w-40 h-40 border-2 border-primary/20">
+                      <Avatar className="w-20 h-20 border-2 border-primary/20">
                           <AvatarImage src={profilePicture ?? undefined} alt="Profile Picture Preview" />
                           <AvatarFallback className="bg-muted">
-                              <User className="w-20 h-20 text-muted-foreground" />
+                              <User className="w-10 h-10 text-muted-foreground" />
                           </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col gap-2">
@@ -458,4 +458,3 @@ export default function SignupPage() {
     </>
   )
 }
-    

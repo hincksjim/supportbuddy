@@ -182,8 +182,8 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
                                 <Image 
                                     src={avatar.imageUrl}
                                     alt={avatar.label}
-                                    width={200}
-                                    height={200}
+                                    width={100}
+                                    height={100}
                                     className="rounded-full aspect-square object-cover"
                                     data-ai-hint={avatar.hint}
                                 />
@@ -220,8 +220,6 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="standard">Standard</SelectItem>
-                                <SelectItem value="extra_supportive">Extra Supportive</SelectItem>
-                                <SelectItem value="direct_factual">Direct & Factual</SelectItem>
                                 {customPersonas.map((p: CustomPersona) => (
                                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                                 ))}
@@ -363,5 +361,3 @@ export default function SettingsPage() {
         </div>
     )
 }
-
-    

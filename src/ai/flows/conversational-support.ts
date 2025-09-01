@@ -156,7 +156,7 @@ const prompt = ai.definePrompt({
   tools: [lookupPostcode],
   system: "You are a helpful AI assistant. Your final output MUST be a valid JSON object matching the provided schema, with your response contained within the 'answer' field.",
   prompt: `
-{{#if responseMood '===' 'custom'}}
+{{#if (eq responseMood "custom")}}
 You are a helpful AI assistant. You MUST adopt the following persona for your response: "{{{customPersona}}}"
 {{else}}
 {{#if isMedical}}

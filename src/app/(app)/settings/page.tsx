@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { textToSpeech } from "@/ai/flows/text-to-speech"
 import { medicalAvatars, mentalHealthAvatars, financialAvatars } from "@/lib/avatars"
+import { Textarea } from "@/components/ui/textarea"
 
 type Specialist = "medical" | "mental_health" | "financial";
 
@@ -34,6 +35,9 @@ interface UserData {
   responseMood_medical?: string;
   responseMood_mental_health?: string;
   responseMood_financial?: string;
+  customPersona_medical?: string;
+  customPersona_mental_health?: string;
+  customPersona_financial?: string;
   [key: string]: any;
 }
 
@@ -65,6 +69,7 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
     const avatarKey = `avatar_${specialist}` as keyof UserData;
     const voiceKey = `voice_${specialist}` as keyof UserData;
     const moodKey = `responseMood_${specialist}` as keyof UserData;
+    const customPersonaKey = `customPersona_${specialist}` as keyof UserData;
 
     const selectedAvatar = userData[avatarKey] || avatars[0].id;
     const selectedVoice = userData[voiceKey] || 'Algenib';
@@ -80,6 +85,10 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
 
     const handleMoodChange = (mood: string) => {
         setUserData(prev => ({...prev, [moodKey]: mood}));
+    }
+
+    const handleCustomPersonaChange = (text: string) => {
+        setUserData(prev => ({...prev, [customPersonaKey]: text}));
     }
 
     const handlePlaySample = async () => {
@@ -140,8 +149,8 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
                                 <Image 
                                     src={avatar.imageUrl}
                                     alt={avatar.label}
-                                    width={128}
-                                    height={128}
+                                    width={200}
+                                    height={200}
                                     className="rounded-full aspect-square object-cover"
                                     data-ai-hint={avatar.hint}
                                 />
@@ -185,6 +194,19 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
                         </Select>
                     </div>
                 </div>
+                {selectedMood === 'custom' && (
+                    <div className="space-y-2">
+                        <Label>Custom Persona</Label>
+                        <Textarea 
+                            placeholder="Describe the persona for the AI..."
+                            value={userData[customPersonaKey] || ''}
+                            onChange={(e) => handleCustomPersonaChange(e.target.value)}
+                        />
+                         <p className="text-xs text-muted-foreground">
+                            This persona will be used for this specialist when you select the 'Custom' mood in the chat.
+                        </p>
+                    </div>
+                )}
             </CardContent>
             <audio ref={audioRef} onEnded={() => setIsPlaying(false)} className="hidden" />
         </Card>

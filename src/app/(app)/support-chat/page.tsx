@@ -109,7 +109,7 @@ function CustomPersonaDialog({ open, onOpenChange, onSave, currentPersona }: { o
 
     useEffect(() => {
         setPersona(currentPersona);
-    }, [currentPersona]);
+    }, [currentPersona, open]);
 
     const handleSave = () => {
         onSave(persona);
@@ -236,6 +236,8 @@ function SupportChatPageContent() {
 
     try {
       const responseMoodKey = `responseMood_${activeSpecialist}` as keyof UserData;
+      const responseMood = userData[responseMoodKey] || 'standard';
+
       const flowInput: AiConversationalSupportInput = { 
         specialist: activeSpecialist,
         userName: userData.name || "User", 
@@ -251,7 +253,8 @@ function SupportChatPageContent() {
         dob: userData.dob || "",
         employmentStatus: userData.employmentStatus || "",
         existingBenefits: userData.benefits || [],
-        responseMood: userData[responseMoodKey] || 'standard',
+        responseMood: responseMood,
+        customPersona: responseMood === 'custom' ? sessionCustomPersona : undefined,
         conversationHistory: messages,
         question: finalInput,
         
@@ -635,6 +638,21 @@ function SupportChatPageContent() {
     });
   };
 
+  const handleSaveCustomPersona = (persona: string) => {
+    setSessionCustomPersona(persona);
+    if(currentUserEmail) {
+        const updatedUserData = {...userData, customPersona: persona };
+        setUserData(updatedUserData);
+        localStorage.setItem(`userData_${currentUserEmail}`, JSON.stringify(updatedUserData));
+    }
+     toast({
+        title: "Custom Persona Saved",
+        description: "It will be used for this session when 'Custom' mood is selected.",
+    });
+  }
+
+  const isCustomMoodSelected = userData[`responseMood_${activeSpecialist}`] === 'custom';
+
   return (
     <>
     <div className="relative flex h-full max-h-screen flex-col">
@@ -648,6 +666,12 @@ function SupportChatPageContent() {
                  <Button variant="outline" size="sm" onClick={handleNewChat}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     New Chat
+                </Button>
+            )}
+            {isCustomMoodSelected && !isHistoricChat && (
+                 <Button variant="outline" size="sm" onClick={() => setIsCustomPersonaDialogOpen(true)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Persona
                 </Button>
             )}
             <Button variant="outline" size="sm" onClick={toggleTts}>
@@ -682,7 +706,7 @@ function SupportChatPageContent() {
                   >
                     {message.role === "assistant" && (
                         <div className="flex items-end gap-2">
-                             <Avatar className="w-20 h-20 border bg-accent/50">
+                             <Avatar className="w-48 h-48 border bg-accent/50">
                                 <AvatarImage src={buddyAvatarUrl} alt={`${specialist} avatar`} />
                                 <AvatarFallback className="bg-transparent text-foreground">
                                     <User />
@@ -713,12 +737,12 @@ function SupportChatPageContent() {
                             >
                             <p className="whitespace-pre-wrap">{message.content}</p>
                             </div>
-                            <Avatar className="w-20 h-20 border">
+                            <Avatar className="w-48 h-48 border">
                                 {userData.profilePicture ? (
                                     <AvatarImage src={userData.profilePicture} alt="Your profile picture" />
                                 ) : null}
                                 <AvatarFallback className="bg-secondary text-secondary-foreground">
-                                    <User className="w-6 h-6" />
+                                    <User className="w-24 h-24" />
                                 </AvatarFallback>
                             </Avatar>
                         </>
@@ -727,7 +751,7 @@ function SupportChatPageContent() {
                   )})}
                 {isLoading && (
                   <div className="flex items-start gap-4 justify-start">
-                    <Avatar className="w-20 h-20 border bg-accent/50">
+                    <Avatar className="w-48 h-48 border bg-accent/50">
                        <AvatarImage src={getAvatarForSpecialist(activeSpecialist)} alt={`${activeSpecialist} avatar`} />
                        <AvatarFallback className="bg-transparent text-foreground">
                             <User />
@@ -801,7 +825,7 @@ function SupportChatPageContent() {
         open={isCustomPersonaDialogOpen}
         onOpenChange={setIsCustomPersonaDialogOpen}
         currentPersona={sessionCustomPersona}
-        onSave={setSessionCustomPersona}
+        onSave={handleSaveCustomPersona}
     />
     </>
   )

@@ -180,6 +180,7 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
                                 <SelectItem value="standard">Standard</SelectItem>
                                 <SelectItem value="extra_supportive">Extra Supportive</SelectItem>
                                 <SelectItem value="direct_factual">Direct & Factual</SelectItem>
+                                <SelectItem value="custom">Custom...</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

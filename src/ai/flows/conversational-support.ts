@@ -87,8 +87,8 @@ const AiConversationalSupportInputSchema = z.object({
   income: z.string().optional().describe("The user's annual income, if provided."),
   savings: z.string().optional().describe("The user's savings, if provided."),
   existingBenefits: z.array(z.string()).optional().describe("A list of benefits the user is already receiving."),
-  responseMood: z.enum(['standard', 'extra_supportive', 'direct_factual', 'custom']).optional().describe("The desired conversational tone for the AI."),
-  customPersona: z.string().optional().describe("A user-defined persona for the AI to adopt if responseMood is 'custom'."),
+  responseMood: z.string().optional().describe("The desired conversational tone for the AI (e.g. 'standard', or a custom persona ID)."),
+  customPersona: z.string().optional().describe("A user-defined persona for the AI to adopt if responseMood is a custom one."),
   conversationHistory: z.array(z.object({
     role: z.enum(['user', 'assistant']),
     content: z.string(),
@@ -156,7 +156,7 @@ const prompt = ai.definePrompt({
   tools: [lookupPostcode],
   system: "You are a helpful AI assistant. Your final output MUST be a valid JSON object matching the provided schema, with your response contained within the 'answer' field.",
   prompt: `
-{{#if (eq responseMood "custom")}}
+{{#if customPersona}}
 You are a helpful AI assistant. You MUST adopt the following persona for your response: "{{{customPersona}}}"
 {{else}}
 {{#if isMedical}}
@@ -239,7 +239,7 @@ You are David, an expert **Financial Support Specialist**. Your role is to provi
 - No medications listed yet.
 {{/each}}
 
-{{#unless (eq responseMood "custom")}}
+{{#unless customPersona}}
 **Response Mood:**
 Adjust your tone based on user preference: 'standard' (your default persona), 'extra_supportive' (be more gentle and reassuring), 'direct_factual' (be more concise and to the point). Current: **{{{responseMood}}}**
 {{/unless}}
@@ -277,3 +277,5 @@ const aiConversationalSupportFlow = ai.defineFlow(
     }
   }
 );
+
+    

@@ -22,8 +22,15 @@ import { useToast } from "@/hooks/use-toast"
 import { textToSpeech } from "@/ai/flows/text-to-speech"
 import { medicalAvatars, mentalHealthAvatars, financialAvatars } from "@/lib/avatars"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 
 type Specialist = "medical" | "mental_health" | "financial";
+
+interface CustomPersona {
+    id: string;
+    name: string;
+    persona: string;
+}
 
 interface UserData {
   avatar_medical?: string;
@@ -35,9 +42,9 @@ interface UserData {
   responseMood_medical?: string;
   responseMood_mental_health?: string;
   responseMood_financial?: string;
-  customPersona_medical?: string;
-  customPersona_mental_health?: string;
-  customPersona_financial?: string;
+  customPersonas_medical?: CustomPersona[];
+  customPersonas_mental_health?: CustomPersona[];
+  customPersonas_financial?: CustomPersona[];
   [key: string]: any;
 }
 
@@ -65,15 +72,19 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
     const { toast } = useToast()
     const [isPlaying, setIsPlaying] = useState(false)
     const audioRef = useRef<HTMLAudioElement>(null);
+    const [addingNewPersona, setAddingNewPersona] = useState(false);
+    const [newPersonaName, setNewPersonaName] = useState("");
+    const [newPersonaText, setNewPersonaText] = useState("");
 
     const avatarKey = `avatar_${specialist}` as keyof UserData;
     const voiceKey = `voice_${specialist}` as keyof UserData;
     const moodKey = `responseMood_${specialist}` as keyof UserData;
-    const customPersonaKey = `customPersona_${specialist}` as keyof UserData;
+    const customPersonasKey = `customPersonas_${specialist}` as keyof UserData;
 
     const selectedAvatar = userData[avatarKey] || avatars[0].id;
     const selectedVoice = userData[voiceKey] || 'Algenib';
     const selectedMood = userData[moodKey] || 'standard';
+    const customPersonas = userData[customPersonasKey] || [];
 
     const handleAvatarChange = (avatarId: string) => {
         setUserData(prev => ({ ...prev, [avatarKey]: avatarId }));
@@ -84,12 +95,34 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
     };
 
     const handleMoodChange = (mood: string) => {
-        setUserData(prev => ({...prev, [moodKey]: mood}));
+        if (mood === 'add_new') {
+            setAddingNewPersona(true);
+        } else {
+            setAddingNewPersona(false);
+            setUserData(prev => ({...prev, [moodKey]: mood}));
+        }
     }
-
-    const handleCustomPersonaChange = (text: string) => {
-        setUserData(prev => ({...prev, [customPersonaKey]: text}));
-    }
+    
+    const handleSaveNewPersona = () => {
+        if (!newPersonaName.trim() || !newPersonaText.trim()) {
+            toast({ title: "Name and persona text are required.", variant: "destructive" });
+            return;
+        }
+        const newPersona: CustomPersona = {
+            id: new Date().toISOString(),
+            name: newPersonaName,
+            persona: newPersonaText,
+        };
+        const updatedPersonas = [...customPersonas, newPersona];
+        setUserData(prev => ({
+            ...prev,
+            [customPersonasKey]: updatedPersonas,
+            [moodKey]: newPersona.id, // Auto-select the new persona
+        }));
+        setAddingNewPersona(false);
+        setNewPersonaName("");
+        setNewPersonaText("");
+    };
 
     const handlePlaySample = async () => {
         if (isPlaying) return;
@@ -189,23 +222,37 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
                                 <SelectItem value="standard">Standard</SelectItem>
                                 <SelectItem value="extra_supportive">Extra Supportive</SelectItem>
                                 <SelectItem value="direct_factual">Direct & Factual</SelectItem>
-                                <SelectItem value="custom">Custom...</SelectItem>
+                                {customPersonas.map((p: CustomPersona) => (
+                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                ))}
+                                <SelectItem value="add_new">Add New Custom...</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
-                {selectedMood === 'custom' && (
-                    <div className="space-y-2">
-                        <Label>Custom Persona</Label>
-                        <Textarea 
-                            placeholder="Describe the persona for the AI..."
-                            value={userData[customPersonaKey] || ''}
-                            onChange={(e) => handleCustomPersonaChange(e.target.value)}
-                        />
-                         <p className="text-xs text-muted-foreground">
-                            This persona will be used for this specialist when you select the 'Custom' mood in the chat.
-                        </p>
-                    </div>
+                {addingNewPersona && (
+                    <Card className="p-4 space-y-4 bg-muted/50">
+                         <div className="space-y-2">
+                            <Label htmlFor={`new-persona-name-${specialist}`}>Persona Name</Label>
+                            <Input id={`new-persona-name-${specialist}`} placeholder="e.g., Cheerful Pirate" value={newPersonaName} onChange={(e) => setNewPersonaName(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor={`new-persona-text-${specialist}`}>Persona Description</Label>
+                            <Textarea 
+                                id={`new-persona-text-${specialist}`}
+                                placeholder="Describe the persona for the AI..."
+                                value={newPersonaText}
+                                onChange={(e) => setNewPersonaText(e.target.value)}
+                            />
+                             <p className="text-xs text-muted-foreground">
+                                This persona will be added to the list for this specialist.
+                            </p>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="ghost" onClick={() => setAddingNewPersona(false)}>Cancel</Button>
+                            <Button onClick={handleSaveNewPersona}>Save Persona</Button>
+                        </div>
+                    </Card>
                 )}
             </CardContent>
             <audio ref={audioRef} onEnded={() => setIsPlaying(false)} className="hidden" />
@@ -316,3 +363,5 @@ export default function SettingsPage() {
         </div>
     )
 }
+
+    

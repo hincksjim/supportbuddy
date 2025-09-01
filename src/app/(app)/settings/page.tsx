@@ -32,8 +32,6 @@ interface UserData {
   voice_medical?: string;
   voice_mental_health?: string;
   voice_financial?: string;
-  responseMood?: string;
-  customPersona?: string;
   [key: string]: any;
 }
 
@@ -272,3 +270,5 @@ export default function SettingsPage() {
         </div>
     )
 }
+
+    

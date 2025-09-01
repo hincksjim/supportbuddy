@@ -30,6 +30,7 @@ import type { GenerateTreatmentTimelineOutput } from "@/app/(app)/timeline/page"
 import type { DiaryEntry } from "@/app/(app)/diary/page"
 import type { Medication } from "@/app/(app)/medication/page"
 import type { AnalysisResult } from "@/app/(app)/document-analysis/page"
+import { medicalAvatars, mentalHealthAvatars, financialAvatars } from "@/lib/avatars"
 
 type Specialist = "medical" | "mental_health" | "financial";
 
@@ -90,22 +91,10 @@ interface UserData {
 }
 
 const specialistConfig = {
-    medical: { name: "Medical Expert", icon: User },
-    mental_health: { name: "Mental Health Nurse", icon: Heart },
-    financial: { name: "Financial Support Specialist", icon: Landmark },
+    medical: { name: "Medical Expert", icon: User, avatars: medicalAvatars },
+    mental_health: { name: "Mental Health Nurse", icon: Heart, avatars: mentalHealthAvatars },
+    financial: { name: "Financial Support Specialist", icon: Landmark, avatars: financialAvatars },
 }
-
-const avatars = [
-    { id: 'female-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 20s", hint: 'woman 20s' },
-    { id: 'female-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 30s", hint: 'woman 30s' },
-    { id: 'female-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 40s", hint: 'woman 40s' },
-    { id: 'female-60s', imageUrl: 'https://placehold.co/200x200.png', label: "Female, 60s", hint: 'woman 60s' },
-    { id: 'male-20s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 20s", hint: 'man 20s' },
-    { id: 'male-30s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 30s", hint: 'man 30s' },
-    { id: 'male-40s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 40s", hint: 'man 40s' },
-    { id: 'male-60s', imageUrl: 'https://placehold.co/200x200.png', label: "Male, 60s", hint: 'man 60s' },
-]
-
 
 // Define a type for all the contextual data we will load
 interface AppContextData {
@@ -386,8 +375,12 @@ function SupportChatPageContent() {
   
   const getAvatarForSpecialist = (specialist: Specialist) => {
       const avatarKey = `avatar_${specialist}` as keyof UserData;
-      const avatarId = userData[avatarKey] || 'female-30s';
-      return avatars.find(a => a.id === avatarId)?.imageUrl || 'https://placehold.co/200x200.png';
+      const avatarId = userData[avatarKey];
+      if (!avatarId) {
+        return specialistConfig[specialist].avatars[0].imageUrl;
+      }
+      const allAvatars = [...medicalAvatars, ...mentalHealthAvatars, ...financialAvatars];
+      return allAvatars.find(a => a.id === avatarId)?.imageUrl || specialistConfig[specialist].avatars[0].imageUrl;
   }
 
   const getWelcomeMessage = (specialist: Specialist) => {
@@ -632,7 +625,7 @@ function SupportChatPageContent() {
                     {message.role === "assistant" && (
                         <div className="flex items-end gap-2">
                              <Avatar className="w-10 h-10 border bg-accent/50">
-                                <Image src={buddyAvatarUrl} alt={`${specialist} avatar`} width={40} height={40} className="object-cover rounded-full" />
+                                <AvatarImage src={buddyAvatarUrl} alt={`${specialist} avatar`} />
                                 <AvatarFallback className="bg-transparent text-foreground">
                                     <User />
                                 </AvatarFallback>
@@ -677,7 +670,7 @@ function SupportChatPageContent() {
                 {isLoading && (
                   <div className="flex items-start gap-4 justify-start">
                     <Avatar className="w-10 h-10 border bg-accent/50">
-                       <Image src={getAvatarForSpecialist(activeSpecialist)} alt={`${activeSpecialist} avatar`} width={40} height={40} className="object-cover rounded-full"/>
+                       <AvatarImage src={getAvatarForSpecialist(activeSpecialist)} alt={`${activeSpecialist} avatar`} />
                        <AvatarFallback className="bg-transparent text-foreground">
                             <User />
                         </AvatarFallback>

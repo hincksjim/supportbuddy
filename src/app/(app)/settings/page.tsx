@@ -67,6 +67,21 @@ const specialistAvatarMap = {
     financial: financialAvatars,
 }
 
+const predefinedPersonas: Record<Specialist, { id: string; name: string }[]> = {
+    medical: [
+        { id: 'direct_factual', name: 'Direct & Factual' },
+        { id: 'extra_reassuring', name: 'Extra Reassuring' },
+    ],
+    mental_health: [
+        { id: 'very_empathetic', name: 'Very Empathetic & Gentle' },
+        { id: 'positive_encouraging', name: 'Positive & Encouraging' },
+    ],
+    financial: [
+        { id: 'formal_professional', name: 'Formal & Professional' },
+        { id: 'simple_jargon_free', name: 'Simple & Jargon-Free' },
+    ]
+}
+
 
 function SpecialistCard({ specialist, title, icon, userData, setUserData, avatars }: { specialist: Specialist, title: string, icon: React.ReactNode, userData: UserData, setUserData: React.Dispatch<React.SetStateAction<UserData>>, avatars: typeof medicalAvatars }) {
     const { toast } = useToast()
@@ -220,8 +235,11 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="standard">Standard</SelectItem>
-                                {customPersonas.map((p: CustomPersona) => (
+                                {predefinedPersonas[specialist].map(p => (
                                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                ))}
+                                {customPersonas.map((p: CustomPersona) => (
+                                    <SelectItem key={p.id} value={p.id}>Custom: {p.name}</SelectItem>
                                 ))}
                                 <SelectItem value="add_new">Add New Custom...</SelectItem>
                             </SelectContent>

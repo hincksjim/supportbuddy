@@ -21,7 +21,6 @@ import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { textToSpeech } from "@/ai/flows/text-to-speech"
 import { medicalAvatars, mentalHealthAvatars, financialAvatars } from "@/lib/avatars"
-import { Textarea } from "@/components/ui/textarea"
 
 type Specialist = "medical" | "mental_health" | "financial";
 
@@ -32,6 +31,9 @@ interface UserData {
   voice_medical?: string;
   voice_mental_health?: string;
   voice_financial?: string;
+  responseMood_medical?: string;
+  responseMood_mental_health?: string;
+  responseMood_financial?: string;
   [key: string]: any;
 }
 
@@ -62,9 +64,11 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
 
     const avatarKey = `avatar_${specialist}` as keyof UserData;
     const voiceKey = `voice_${specialist}` as keyof UserData;
+    const moodKey = `responseMood_${specialist}` as keyof UserData;
 
     const selectedAvatar = userData[avatarKey] || avatars[0].id;
     const selectedVoice = userData[voiceKey] || 'Algenib';
+    const selectedMood = userData[moodKey] || 'standard';
 
     const handleAvatarChange = (avatarId: string) => {
         setUserData(prev => ({ ...prev, [avatarKey]: avatarId }));
@@ -73,6 +77,10 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
     const handleVoiceChange = (voiceName: string) => {
         setUserData(prev => ({ ...prev, [voiceKey]: voiceName }));
     };
+
+    const handleMoodChange = (mood: string) => {
+        setUserData(prev => ({...prev, [moodKey]: mood}));
+    }
 
     const handlePlaySample = async () => {
         if (isPlaying) return;
@@ -114,7 +122,7 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">{icon} {title}</CardTitle>
-                <CardDescription>Customize the avatar and voice for this specialist.</CardDescription>
+                <CardDescription>Customize the avatar, voice, and personality for this specialist.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
                  <div className="space-y-4">
@@ -132,8 +140,8 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
                                 <Image 
                                     src={avatar.imageUrl}
                                     alt={avatar.label}
-                                    width={200}
-                                    height={200}
+                                    width={128}
+                                    height={128}
                                     className="rounded-full aspect-square object-cover"
                                     data-ai-hint={avatar.hint}
                                 />
@@ -142,23 +150,38 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
                         ))}
                     </div>
                 </div>
-                <div className="space-y-2">
-                    <Label>Voice</Label>
-                    <div className="flex items-center gap-2">
-                        <Select value={selectedVoice} onValueChange={handleVoiceChange}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label>Voice</Label>
+                        <div className="flex items-center gap-2">
+                            <Select value={selectedVoice} onValueChange={handleVoiceChange}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a voice" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {filteredVoices.map(v => (
+                                        <SelectItem key={v.name} value={v.name}>{v.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Button onClick={handlePlaySample} disabled={isPlaying} size="icon" variant="outline">
+                                {isPlaying ? <Loader2 className="animate-spin" /> : <Play />}
+                                <span className="sr-only">Play sample</span>
+                            </Button>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Response Mood</Label>
+                        <Select value={selectedMood} onValueChange={handleMoodChange}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select a voice" />
+                                <SelectValue placeholder="Select a mood" />
                             </SelectTrigger>
                             <SelectContent>
-                                {filteredVoices.map(v => (
-                                    <SelectItem key={v.name} value={v.name}>{v.name}</SelectItem>
-                                ))}
+                                <SelectItem value="standard">Standard</SelectItem>
+                                <SelectItem value="extra_supportive">Extra Supportive</SelectItem>
+                                <SelectItem value="direct_factual">Direct & Factual</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Button onClick={handlePlaySample} disabled={isPlaying} size="icon" variant="outline">
-                            {isPlaying ? <Loader2 className="animate-spin" /> : <Play />}
-                            <span className="sr-only">Play sample</span>
-                        </Button>
                     </div>
                 </div>
             </CardContent>
@@ -270,5 +293,3 @@ export default function SettingsPage() {
         </div>
     )
 }
-
-    

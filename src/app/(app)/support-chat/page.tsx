@@ -25,6 +25,7 @@ import type { AnalysisResult } from "@/app/(app)/document-analysis/page"
 import { medicalAvatars, mentalHealthAvatars, financialAvatars } from "@/lib/avatars"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import { MeetingNote, TextNote } from "@/ai/flows/types"
 
 type Specialist = "medical" | "mental_health" | "financial";
 
@@ -74,12 +75,14 @@ interface UserData {
   voice_medical?: string;
   voice_mental_health?: string;
   voice_financial?: string;
+  responseMood_medical?: string;
+  responseMood_mental_health?: string;
+  responseMood_financial?: string;
   dob?: string;
   employmentStatus?: string;
   income?: string;
   savings?: string;
   benefits?: string[];
-  responseMood?: string;
   customPersona?: string;
   initialDiagnosis?: string;
   profilePicture?: string;
@@ -97,6 +100,8 @@ interface AppContextData {
     diaryData: DiaryEntry[];
     medicationData: Medication[];
     sourceDocuments: AnalysisResult[];
+    textNotes: TextNote[];
+    meetingNotes: MeetingNote[];
 }
 
 function CustomPersonaDialog({ open, onOpenChange, onSave, currentPersona }: { open: boolean, onOpenChange: (open: boolean) => void, onSave: (persona: string) => void, currentPersona: string }) {
@@ -151,6 +156,8 @@ function SupportChatPageContent() {
       diaryData: [],
       medicationData: [],
       sourceDocuments: [],
+      textNotes: [],
+      meetingNotes: [],
   });
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
   const [isHistoricChat, setIsHistoricChat] = useState(false);
@@ -179,6 +186,7 @@ function SupportChatPageContent() {
         const storedMeds = localStorage.getItem(`medications_${currentUserEmail}`);
         const storedDocs = localStorage.getItem(`analysisResults_${currentUserEmail}`);
         const storedUserData = localStorage.getItem(`userData_${currentUserEmail}`);
+        const summariesAndNotes = localStorage.getItem(`conversationSummaries_${currentUserEmail}`)
 
         if (storedUserData) {
           const parsedUserData = JSON.parse(storedUserData);
@@ -186,11 +194,14 @@ function SupportChatPageContent() {
           setSessionCustomPersona(parsedUserData.customPersona || "");
         }
 
+        const parsedSummariesAndNotes = summariesAndNotes ? JSON.parse(summariesAndNotes) : [];
         setAppContextData({
             timelineData: storedTimeline ? JSON.parse(storedTimeline) : null,
             diaryData: storedDiary ? JSON.parse(storedDiary) : [],
             medicationData: storedMeds ? JSON.parse(storedMeds) : [],
             sourceDocuments: storedDocs ? JSON.parse(storedDocs) : [],
+            textNotes: parsedSummariesAndNotes.filter((item: any) => item.type === 'textNote'),
+            meetingNotes: parsedSummariesAndNotes.filter((item: any) => item.type === 'meetingNote'),
         });
     } catch (e) {
         console.error("Failed to load app context data:", e);
@@ -224,6 +235,7 @@ function SupportChatPageContent() {
     setInput("")
 
     try {
+      const responseMoodKey = `responseMood_${activeSpecialist}` as keyof UserData;
       const flowInput: AiConversationalSupportInput = { 
         specialist: activeSpecialist,
         userName: userData.name || "User", 
@@ -239,8 +251,7 @@ function SupportChatPageContent() {
         dob: userData.dob || "",
         employmentStatus: userData.employmentStatus || "",
         existingBenefits: userData.benefits || [],
-        responseMood: userData.responseMood || 'standard',
-        customPersona: userData.responseMood === 'custom' ? sessionCustomPersona : undefined,
+        responseMood: userData[responseMoodKey] || 'standard',
         conversationHistory: messages,
         question: finalInput,
         
@@ -253,6 +264,8 @@ function SupportChatPageContent() {
             date: d.date,
             analysis: d.analysis,
         })),
+        textNotes: appContextData.textNotes,
+        meetingNotes: appContextData.meetingNotes,
       };
 
       if (userData.income) flowInput.income = userData.income;
@@ -637,12 +650,9 @@ function SupportChatPageContent() {
                     New Chat
                 </Button>
             )}
-            {userData.responseMood === 'custom' && !isHistoricChat && (
-                <Button variant="outline" size="sm" onClick={() => setIsCustomPersonaDialogOpen(true)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Persona
-                </Button>
-            )}
+            <Button variant="outline" size="sm" onClick={toggleTts}>
+                {isTtsEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </Button>
              <Button asChild variant="outline" size="sm">
                 <Link href="/settings">
                     <Settings className="h-4 w-4" />
@@ -805,5 +815,3 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
-
-    

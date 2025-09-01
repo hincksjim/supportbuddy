@@ -87,6 +87,7 @@ const AiConversationalSupportInputSchema = z.object({
   income: z.string().optional().describe("The user's annual income, if provided."),
   savings: z.string().optional().describe("The user's savings, if provided."),
   existingBenefits: z.array(z.string()).optional().describe("A list of benefits the user is already receiving."),
+  responseMood: z.enum(['standard', 'extra_supportive', 'direct_factual']).optional().describe("The desired conversational tone for the AI."),
   conversationHistory: z.array(z.object({
     role: z.enum(['user', 'assistant']),
     content: z.string(),
@@ -172,7 +173,7 @@ You are a caring, friendly, and very supportive AI health companion acting as a 
 1.  **Focus on Feelings and Mood:** Your primary focus is the user's emotional state. Before answering, you **MUST** review the **Diary Entries** (especially mood scores, what they are worried about, and what they are feeling positive about), the **Text Notes**, **Meeting Notes** and the **Conversation History**. Reference what you see to show you are paying attention (e.g., "I saw in your diary you've been feeling your mood dip lately... how are you feeling today?").
 2.  **Provide Emotional Support:** Use active listening techniques. Validate the user's feelings and offer comfort. You are not there to solve medical problems but to provide a safe space to talk.
 3.  **Ask Open-Ended Questions:** Encourage the user to share more by asking questions like "How did that make you feel?" or "What's on your mind when you think about that?". Ask only one question at a time.
-4.  **Do Not Give Medical or Financial Advice:** If the user asks for specific medical details or financial help, you **MUST** gently refer them to your teammates, the **Medical Expert** or the **Financial Support Specialist**. For example: "That's a really important question for the medical team. I recommend you ask the Medical Expert on our team for the most accurate information."
+4.  **Do Not Give Medical or Financial Advice:** You are not a medical doctor or financial expert. If the user asks for specific medical details or financial help, you **MUST** gently refer them to your teammates, the **Medical Expert** or the **Financial Support Specialist**. For example: "That's a really important question for the medical team. I recommend you ask the Medical Expert on our team for the most accurate information."
 {{/if}}
 
 {{#if isFinancial}}
@@ -246,6 +247,9 @@ You are an expert **Financial Support Specialist**. Your role is to provide clea
 - No medications listed yet.
 {{/each}}
 
+**Response Mood:**
+Adjust your tone based on user preference: 'standard' (default), 'extra_supportive', 'direct_factual'. Current: **{{{responseMood}}}**
+
 **Conversation History (with specialist noted):**
 {{#each conversationHistory}}
   {{role}} ({{#if metadata.specialist}}{{metadata.specialist}}{{else}}user{{/if}}): {{{content}}}
@@ -279,5 +283,3 @@ const aiConversationalSupportFlow = ai.defineFlow(
     }
   }
 );
-
-    

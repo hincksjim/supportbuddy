@@ -58,6 +58,12 @@ interface StoredConversation {
     messages: Message[];
 }
 
+interface CustomPersona {
+    id: string;
+    name: string;
+    persona: string;
+}
+
 interface UserData {
   name?: string;
   lastName?: string;
@@ -78,12 +84,14 @@ interface UserData {
   responseMood_medical?: string;
   responseMood_mental_health?: string;
   responseMood_financial?: string;
+  customPersonas_medical?: CustomPersona[];
+  customPersonas_mental_health?: CustomPersona[];
+  customPersonas_financial?: CustomPersona[];
   dob?: string;
   employmentStatus?: string;
   income?: string;
   savings?: string;
   benefits?: string[];
-  customPersona?: string;
   initialDiagnosis?: string;
   profilePicture?: string;
 }
@@ -104,45 +112,6 @@ interface AppContextData {
     meetingNotes: MeetingNote[];
 }
 
-function CustomPersonaDialog({ open, onOpenChange, onSave, currentPersona }: { open: boolean, onOpenChange: (open: boolean) => void, onSave: (persona: string) => void, currentPersona: string }) {
-    const [persona, setPersona] = useState(currentPersona);
-
-    useEffect(() => {
-        setPersona(currentPersona);
-    }, [currentPersona, open]);
-
-    const handleSave = () => {
-        onSave(persona);
-        onOpenChange(false);
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Set Custom Persona</DialogTitle>
-                    <DialogDescription>
-                        Describe the persona you want the AI to adopt for this conversation.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="py-4">
-                    <Textarea
-                        placeholder="e.g., A friendly, humorous pirate"
-                        value={persona}
-                        onChange={(e) => setPersona(e.target.value)}
-                        rows={4}
-                    />
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button variant="ghost">Cancel</Button>
-                    </DialogClose>
-                    <Button onClick={handleSave}>Set Persona</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
 
 function SupportChatPageContent() {
   const [messages, setMessages] = useState<Message[]>([])
@@ -164,8 +133,6 @@ function SupportChatPageContent() {
   const [isTtsEnabled, setIsTtsEnabled] = useState(true);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [activeSpecialist, setActiveSpecialist] = useState<Specialist>("medical");
-  const [isCustomPersonaDialogOpen, setIsCustomPersonaDialogOpen] = useState(false);
-  const [sessionCustomPersona, setSessionCustomPersona] = useState("");
   
   const router = useRouter()
   const searchParams = useSearchParams();
@@ -191,7 +158,6 @@ function SupportChatPageContent() {
         if (storedUserData) {
           const parsedUserData = JSON.parse(storedUserData);
           setUserData(parsedUserData);
-          setSessionCustomPersona(parsedUserData.customPersona || "");
         }
 
         const parsedSummariesAndNotes = summariesAndNotes ? JSON.parse(summariesAndNotes) : [];
@@ -238,6 +204,16 @@ function SupportChatPageContent() {
       const responseMoodKey = `responseMood_${activeSpecialist}` as keyof UserData;
       const responseMood = userData[responseMoodKey] || 'standard';
 
+      let customPersonaText: string | undefined = undefined;
+      if (!['standard', 'extra_supportive', 'direct_factual'].includes(responseMood)) {
+          const customPersonasKey = `customPersonas_${activeSpecialist}` as keyof UserData;
+          const customPersonas: CustomPersona[] = userData[customPersonasKey] || [];
+          const selectedPersona = customPersonas.find(p => p.id === responseMood);
+          if (selectedPersona) {
+              customPersonaText = selectedPersona.persona;
+          }
+      }
+
       const flowInput: AiConversationalSupportInput = { 
         specialist: activeSpecialist,
         userName: userData.name || "User", 
@@ -254,7 +230,7 @@ function SupportChatPageContent() {
         employmentStatus: userData.employmentStatus || "",
         existingBenefits: userData.benefits || [],
         responseMood: responseMood,
-        customPersona: responseMood === 'custom' ? sessionCustomPersona : undefined,
+        customPersona: customPersonaText,
         conversationHistory: messages,
         question: finalInput,
         
@@ -638,21 +614,6 @@ function SupportChatPageContent() {
     });
   };
 
-  const handleSaveCustomPersona = (persona: string) => {
-    setSessionCustomPersona(persona);
-    if(currentUserEmail) {
-        const updatedUserData = {...userData, customPersona: persona };
-        setUserData(updatedUserData);
-        localStorage.setItem(`userData_${currentUserEmail}`, JSON.stringify(updatedUserData));
-    }
-     toast({
-        title: "Custom Persona Saved",
-        description: "It will be used for this session when 'Custom' mood is selected.",
-    });
-  }
-
-  const isCustomMoodSelected = userData[`responseMood_${activeSpecialist}`] === 'custom';
-
   return (
     <>
     <div className="relative flex h-full max-h-screen flex-col">
@@ -666,12 +627,6 @@ function SupportChatPageContent() {
                  <Button variant="outline" size="sm" onClick={handleNewChat}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     New Chat
-                </Button>
-            )}
-            {isCustomMoodSelected && !isHistoricChat && (
-                 <Button variant="outline" size="sm" onClick={() => setIsCustomPersonaDialogOpen(true)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit Persona
                 </Button>
             )}
             <Button variant="outline" size="sm" onClick={toggleTts}>
@@ -706,7 +661,7 @@ function SupportChatPageContent() {
                   >
                     {message.role === "assistant" && (
                         <div className="flex items-end gap-2">
-                             <Avatar className="w-24 h-24 border bg-accent/50">
+                             <Avatar className="w-48 h-48 border bg-accent/50">
                                 <AvatarImage src={buddyAvatarUrl} alt={`${specialist} avatar`} />
                                 <AvatarFallback className="bg-transparent text-foreground">
                                     <User />
@@ -737,12 +692,12 @@ function SupportChatPageContent() {
                             >
                             <p className="whitespace-pre-wrap">{message.content}</p>
                             </div>
-                            <Avatar className="w-24 h-24 border">
+                            <Avatar className="w-48 h-48 border">
                                 {userData.profilePicture ? (
                                     <AvatarImage src={userData.profilePicture} alt="Your profile picture" />
                                 ) : null}
                                 <AvatarFallback className="bg-secondary text-secondary-foreground">
-                                    <User className="w-12 h-12" />
+                                    <User className="w-24 h-24" />
                                 </AvatarFallback>
                             </Avatar>
                         </>
@@ -751,7 +706,7 @@ function SupportChatPageContent() {
                   )})}
                 {isLoading && (
                   <div className="flex items-start gap-4 justify-start">
-                    <Avatar className="w-24 h-24 border bg-accent/50">
+                    <Avatar className="w-48 h-48 border bg-accent/50">
                        <AvatarImage src={getAvatarForSpecialist(activeSpecialist)} alt={`${activeSpecialist} avatar`} />
                        <AvatarFallback className="bg-transparent text-foreground">
                             <User />
@@ -821,12 +776,6 @@ function SupportChatPageContent() {
       </div>
       <audio ref={audioRef} onEnded={handleAudioEnded} className="hidden" />
     </div>
-     <CustomPersonaDialog
-        open={isCustomPersonaDialogOpen}
-        onOpenChange={setIsCustomPersonaDialogOpen}
-        currentPersona={sessionCustomPersona}
-        onSave={handleSaveCustomPersona}
-    />
     </>
   )
 }
@@ -839,3 +788,4 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
+

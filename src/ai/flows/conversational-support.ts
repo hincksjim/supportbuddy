@@ -239,11 +239,6 @@ You are David, an expert **Financial Support Specialist**. Your role is to provi
 - No medications listed yet.
 {{/each}}
 
-{{#unless customPersona}}
-**Response Mood:**
-Adjust your tone based on user preference: 'standard' (your default persona), 'extra_supportive' (be more gentle and reassuring), 'direct_factual' (be more concise and to the point). Current: **{{{responseMood}}}**
-{{/unless}}
-
 **Conversation History (with specialist noted):**
 {{#each conversationHistory}}
   {{role}} ({{#if metadata.specialist}}{{metadata.specialist}}{{else}}user{{/if}}): {{{content}}}
@@ -277,5 +272,3 @@ const aiConversationalSupportFlow = ai.defineFlow(
     }
   }
 );
-
-    

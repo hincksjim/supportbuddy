@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useRef, useEffect, Suspense, useCallback } from "react"
-import { CornerDownLeft, Loader2, User, Heart, Landmark, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX, PlusCircle, Download, Bookmark, ChevronDown, Settings } from "lucide-react"
+import { CornerDownLeft, Loader2, User, Heart, Landmark, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX, PlusCircle, Download, Bookmark, ChevronDown, Settings, Edit } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 
@@ -16,14 +16,6 @@ import { textToSpeech } from "@/ai/flows/text-to-speech"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
 import { useToast } from "@/hooks/use-toast"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { GenerateTreatmentTimelineOutput } from "@/app/(app)/timeline/page"
@@ -31,6 +23,8 @@ import type { DiaryEntry } from "@/app/(app)/diary/page"
 import type { Medication } from "@/app/(app)/medication/page"
 import type { AnalysisResult } from "@/app/(app)/document-analysis/page"
 import { medicalAvatars, mentalHealthAvatars, financialAvatars } from "@/lib/avatars"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog"
 
 type Specialist = "medical" | "mental_health" | "financial";
 
@@ -86,14 +80,15 @@ interface UserData {
   savings?: string;
   benefits?: string[];
   responseMood?: string;
+  customPersona?: string;
   initialDiagnosis?: string;
   profilePicture?: string;
 }
 
 const specialistConfig = {
-    medical: { name: "Medical Expert", icon: User, avatars: medicalAvatars },
-    mental_health: { name: "Mental Health Nurse", icon: Heart, avatars: mentalHealthAvatars },
-    financial: { name: "Financial Support Specialist", icon: Landmark, avatars: financialAvatars },
+    medical: { name: "Dr. Aris", icon: User, avatars: medicalAvatars },
+    mental_health: { name: "Sarah", icon: Heart, avatars: mentalHealthAvatars },
+    financial: { name: "David", icon: Landmark, avatars: financialAvatars },
 }
 
 // Define a type for all the contextual data we will load
@@ -102,6 +97,46 @@ interface AppContextData {
     diaryData: DiaryEntry[];
     medicationData: Medication[];
     sourceDocuments: AnalysisResult[];
+}
+
+function CustomPersonaDialog({ open, onOpenChange, onSave, currentPersona }: { open: boolean, onOpenChange: (open: boolean) => void, onSave: (persona: string) => void, currentPersona: string }) {
+    const [persona, setPersona] = useState(currentPersona);
+
+    useEffect(() => {
+        setPersona(currentPersona);
+    }, [currentPersona]);
+
+    const handleSave = () => {
+        onSave(persona);
+        onOpenChange(false);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Set Custom Persona</DialogTitle>
+                    <DialogDescription>
+                        Describe the persona you want the AI to adopt for this conversation.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <Textarea
+                        placeholder="e.g., A friendly, humorous pirate"
+                        value={persona}
+                        onChange={(e) => setPersona(e.target.value)}
+                        rows={4}
+                    />
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="ghost">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleSave}>Set Persona</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 function SupportChatPageContent() {
@@ -122,6 +157,8 @@ function SupportChatPageContent() {
   const [isTtsEnabled, setIsTtsEnabled] = useState(true);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [activeSpecialist, setActiveSpecialist] = useState<Specialist>("medical");
+  const [isCustomPersonaDialogOpen, setIsCustomPersonaDialogOpen] = useState(false);
+  const [sessionCustomPersona, setSessionCustomPersona] = useState("");
   
   const router = useRouter()
   const searchParams = useSearchParams();
@@ -144,7 +181,9 @@ function SupportChatPageContent() {
         const storedUserData = localStorage.getItem(`userData_${currentUserEmail}`);
 
         if (storedUserData) {
-          setUserData(JSON.parse(storedUserData));
+          const parsedUserData = JSON.parse(storedUserData);
+          setUserData(parsedUserData);
+          setSessionCustomPersona(parsedUserData.customPersona || "");
         }
 
         setAppContextData({
@@ -201,6 +240,7 @@ function SupportChatPageContent() {
         employmentStatus: userData.employmentStatus || "",
         existingBenefits: userData.benefits || [],
         responseMood: userData.responseMood || 'standard',
+        customPersona: userData.responseMood === 'custom' ? sessionCustomPersona : undefined,
         conversationHistory: messages,
         question: finalInput,
         
@@ -385,13 +425,14 @@ function SupportChatPageContent() {
 
   const getWelcomeMessage = (specialist: Specialist) => {
       const userName = userData.name || 'there';
+      const specialistName = specialistConfig[specialist].name;
       switch(specialist) {
           case 'medical':
-              return `Hello ${userName}! I'm your Medical Expert. How can I help you today with your health or treatment?`;
+              return `Hello ${userName}, I'm ${specialistName}, your consultant oncologist. How can I help you today with your health or treatment?`;
           case 'mental_health':
-              return `Hi ${userName}, I'm your Mental Health Nurse. It's a safe space to talk about how you're feeling. What's on your mind?`;
+              return `Hi ${userName}, I'm ${specialistName}, your specialist nurse. It's a safe space to talk about how you're feeling. What's on your mind?`;
           case 'financial':
-              return `Hello ${userName}, I'm your Financial Support Specialist. Let's talk about any money worries or questions you might have.`;
+              return `Hello ${userName}, I'm ${specialistName}, your financial support specialist. Let's talk about any money worries or questions you might have.`;
           default:
               return `Hello ${userName}! How can I help you today?`;
       }
@@ -487,7 +528,7 @@ function SupportChatPageContent() {
         }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserEmail, searchParams, userData.name]); // Removed loadAppContext from here to avoid re-triggering
+  }, [currentUserEmail, searchParams]);
 
   useEffect(() => {
     if (audioRef.current && audioDataUri) {
@@ -522,7 +563,7 @@ function SupportChatPageContent() {
   const getPlaceholderText = () => {
     if (isHistoricChat) return "This is a past conversation. You cannot send new messages.";
     if (isListening) return "Listening... Press the mic again to stop.";
-    return `Ask the ${specialistConfig[activeSpecialist].name}...`;
+    return `Message ${specialistConfig[activeSpecialist].name}...`;
   }
 
   const toggleTts = () => {
@@ -582,6 +623,7 @@ function SupportChatPageContent() {
   };
 
   return (
+    <>
     <div className="relative flex h-full max-h-screen flex-col">
        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
             {isHistoricChat ? (
@@ -593,6 +635,12 @@ function SupportChatPageContent() {
                  <Button variant="outline" size="sm" onClick={handleNewChat}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     New Chat
+                </Button>
+            )}
+            {userData.responseMood === 'custom' && !isHistoricChat && (
+                <Button variant="outline" size="sm" onClick={() => setIsCustomPersonaDialogOpen(true)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Persona
                 </Button>
             )}
              <Button asChild variant="outline" size="sm">
@@ -612,7 +660,7 @@ function SupportChatPageContent() {
             <ScrollViewport ref={viewportRef}>
               <div className="p-4 md:p-6 space-y-6">
                 {messages.map((message, index) => {
-                   const specialist = message.metadata?.specialist || 'medical';
+                   const specialist = message.metadata?.specialist || activeSpecialist;
                    const buddyAvatarUrl = getAvatarForSpecialist(specialist);
                   return (
                   <div
@@ -739,6 +787,13 @@ function SupportChatPageContent() {
       </div>
       <audio ref={audioRef} onEnded={handleAudioEnded} className="hidden" />
     </div>
+     <CustomPersonaDialog
+        open={isCustomPersonaDialogOpen}
+        onOpenChange={setIsCustomPersonaDialogOpen}
+        currentPersona={sessionCustomPersona}
+        onSave={setSessionCustomPersona}
+    />
+    </>
   )
 }
 
@@ -750,3 +805,5 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
+
+    

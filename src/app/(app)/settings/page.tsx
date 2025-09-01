@@ -2,7 +2,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback, useRef } from "react"
-import { Sun, Moon, Laptop, Bot, Save, Play, Loader2, User, Heart, Landmark } from "lucide-react"
+import { Sun, Moon, Laptop, Bot, Save, Play, Loader2, User, Heart, Landmark, Edit } from "lucide-react"
 import { useTheme } from "next-themes"
 import Image from "next/image"
 
@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { textToSpeech } from "@/ai/flows/text-to-speech"
 import { medicalAvatars, mentalHealthAvatars, financialAvatars } from "@/lib/avatars"
+import { Textarea } from "@/components/ui/textarea"
 
 type Specialist = "medical" | "mental_health" | "financial";
 
@@ -32,6 +33,7 @@ interface UserData {
   voice_mental_health?: string;
   voice_financial?: string;
   responseMood?: string;
+  customPersona?: string;
   [key: string]: any;
 }
 
@@ -200,6 +202,10 @@ export default function SettingsPage() {
      const handleMoodChange = (mood: string) => {
         setUserData(prev => ({...prev, responseMood: mood}));
     }
+
+    const handleCustomPersonaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setUserData(prev => ({...prev, customPersona: e.target.value}));
+    }
     
     if (!isMounted) {
         return null
@@ -270,7 +276,7 @@ export default function SettingsPage() {
                     <CardTitle>Support Buddy Persona</CardTitle>
                     <CardDescription>Choose the response mood for your AI companion.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                     <div className="space-y-2 max-w-xs">
                         <Label>Response Mood</Label>
                         <Select value={userData.responseMood || 'standard'} onValueChange={handleMoodChange}>
@@ -278,12 +284,25 @@ export default function SettingsPage() {
                                 <SelectValue placeholder="Select a mood" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="standard">Standard</SelectItem>
+                                <SelectItem value="standard">Standard Personas</SelectItem>
                                 <SelectItem value="extra_supportive">Extra Supportive</SelectItem>
                                 <SelectItem value="direct_factual">Direct and Factual</SelectItem>
+                                <SelectItem value="custom">Custom...</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
+                     {userData.responseMood === 'custom' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="custom-persona">Custom Persona Description</Label>
+                             <Textarea
+                                id="custom-persona"
+                                placeholder="Describe the persona you want the AI to adopt. For example: 'A friendly, humorous pirate'."
+                                value={userData.customPersona || ''}
+                                onChange={handleCustomPersonaChange}
+                                rows={3}
+                            />
+                        </div>
+                    )}
                 </CardContent>
             </Card>
             
@@ -296,3 +315,5 @@ export default function SettingsPage() {
         </div>
     )
 }
+
+    

@@ -132,8 +132,8 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
                                 <Image 
                                     src={avatar.imageUrl}
                                     alt={avatar.label}
-                                    width={100}
-                                    height={100}
+                                    width={200}
+                                    height={200}
                                     className="rounded-full aspect-square object-cover"
                                     data-ai-hint={avatar.hint}
                                 />

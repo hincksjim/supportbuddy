@@ -356,19 +356,19 @@ export default function ProfilePage() {
                     <CardContent className="space-y-6">
                         <div className="flex items-center space-x-4">
                             <div className="relative group">
-                                <Avatar className="w-24 h-24 border-2 border-primary/20">
+                                <Avatar className="w-48 h-48 border-2 border-primary/20">
                                     <AvatarImage src={userData.profilePicture} alt="Profile Picture" />
                                     <AvatarFallback className="bg-muted">
-                                        <User className="w-12 h-12 text-muted-foreground" />
+                                        <User className="w-24 h-24 text-muted-foreground" />
                                     </AvatarFallback>
                                 </Avatar>
                                 <Button 
                                     variant="outline" 
                                     size="icon" 
-                                    className="absolute bottom-0 right-0 rounded-full h-8 w-8 bg-background group-hover:bg-accent"
+                                    className="absolute bottom-0 right-0 rounded-full h-12 w-12 bg-background group-hover:bg-accent"
                                     onClick={() => setIsCameraDialogOpen(true)}
                                 >
-                                    <Camera className="h-4 w-4" />
+                                    <Camera className="h-6 w-6" />
                                 </Button>
                             </div>
                             <div className="flex-grow space-y-2">

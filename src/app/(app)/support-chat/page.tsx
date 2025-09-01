@@ -624,7 +624,7 @@ function SupportChatPageContent() {
                   >
                     {message.role === "assistant" && (
                         <div className="flex items-end gap-2">
-                             <Avatar className="w-10 h-10 border bg-accent/50">
+                             <Avatar className="w-20 h-20 border bg-accent/50">
                                 <AvatarImage src={buddyAvatarUrl} alt={`${specialist} avatar`} />
                                 <AvatarFallback className="bg-transparent text-foreground">
                                     <User />
@@ -655,7 +655,7 @@ function SupportChatPageContent() {
                             >
                             <p className="whitespace-pre-wrap">{message.content}</p>
                             </div>
-                            <Avatar className="w-10 h-10 border">
+                            <Avatar className="w-20 h-20 border">
                                 {userData.profilePicture ? (
                                     <AvatarImage src={userData.profilePicture} alt="Your profile picture" />
                                 ) : null}
@@ -669,7 +669,7 @@ function SupportChatPageContent() {
                   )})}
                 {isLoading && (
                   <div className="flex items-start gap-4 justify-start">
-                    <Avatar className="w-10 h-10 border bg-accent/50">
+                    <Avatar className="w-20 h-20 border bg-accent/50">
                        <AvatarImage src={getAvatarForSpecialist(activeSpecialist)} alt={`${activeSpecialist} avatar`} />
                        <AvatarFallback className="bg-transparent text-foreground">
                             <User />

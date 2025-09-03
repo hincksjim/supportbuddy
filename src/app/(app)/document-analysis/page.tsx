@@ -42,6 +42,8 @@ export interface AnalysisResult {
   date: string
 }
 
+const MAX_SAVED_ANALYSES = 10;
+
 function UploadAnalysisDialog({ onAnalysisComplete }: { onAnalysisComplete: (newAnalysis: AnalysisResult) => void }) {
   const [file, setFile] = useState<File | null>(null)
   const [question, setQuestion] = useState("Summarize the key findings in this document.")
@@ -234,6 +236,7 @@ function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; chil
 export default function DocumentAnalysisPage() {
   const [results, setResults] = useState<AnalysisResult[]>([])
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const loadResults = useCallback(() => {
     if (!currentUserEmail) return;
@@ -270,12 +273,32 @@ export default function DocumentAnalysisPage() {
 
   const handleNewAnalysis = (newAnalysis: AnalysisResult) => {
     if (!currentUserEmail) return;
+    
+    // Add new result and ensure the list is sorted by date
     const updatedResults = [newAnalysis, ...results]
-    setResults(updatedResults)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, MAX_SAVED_ANALYSES); // Keep only the N most recent results
+
+    setResults(updatedResults);
+    
     try {
-      localStorage.setItem(`analysisResults_${currentUserEmail}`, JSON.stringify(updatedResults))
-    } catch (error) {
-      console.error("Could not save analysis results to localStorage", error)
+      localStorage.setItem(`analysisResults_${currentUserEmail}`, JSON.stringify(updatedResults));
+    } catch (error: any) {
+        // Catch quota exceeded errors and provide a helpful message
+        if (error.name === 'QuotaExceededError') {
+            toast({
+                variant: 'destructive',
+                title: 'Storage Limit Reached',
+                description: 'The oldest analysis was removed to make space. Your new analysis has been saved.',
+            });
+        } else {
+             console.error("Could not save analysis results to localStorage", error)
+             toast({
+                variant: 'destructive',
+                title: 'Save Error',
+                description: 'There was an issue saving your analysis.',
+            });
+        }
     }
   }
 

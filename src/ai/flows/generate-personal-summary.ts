@@ -39,6 +39,15 @@ const MedicationSchema = z.object({
   issuedDate: z.string(),
 });
 
+const FoodIntakeSchema = z.object({
+    id: z.string(),
+    title: z.string(),
+    photoDataUri: z.string(),
+    description: z.string(),
+    calories: z.number(),
+    ingredients: z.array(z.string()),
+});
+
 const DiaryEntrySchema = z.object({
   id: z.string(),
   date: z.string(),
@@ -51,7 +60,8 @@ const DiaryEntrySchema = z.object({
   symptomAnalysis: z.string().optional(),
   weight: z.string(),
   sleep: z.string(),
-  food: z.string(),
+  foodIntake: z.array(FoodIntakeSchema).optional(),
+  food: z.string().optional(), // For backward compatibility
   worriedAbout: z.string(),
   positiveAbout: z.string(),
   notes: z.string(),
@@ -206,7 +216,7 @@ Your primary goal is to synthesize ALL information provided into clear, organize
     {{/each}}
 *   **Diary Entries (sorted recent first):**
     {{#each diaryData}}
-    - **{{date}}:** Mood:{{mood}}, Pain:{{painScore}}, Worried:{{worriedAbout}}, Positive:{{positiveAbout}}
+    - **{{date}}:** Mood:{{mood}}, Pain:{{painScore}}, Worried:{{worriedAbout}}, Positive:{{positiveAbout}}, Food: {{#if foodIntake}} {{#each foodIntake}} {{title}} (~{{calories}} cal); {{/each}} {{else if food}} {{food}} {{/if}}
     {{/each}}
 *   **Timeline:** Available in context.
 ---

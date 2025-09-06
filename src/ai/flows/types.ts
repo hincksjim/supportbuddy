@@ -60,6 +60,15 @@ export const AnalyzeSymptomPatternOutputSchema = z.object({
 });
 export type AnalyzeSymptomPatternOutput = z.infer<typeof AnalyzeSymptomPatternOutputSchema>;
 
+const FoodIntakeSchema = z.object({
+    id: z.string(),
+    title: z.string(),
+    photoDataUri: z.string(),
+    description: z.string(),
+    calories: z.number(),
+    ingredients: z.array(z.string()),
+});
+
 // This schema is for AI flows that need to process diary entries.
 // It keeps the structure consistent.
 export const DiaryEntrySchemaForAI = z.object({
@@ -73,7 +82,8 @@ export const DiaryEntrySchemaForAI = z.object({
     painRemarks: z.string().optional(),
     weight: z.string(),
     sleep: z.string(),
-    food: z.string(),
+    foodIntake: z.array(FoodIntakeSchema).optional(),
+    food: z.string().optional(), // For backward compatibility
     worriedAbout: z.string(),
     positiveAbout: z.string(),
     notes: z.string(),

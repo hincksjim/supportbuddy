@@ -21,3 +21,4 @@ import '@/ai/flows/analyze-symptom-pattern.ts';
 import '@/ai/flows/generate-diary-summary.ts';
 import '@/ai/flows/types.ts';
 import '@/ai/flows/analyze-food-photo.ts';
+import '@/ai/flows/analyze-food-ingredients.ts';

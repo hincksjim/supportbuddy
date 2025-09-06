@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
-import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download, X, Lightbulb, Zap, Camera, Utensils, FileUp } from "lucide-react"
+import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download, X, Lightbulb, Zap, Camera, Utensils, FileUp, AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Medication } from "@/app/(app)/medication/page"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -39,6 +39,7 @@ import { analyzeSymptomPattern } from "@/ai/flows/analyze-symptom-pattern"
 import { marked } from "marked"
 import { DiarySummary } from "@/components/diary-summary"
 import { analyzeFoodPhoto } from "@/ai/flows/analyze-food-photo"
+import { analyzeFoodIngredients } from "@/ai/flows/analyze-food-ingredients"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 
@@ -60,6 +61,7 @@ export interface FoodIntake {
     description: string;
     calories: number;
     ingredients: string[];
+    dietaryWarning?: string;
 }
 
 // Data structure for a diary entry
@@ -158,7 +160,7 @@ const bodyParts = [
 ];
 
 
-function LogFoodDialog({ onLog, open, onOpenChange }: { onLog: (food: FoodIntake) => void, open: boolean, onOpenChange: (open: boolean) => void }) {
+function LogFoodDialog({ onLog, open, onOpenChange, userDiagnosis }: { onLog: (food: FoodIntake) => void, open: boolean, onOpenChange: (open: boolean) => void, userDiagnosis: string }) {
     const { toast } = useToast();
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -225,12 +227,15 @@ function LogFoodDialog({ onLog, open, onOpenChange }: { onLog: (food: FoodIntake
         setIsAnalyzing(true);
         setView('chooser'); // Show loader in chooser view
         try {
-            const result = await analyzeFoodPhoto({ photoDataUri });
+            const photoResult = await analyzeFoodPhoto({ photoDataUri });
+            const ingredientResult = await analyzeFoodIngredients({ diagnosis: userDiagnosis, ingredients: photoResult.ingredients });
+            
             setAnalyzedData({
                 photoDataUri,
-                description: result.description,
-                calories: result.calories,
-                ingredients: result.ingredients,
+                description: photoResult.description,
+                calories: photoResult.calories,
+                ingredients: photoResult.ingredients,
+                dietaryWarning: ingredientResult.warning,
             });
             setView('confirm');
         } catch (error) {
@@ -340,6 +345,13 @@ function LogFoodDialog({ onLog, open, onOpenChange }: { onLog: (food: FoodIntake
                                         ))}
                                      </div>
                                  </div>
+                                 {analyzedData.dietaryWarning && (
+                                     <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>Dietary Note</AlertTitle>
+                                        <AlertDescription>{analyzedData.dietaryWarning}</AlertDescription>
+                                     </Alert>
+                                 )}
                             </div>
                         )}
                     </>
@@ -816,6 +828,9 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                                                 <div className="flex-1 space-y-1">
                                                     <p className="font-semibold text-sm">{meal.title}</p>
                                                     <p className="text-xs text-muted-foreground">~{meal.calories} calories</p>
+                                                     {meal.dietaryWarning && (
+                                                        <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> {meal.dietaryWarning}</p>
+                                                    )}
                                                 </div>
                                                 <Button variant="ghost" size="icon" className="h-7 w-7 absolute top-0 right-0 text-destructive" onClick={() => handleRemoveFood(meal.id)}>
                                                     <Trash2 className="w-4 h-4" />
@@ -890,7 +905,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-            <LogFoodDialog open={isFoodDialogOpen} onOpenChange={setIsFoodDialogOpen} onLog={handleLogFood} />
+            <LogFoodDialog open={isFoodDialogOpen} onOpenChange={setIsFoodDialogOpen} onLog={handleLogFood} userDiagnosis={contextData.userData?.initialDiagnosis || "Not specified"}/>
         </>
     )
 }
@@ -978,6 +993,13 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries 
                                                 ))}
                                             </div>
                                        </div>
+                                       {meal.dietaryWarning && (
+                                            <Alert variant="destructive" className="mt-2 text-xs">
+                                                <AlertTriangle className="h-3 w-3" />
+                                                <AlertTitle className="font-semibold">Dietary Note</AlertTitle>
+                                                <AlertDescription>{meal.dietaryWarning}</AlertDescription>
+                                            </Alert>
+                                        )}
                                    </div>
                                 </Card>
                             ))}

@@ -565,10 +565,14 @@ function SupportChatPageContent() {
       });
       if (!newTtsState && audioRef.current) {
           audioRef.current.pause();
-          audioRef.current.src = "";
-          setAudioDataUri(null);
+          setAudioDataUri(null); // This will also cause the useEffect to set src to null
       }
   }
+   useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.src = audioDataUri || "";
+    }
+  }, [audioDataUri]);
 
   const handleDownloadMessage = (content: string) => {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -786,3 +790,4 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
+

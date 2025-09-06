@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
-import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download, X, Lightbulb, Zap, Camera, Utensils } from "lucide-react"
+import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download, X, Lightbulb, Zap, Camera, Utensils, FileUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Medication } from "@/app/(app)/medication/page"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -53,6 +53,7 @@ export interface MedsTaken {
 
 // Data structure for food intake
 export interface FoodIntake {
+    id: string;
     photoDataUri: string;
     description: string;
     calories: number;
@@ -71,7 +72,7 @@ export interface DiaryEntry {
   symptomAnalysis?: string; // To store AI analysis for recurring symptoms
   weight: string;
   sleep: string;
-  foodIntake: FoodIntake | null;
+  foodIntake: FoodIntake[];
   worriedAbout: string;
   positiveAbout: string;
   notes: string;
@@ -158,58 +159,67 @@ function LogFoodDialog({ onLog, open, onOpenChange }: { onLog: (food: FoodIntake
     const { toast } = useToast();
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [hasCameraPermission, setHasCameraPermission] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [view, setView] = useState<'chooser' | 'camera' | 'upload'>('chooser');
 
+    const resetDialog = () => {
+        setView('chooser');
+        setIsAnalyzing(false);
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+        }
+    }
+
+    const startCamera = async () => {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setHasCameraPermission(false);
+            return;
+        }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+            setHasCameraPermission(true);
+            setView('camera');
+        } catch (error) {
+            console.error('Error accessing camera:', error);
+            setHasCameraPermission(false);
+            toast({
+                variant: 'destructive',
+                title: 'Camera Access Denied',
+                description: 'Please enable camera permissions in your browser settings to use this feature.',
+            });
+        }
+    };
+    
     useEffect(() => {
-        const getCameraPermission = async () => {
-            if (!open) return;
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                setHasCameraPermission(false);
-                return;
-            }
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                }
-                setHasCameraPermission(true);
-            } catch (error) {
-                console.error('Error accessing camera:', error);
-                setHasCameraPermission(false);
-                toast({
-                    variant: 'destructive',
-                    title: 'Camera Access Denied',
-                    description: 'Please enable camera permissions in your browser settings to use this feature.',
-                });
-            }
-        };
-        getCameraPermission();
+        if (!open) {
+            resetDialog();
+        }
+    }, [open]);
 
-        return () => {
-            if (videoRef.current && videoRef.current.srcObject) {
-                const stream = videoRef.current.srcObject as MediaStream;
-                stream.getTracks().forEach(track => track.stop());
-            }
-        };
-    }, [toast, open]);
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                handleAnalyze(e.target?.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
-    const handleCaptureAndAnalyze = async () => {
-        if (!videoRef.current || !canvasRef.current) return;
+    const handleAnalyze = async (photoDataUri: string) => {
+        if (!photoDataUri) return;
         setIsAnalyzing(true);
-
-        const video = videoRef.current;
-        const canvas = canvasRef.current;
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const context = canvas.getContext('2d');
-        context?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-
-        const photoDataUri = canvas.toDataURL('image/jpeg');
-
         try {
             const result = await analyzeFoodPhoto({ photoDataUri });
             const foodLog: FoodIntake = {
+                id: new Date().toISOString(),
                 photoDataUri,
                 description: result.description,
                 calories: result.calories
@@ -226,36 +236,84 @@ function LogFoodDialog({ onLog, open, onOpenChange }: { onLog: (food: FoodIntake
         } finally {
             setIsAnalyzing(false);
         }
+    }
+
+    const handleCaptureAndAnalyze = async () => {
+        if (!videoRef.current || !canvasRef.current) return;
+        
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        context?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+
+        const photoDataUri = canvas.toDataURL('image/jpeg');
+        handleAnalyze(photoDataUri);
     };
     
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Log Food with Photo</DialogTitle>
+                    <DialogTitle>Log a Meal</DialogTitle>
                     <DialogDescription>
-                        Point your camera at your meal. Ensure it is clear and well-lit.
+                        {view === 'chooser' && "Add a meal to your diary using your camera or by uploading a photo."}
+                        {view === 'camera' && "Point your camera at your meal. Ensure it is clear and well-lit."}
+                        {view === 'upload' && "Select a photo of your meal from your device."}
                     </DialogDescription>
                 </DialogHeader>
-                <div className="py-4">
-                     <div className="relative">
-                        <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted playsInline />
-                        <canvas ref={canvasRef} className="hidden" />
-                        {!hasCameraPermission && (
-                             <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md">
-                                <p className="text-white text-center">Camera access is required.</p>
-                             </div>
-                        )}
+
+                {isAnalyzing ? (
+                    <div className="flex flex-col items-center justify-center h-48 gap-4">
+                        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                        <p className="text-muted-foreground">Analyzing your meal...</p>
                     </div>
-                </div>
+                ) : (
+                    <>
+                        {view === 'chooser' && (
+                            <div className="grid grid-cols-2 gap-4 py-4">
+                                <Button variant="outline" className="h-28 flex-col gap-2" onClick={startCamera}>
+                                    <Camera className="h-8 w-8" />
+                                    <span>Use Camera</span>
+                                </Button>
+                                <Button variant="outline" className="h-28 flex-col gap-2" onClick={() => fileInputRef.current?.click()}>
+                                    <FileUp className="h-8 w-8" />
+                                    <span>Upload Photo</span>
+                                </Button>
+                                <Input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                            </div>
+                        )}
+                        {view === 'camera' && (
+                             <div className="py-4">
+                                 <div className="relative">
+                                    <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted playsInline />
+                                    <canvas ref={canvasRef} className="hidden" />
+                                    {!hasCameraPermission && (
+                                         <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md">
+                                            <p className="text-white text-center">Camera access is required.</p>
+                                         </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+
                 <DialogFooter>
-                     <DialogClose asChild>
-                        <Button variant="ghost">Cancel</Button>
-                     </DialogClose>
-                    <Button onClick={handleCaptureAndAnalyze} disabled={!hasCameraPermission || isAnalyzing}>
-                        {isAnalyzing ? <Loader2 className="animate-spin mr-2"/> : <Camera className="mr-2"/>}
-                        Capture & Analyze
-                    </Button>
+                    {view === 'camera' ? (
+                        <>
+                             <Button variant="ghost" onClick={() => setView('chooser')}>Back</Button>
+                            <Button onClick={handleCaptureAndAnalyze} disabled={!hasCameraPermission || isAnalyzing}>
+                                <Camera className="mr-2"/>
+                                Capture & Analyze
+                            </Button>
+                        </>
+                    ) : (
+                         <DialogClose asChild>
+                            <Button variant="ghost">Cancel</Button>
+                         </DialogClose>
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -390,7 +448,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
     const [painRemarks, setPainRemarks] = useState('');
     const [weight, setWeight] = useState('');
     const [sleep, setSleep] = useState('');
-    const [foodIntake, setFoodIntake] = useState<FoodIntake | null>(null);
+    const [foodIntake, setFoodIntake] = useState<FoodIntake[]>([]);
     const [isFoodDialogOpen, setIsFoodDialogOpen] = useState(false);
     const [worriedAbout, setWorriedAbout] = useState('');
     const [positiveAbout, setPositiveAbout] = useState('');
@@ -440,7 +498,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             symptomAnalysis: '',
             weight: '',
             sleep: '',
-            foodIntake: null,
+            foodIntake: [],
             worriedAbout: '',
             positiveAbout: '',
             notes: '',
@@ -457,7 +515,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
         setSymptomAnalysis(entryToEdit.symptomAnalysis || null);
         setWeight(entryToEdit.weight);
         setSleep(entryToEdit.sleep);
-        setFoodIntake(entryToEdit.foodIntake || null);
+        setFoodIntake(entryToEdit.foodIntake || []);
         setWorriedAbout(entryToEdit.worriedAbout);
         setPositiveAbout(entryToEdit.positiveAbout);
         setNotes(entryToEdit.notes);
@@ -491,6 +549,14 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
     
     const handleLogMedication = (medLog: MedsTaken) => {
         setMedsTaken(prev => [...prev, medLog].sort((a,b) => a.time.localeCompare(b.time)));
+    }
+    
+    const handleLogFood = (foodLog: FoodIntake) => {
+        setFoodIntake(prev => [...prev, foodLog]);
+    }
+
+    const handleRemoveFood = (foodId: string) => {
+        setFoodIntake(prev => prev.filter(f => f.id !== foodId));
     }
 
     const handleRemoveMedication = (medId: string) => {
@@ -689,21 +755,26 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                         
                         <div className="space-y-2">
                             <Label>Food Intake</Label>
-                            <Card className="p-4">
-                                {foodIntake ? (
-                                    <div className="flex items-start gap-4">
-                                        <Image src={foodIntake.photoDataUri} alt="Logged meal" width={100} height={100} className="rounded-md object-cover aspect-square"/>
-                                        <div className="flex-1 space-y-2">
-                                            <p className="font-semibold">{foodIntake.description}</p>
-                                            <p className="text-sm text-muted-foreground">~{foodIntake.calories} calories</p>
-                                            <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setFoodIntake(null)}>Remove Photo</Button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <Button variant="outline" className="w-full" onClick={() => setIsFoodDialogOpen(true)}>
-                                        <Camera className="mr-2"/> Log Meal with Photo
-                                    </Button>
-                                )}
+                            <Card className="p-4 space-y-4">
+                               {foodIntake.length > 0 && (
+                                   <div className="space-y-3">
+                                       {foodIntake.map(meal => (
+                                           <div key={meal.id} className="flex items-start gap-4 relative pr-8">
+                                                <Image src={meal.photoDataUri} alt="Logged meal" width={64} height={64} className="rounded-md object-cover aspect-square"/>
+                                                <div className="flex-1 space-y-1">
+                                                    <p className="font-semibold text-sm">{meal.description}</p>
+                                                    <p className="text-xs text-muted-foreground">~{meal.calories} calories</p>
+                                                </div>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 absolute top-0 right-0 text-destructive" onClick={() => handleRemoveFood(meal.id)}>
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                       ))}
+                                   </div>
+                               )}
+                                <Button variant="outline" className="w-full" onClick={() => setIsFoodDialogOpen(true)}>
+                                    <Utensils className="mr-2"/> Add a Meal
+                                </Button>
                             </Card>
                         </div>
 
@@ -767,7 +838,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-            <LogFoodDialog open={isFoodDialogOpen} onOpenChange={setIsFoodDialogOpen} onLog={setFoodIntake} />
+            <LogFoodDialog open={isFoodDialogOpen} onOpenChange={setIsFoodDialogOpen} onLog={handleLogFood} />
         </>
     )
 }
@@ -832,15 +903,19 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries 
                     </div>
                 )}
                 
-                {entry.foodIntake && (
+                {entry.foodIntake && entry.foodIntake.length > 0 && (
                     <div className="space-y-2">
                         <h4 className="font-semibold text-sm">Food Intake</h4>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                           <Image src={entry.foodIntake.photoDataUri} alt={entry.foodIntake.description} width={80} height={80} className="rounded-md object-cover aspect-square border" />
-                           <div>
-                               <p>{entry.foodIntake.description}</p>
-                               <p className="font-semibold">~{entry.foodIntake.calories} calories</p>
-                           </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {entry.foodIntake.map(meal => (
+                                <div key={meal.id} className="text-sm text-muted-foreground">
+                                   <Image src={meal.photoDataUri} alt={meal.description} width={150} height={150} className="rounded-md object-cover aspect-square border" />
+                                   <div className="mt-2">
+                                       <p className="font-medium text-foreground">{meal.description}</p>
+                                       <p className="font-semibold">~{meal.calories} calories</p>
+                                   </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 )}

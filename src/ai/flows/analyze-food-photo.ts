@@ -24,6 +24,7 @@ export type AnalyzeFoodPhotoInput = z.infer<typeof AnalyzeFoodPhotoInputSchema>;
 const AnalyzeFoodPhotoOutputSchema = z.object({
   description: z.string().describe("A brief description of the food identified in the photo."),
   calories: z.number().describe("The estimated calorie count for the meal."),
+  ingredients: z.array(z.string()).describe("A list of identified ingredients in the meal."),
 });
 export type AnalyzeFoodPhotoOutput = z.infer<typeof AnalyzeFoodPhotoOutputSchema>;
 
@@ -43,6 +44,7 @@ const prompt = ai.definePrompt({
 1.  **Identify the food:** Look at the image and identify all the components of the meal.
 2.  **Describe the meal:** Provide a brief, one-sentence description of the identified meal.
 3.  **Estimate Calories:** Based on the portion size and food items, estimate the total calories. Return this as a number.
+4.  **List Ingredients:** Identify the primary ingredients of the meal and return them as a list of strings.
 
 **IMAGE:**
 {{media url=photoDataUri}}

@@ -40,6 +40,7 @@ import { marked } from "marked"
 import { DiarySummary } from "@/components/diary-summary"
 import { analyzeFoodPhoto } from "@/ai/flows/analyze-food-photo"
 import Image from "next/image"
+import { Badge } from "@/components/ui/badge"
 
 
 // Data structure for meds taken
@@ -54,9 +55,11 @@ export interface MedsTaken {
 // Data structure for food intake
 export interface FoodIntake {
     id: string;
+    title: string;
     photoDataUri: string;
     description: string;
     calories: number;
+    ingredients: string[];
 }
 
 // Data structure for a diary entry
@@ -162,11 +165,15 @@ function LogFoodDialog({ onLog, open, onOpenChange }: { onLog: (food: FoodIntake
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [hasCameraPermission, setHasCameraPermission] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [view, setView] = useState<'chooser' | 'camera' | 'upload'>('chooser');
+    const [view, setView] = useState<'chooser' | 'camera' | 'upload' | 'confirm'>('chooser');
+    const [analyzedData, setAnalyzedData] = useState<Omit<FoodIntake, 'id' | 'title'> | null>(null);
+    const [title, setTitle] = useState('');
 
     const resetDialog = () => {
         setView('chooser');
         setIsAnalyzing(false);
+        setAnalyzedData(null);
+        setTitle('');
         if (videoRef.current && videoRef.current.srcObject) {
             const stream = videoRef.current.srcObject as MediaStream;
             stream.getTracks().forEach(track => track.stop());
@@ -216,16 +223,16 @@ function LogFoodDialog({ onLog, open, onOpenChange }: { onLog: (food: FoodIntake
     const handleAnalyze = async (photoDataUri: string) => {
         if (!photoDataUri) return;
         setIsAnalyzing(true);
+        setView('chooser'); // Show loader in chooser view
         try {
             const result = await analyzeFoodPhoto({ photoDataUri });
-            const foodLog: FoodIntake = {
-                id: new Date().toISOString(),
+            setAnalyzedData({
                 photoDataUri,
                 description: result.description,
-                calories: result.calories
-            };
-            onLog(foodLog);
-            onOpenChange(false);
+                calories: result.calories,
+                ingredients: result.ingredients,
+            });
+            setView('confirm');
         } catch (error) {
             console.error("Failed to analyze food photo:", error);
             toast({
@@ -233,6 +240,7 @@ function LogFoodDialog({ onLog, open, onOpenChange }: { onLog: (food: FoodIntake
                 title: 'Analysis Failed',
                 description: 'Could not analyze the photo. Please try again or enter manually.',
             });
+            setView('chooser');
         } finally {
             setIsAnalyzing(false);
         }
@@ -251,6 +259,23 @@ function LogFoodDialog({ onLog, open, onOpenChange }: { onLog: (food: FoodIntake
         const photoDataUri = canvas.toDataURL('image/jpeg');
         handleAnalyze(photoDataUri);
     };
+
+    const handleConfirmAndLog = () => {
+        if (!analyzedData || !title.trim()) {
+            toast({
+                variant: 'destructive',
+                title: 'Title is required',
+            });
+            return;
+        }
+        const foodLog: FoodIntake = {
+            id: new Date().toISOString(),
+            title: title,
+            ...analyzedData
+        };
+        onLog(foodLog);
+        onOpenChange(false);
+    }
     
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -261,6 +286,7 @@ function LogFoodDialog({ onLog, open, onOpenChange }: { onLog: (food: FoodIntake
                         {view === 'chooser' && "Add a meal to your diary using your camera or by uploading a photo."}
                         {view === 'camera' && "Point your camera at your meal. Ensure it is clear and well-lit."}
                         {view === 'upload' && "Select a photo of your meal from your device."}
+                        {view === 'confirm' && "Confirm the details and add a title for your meal."}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -297,6 +323,25 @@ function LogFoodDialog({ onLog, open, onOpenChange }: { onLog: (food: FoodIntake
                                 </div>
                             </div>
                         )}
+                        {view === 'confirm' && analyzedData && (
+                            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+                                 <Image src={analyzedData.photoDataUri} alt="Logged meal" width={400} height={225} className="rounded-md object-cover w-full aspect-video"/>
+                                 <div className="space-y-2">
+                                     <Label htmlFor="meal-title">Meal Title</Label>
+                                     <Input id="meal-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Breakfast, Lunch..." />
+                                 </div>
+                                 <p><strong>Description:</strong> {analyzedData.description}</p>
+                                 <p><strong>Estimated Calories:</strong> {analyzedData.calories}</p>
+                                 <div>
+                                     <h4 className="font-semibold mb-2">Identified Ingredients:</h4>
+                                     <div className="flex flex-wrap gap-2">
+                                        {analyzedData.ingredients.map((ing, i) => (
+                                            <Badge key={i} variant="secondary">{ing}</Badge>
+                                        ))}
+                                     </div>
+                                 </div>
+                            </div>
+                        )}
                     </>
                 )}
 
@@ -307,6 +352,13 @@ function LogFoodDialog({ onLog, open, onOpenChange }: { onLog: (food: FoodIntake
                             <Button onClick={handleCaptureAndAnalyze} disabled={!hasCameraPermission || isAnalyzing}>
                                 <Camera className="mr-2"/>
                                 Capture & Analyze
+                            </Button>
+                        </>
+                    ) : view === 'confirm' ? (
+                         <>
+                            <Button variant="ghost" onClick={() => setView('chooser')}>Back</Button>
+                            <Button onClick={handleConfirmAndLog} disabled={!title.trim()}>
+                                Log Meal
                             </Button>
                         </>
                     ) : (
@@ -762,7 +814,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                                            <div key={meal.id} className="flex items-start gap-4 relative pr-8">
                                                 <Image src={meal.photoDataUri} alt="Logged meal" width={64} height={64} className="rounded-md object-cover aspect-square"/>
                                                 <div className="flex-1 space-y-1">
-                                                    <p className="font-semibold text-sm">{meal.description}</p>
+                                                    <p className="font-semibold text-sm">{meal.title}</p>
                                                     <p className="text-xs text-muted-foreground">~{meal.calories} calories</p>
                                                 </div>
                                                 <Button variant="ghost" size="icon" className="h-7 w-7 absolute top-0 right-0 text-destructive" onClick={() => handleRemoveFood(meal.id)}>
@@ -845,6 +897,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
 
 function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries }: { entry: DiaryEntry; onSave: (entry: DiaryEntry) => void; currentUserEmail: string | null; onDelete: (id: string) => void; allEntries: DiaryEntry[]; }) {
     const hasPainDetails = (entry.painScore ?? 0) > 0 && (entry.painLocation || entry.painRemarks);
+    const dailyTotalCalories = entry.foodIntake?.reduce((acc, meal) => acc + meal.calories, 0) || 0;
     
     return (
         <Card className="diary-entry-card relative group">
@@ -905,16 +958,28 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries 
                 
                 {entry.foodIntake && entry.foodIntake.length > 0 && (
                     <div className="space-y-2">
-                        <h4 className="font-semibold text-sm">Food Intake</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div className="flex justify-between items-baseline">
+                            <h4 className="font-semibold text-sm">Food Intake</h4>
+                            <p className="font-bold text-sm">Daily Total: ~{dailyTotalCalories} calories</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             {entry.foodIntake.map(meal => (
-                                <div key={meal.id} className="text-sm text-muted-foreground">
-                                   <Image src={meal.photoDataUri} alt={meal.description} width={150} height={150} className="rounded-md object-cover aspect-square border" />
+                                <Card key={meal.id} className="p-4 bg-muted/30">
+                                   <Image src={meal.photoDataUri} alt={meal.title} width={200} height={150} className="rounded-md object-cover aspect-video border w-full" />
                                    <div className="mt-2">
-                                       <p className="font-medium text-foreground">{meal.description}</p>
-                                       <p className="font-semibold">~{meal.calories} calories</p>
+                                       <h5 className="font-semibold">{meal.title}</h5>
+                                       <p className="text-xs text-muted-foreground">{meal.description}</p>
+                                       <p className="text-sm font-bold text-primary mt-1">~{meal.calories} calories</p>
+                                       <div className="mt-2">
+                                            <h6 className="text-xs font-semibold">Ingredients:</h6>
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                {meal.ingredients.map((ing, i) => (
+                                                    <Badge key={i} variant="secondary" className="text-xs">{ing}</Badge>
+                                                ))}
+                                            </div>
+                                       </div>
                                    </div>
-                                </div>
+                                </Card>
                             ))}
                         </div>
                     </div>

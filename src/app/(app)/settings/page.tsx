@@ -49,17 +49,17 @@ interface UserData {
 }
 
 const voices = [
-    { id: 'en-US-Standard-A', name: 'John', gender: 'Male' },
-    { id: 'en-US-Standard-B', name: 'Mark', gender: 'Male' },
-    { id: 'en-US-Standard-C', name: 'Sarah', gender: 'Female' },
-    { id: 'en-US-Standard-D', name: 'David', gender: 'Male' },
-    { id: 'en-US-Standard-E', name: 'Emily', gender: 'Female' },
-    { id: 'en-GB-Standard-A', name: 'Peter', gender: 'Male' },
-    { id: 'en-GB-Standard-B', name: 'James', gender: 'Male' },
-    { id: 'en-GB-Standard-C', name: 'Mary', gender: 'Female' },
-    { id: 'en-GB-Standard-D', name: 'Daniel', gender: 'Male' },
-    { id: 'en-GB-Standard-E', name: 'Jennifer', gender: 'Female' },
-]
+    { id: 'Algenib', name: 'Algenib', gender: 'Male' },
+    { id: 'Achernar', name: 'Achernar', gender: 'Male' },
+    { id: 'Achird', name: 'Achird', gender: 'Male' },
+    { id: 'Umbriel', name: 'Umbriel', gender: 'Male' },
+    { id: 'Zubenelgenubi', name: 'Zubenelgenubi', gender: 'Male' },
+    { id: 'Enceladus', name: 'Enceladus', gender: 'Female' },
+    { id: 'Erinome', name: 'Erinome', gender: 'Female' },
+    { id: 'Leda', name: 'Leda', gender: 'Female' },
+    { id: 'Puck', name: 'Puck', gender: 'Female' },
+    { id: 'Sadalmelik', name: 'Sadalmelik', gender: 'Female' },
+];
 
 const specialistAvatarMap = {
     medical: medicalAvatars,
@@ -97,7 +97,7 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
     const customPersonasKey = `customPersonas_${specialist}` as keyof UserData;
 
     const selectedAvatar = userData[avatarKey] || avatars[0].id;
-    const selectedVoice = userData[voiceKey] || 'en-US-Standard-A';
+    const selectedVoice = userData[voiceKey] || 'Algenib';
     const selectedMood = userData[moodKey] || 'standard';
     const customPersonas = userData[customPersonasKey] || [];
 

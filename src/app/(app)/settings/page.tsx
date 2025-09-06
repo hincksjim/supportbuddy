@@ -49,26 +49,16 @@ interface UserData {
 }
 
 const voices = [
-    { id: 'Enceladus', name: 'Peter', gender: 'Male' },
-    { id: 'Achernar', name: 'David', gender: 'Male' },
-    { id: 'Gacrux', name: 'James', gender: 'Male' },
-    { id: 'Umbriel', name: 'Michael', gender: 'Male' },
-    { id: 'Algenib', name: 'Chris', gender: 'Male' },
-    { id: 'Janus', name: 'Daniel', gender: 'Male' },
-    { id: 'Mimas', name: 'Paul', gender: 'Male' },
-    { id: 'Oberon', name: 'Mark', gender: 'Male' },
-    { id: 'Phobos', name: 'Steven', gender: 'Male' },
-    { id: 'Proteus', name: 'Andrew', gender: 'Male' },
-    { id: 'Leda', name: 'Sarah', gender: 'Female' },
-    { id: 'Aoede', name: 'Emily', gender: 'Female' },
-    { id: 'Autonoe', name: 'Jennifer', gender: 'Female' },
-    { id: 'Schedar', name: 'Mary', gender: 'Female' },
-    { id: 'Callirrhoe', name: 'Linda', gender: 'Female' },
-    { id: 'Dione', name: 'Jessica', gender: 'Female' },
-    { id: 'Helene', name: 'Susan', gender: 'Female' },
-    { id: 'Io', name: 'Karen', gender: 'Female' },
-    { id: 'Kale', name: 'Nancy', gender: 'Female' },
-    { id: 'Larissa', name: 'Betty', gender: 'Female' },
+    { id: 'en-US-Standard-A', name: 'John', gender: 'Male' },
+    { id: 'en-US-Standard-B', name: 'Mark', gender: 'Male' },
+    { id: 'en-US-Standard-C', name: 'Sarah', gender: 'Female' },
+    { id: 'en-US-Standard-D', name: 'David', gender: 'Male' },
+    { id: 'en-US-Standard-E', name: 'Emily', gender: 'Female' },
+    { id: 'en-GB-Standard-A', name: 'Peter', gender: 'Male' },
+    { id: 'en-GB-Standard-B', name: 'James', gender: 'Male' },
+    { id: 'en-GB-Standard-C', name: 'Mary', gender: 'Female' },
+    { id: 'en-GB-Standard-D', name: 'Daniel', gender: 'Male' },
+    { id: 'en-GB-Standard-E', name: 'Jennifer', gender: 'Female' },
 ]
 
 const specialistAvatarMap = {
@@ -107,7 +97,7 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
     const customPersonasKey = `customPersonas_${specialist}` as keyof UserData;
 
     const selectedAvatar = userData[avatarKey] || avatars[0].id;
-    const selectedVoice = userData[voiceKey] || 'Algenib';
+    const selectedVoice = userData[voiceKey] || 'en-US-Standard-A';
     const selectedMood = userData[moodKey] || 'standard';
     const customPersonas = userData[customPersonasKey] || [];
 

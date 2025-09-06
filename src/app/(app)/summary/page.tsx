@@ -36,9 +36,7 @@ interface AnalysisResult {
   id: string
   title: string
   question: string
-  fileDataUri: string
-  fileType: string
-  fileName: string
+  files: { fileDataUri: string; fileType: string; fileName: string }[]
   analysis: string
   date: string
 }
@@ -480,6 +478,10 @@ export default function SummaryPage() {
                            <div className="chart-card-pdf">
                                <h3 className="text-sm font-semibold mb-2 text-center">Treatment Mood</h3>
                                <DiaryChart data={prereqData.diaryEntries} chartType="treatment" />
+                           </div>
+                           <div className="chart-card-pdf">
+                               <h3 className="text-sm font-semibold mb-2 text-center">Calorie Intake (kcal)</h3>
+                               <DiaryChart data={prereqData.diaryEntries} chartType="calories" />
                            </div>
                         </div>
                     ) : (

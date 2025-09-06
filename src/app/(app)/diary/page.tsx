@@ -897,7 +897,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
 
 function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries }: { entry: DiaryEntry; onSave: (entry: DiaryEntry) => void; currentUserEmail: string | null; onDelete: (id: string) => void; allEntries: DiaryEntry[]; }) {
     const hasPainDetails = (entry.painScore ?? 0) > 0 && (entry.painLocation || entry.painRemarks);
-    const dailyTotalCalories = entry.foodIntake?.reduce((acc, meal) => acc + meal.calories, 0) || 0;
+    const dailyTotalCalories = entry.foodIntake?.reduce((acc, meal) => acc + (meal.calories || 0), 0) || 0;
     
     return (
         <Card className="diary-entry-card relative group">
@@ -960,7 +960,7 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries 
                     <div className="space-y-2">
                         <div className="flex justify-between items-baseline">
                             <h4 className="font-semibold text-sm">Food Intake</h4>
-                            <p className="font-bold text-sm">Daily Total: ~{dailyTotalCalories} calories</p>
+                            {dailyTotalCalories > 0 && <p className="font-bold text-sm">Daily Total: ~{dailyTotalCalories} calories</p>}
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             {entry.foodIntake.map(meal => (
@@ -969,9 +969,9 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries 
                                    <div className="mt-2">
                                        <h5 className="font-semibold">{meal.title}</h5>
                                        <p className="text-xs text-muted-foreground">{meal.description}</p>
-                                       <p className="text-sm font-bold text-primary mt-1">~{meal.calories} calories</p>
+                                       {meal.calories > 0 && <p className="text-sm font-bold text-primary mt-1">~{meal.calories} calories</p>}
                                        <div className="mt-2">
-                                            <h6 className="text-xs font-semibold">Ingredients:</h6>
+                                            {meal.ingredients.length > 0 && <h6 className="text-xs font-semibold">Ingredients:</h6>}
                                             <div className="flex flex-wrap gap-1 mt-1">
                                                 {meal.ingredients.map((ing, i) => (
                                                     <Badge key={i} variant="secondary" className="text-xs">{ing}</Badge>

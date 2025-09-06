@@ -44,13 +44,17 @@ const chartConfig = {
   sleep: {
     label: "Sleep (hrs)",
     color: "hsl(var(--chart-5))",
+  },
+  calories: {
+    label: "Calories (kcal)",
+    color: "hsl(var(--chart-3))",
   }
 } satisfies ChartConfig
 
-export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType: 'mood' | 'weight' | 'sleep' | 'pain' | 'treatment' | 'diagnosis' }) {
+export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType: 'mood' | 'weight' | 'sleep' | 'pain' | 'treatment' | 'diagnosis' | 'calories' }) {
   const chartData = React.useMemo(() => {
     return data
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .sort((a, b) => new Date(a.date).getTime() - new Date(a.date).getTime())
       .map(entry => ({
         date: new Date(entry.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }),
         overallMood: entry.mood ? moodToValueMap[entry.mood] : null,
@@ -59,6 +63,7 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
         pain: entry.painScore,
         weight: entry.weight ? parseFloat(entry.weight) : null,
         sleep: entry.sleep ? parseFloat(entry.sleep) : null,
+        calories: entry.foodIntake?.reduce((acc, meal) => acc + (meal.calories || 0), 0) || null,
       }));
   }, [data]);
 
@@ -82,6 +87,11 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
             const sleeps = chartData.map(d => d.sleep).filter(s => s !== null && !isNaN(s)) as number[];
              if (sleeps.length === 0) return [0, 12];
             return [0, Math.ceil(Math.max(...sleeps) + 2)];
+        }
+        case 'calories': {
+            const calories = chartData.map(d => d.calories).filter(c => c !== null && !isNaN(c)) as number[];
+            if (calories.length === 0) return [0, 3000];
+            return [0, Math.ceil(Math.max(...calories) / 500) * 500]; // Round up to nearest 500
         }
         default:
             return [0, 'auto'];
@@ -187,6 +197,17 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
                     name="Sleep (hrs)"
                     type="monotone"
                     stroke="var(--color-sleep)"
+                    strokeWidth={2}
+                    dot={true}
+                    connectNulls
+                />
+            )}
+            {chartType === 'calories' && (
+                <Line
+                    dataKey="calories"
+                    name="Calories (kcal)"
+                    type="monotone"
+                    stroke="var(--color-calories)"
                     strokeWidth={2}
                     dot={true}
                     connectNulls

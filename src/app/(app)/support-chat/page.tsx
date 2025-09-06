@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useRef, useEffect, Suspense, useCallback } from "react"
-import { CornerDownLeft, Loader2, User, Heart, Landmark, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX, PlusCircle, Download, Bookmark, ChevronDown, Settings, Edit } from "lucide-react"
+import { CornerDownLeft, Loader2, User, Heart, Landmark, LogOut, Mic, MicOff, Save, Home, Volume2, VolumeX, PlusCircle, Download, Bookmark, ChevronDown, Settings, Edit, MessageSquare } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 
@@ -30,7 +30,7 @@ import { MeetingNote, TextNote } from "@/ai/flows/types"
 type Specialist = "medical" | "mental_health" | "financial";
 
 interface Message {
-  role: "user" | "assistant"
+  role: "user" | "assistant" | "system"
   content: string;
   metadata?: {
       specialist: Specialist;
@@ -211,6 +211,8 @@ function SupportChatPageContent() {
       if (selectedPersona) {
           customPersonaText = selectedPersona.persona;
       }
+      
+      const relevantHistory = newMessages.filter(m => m.role !== 'system');
 
       const flowInput: AiConversationalSupportInput = { 
         specialist: activeSpecialist,
@@ -229,7 +231,7 @@ function SupportChatPageContent() {
         existingBenefits: userData.benefits || [],
         responseMood: 'standard', // This is now overridden by persona logic
         customPersona: customPersonaText,
-        conversationHistory: messages,
+        conversationHistory: relevantHistory,
         question: finalInput,
         
         timelineData: appContextData.timelineData,
@@ -382,8 +384,8 @@ function SupportChatPageContent() {
   });
 
   const toggleListening = () => {
-    if (isListening) {
-        stopListening();
+      if (isListening) {
+          stopListening();
         setTimeout(() => {
           const form = document.getElementById("chat-form") as HTMLFormElement;
           form?.requestSubmit();
@@ -440,20 +442,22 @@ function SupportChatPageContent() {
     setCurrentConversationId(null);
   }
 
-  const handleSpecialistChange = (newSpecialist: Specialist) => {
+ const handleSpecialistChange = (newSpecialist: Specialist) => {
     if (newSpecialist === activeSpecialist || isHistoricChat) {
         return;
     }
-
-    // Archive the current chat before switching
-    if (messages.length > 1) {
-        archiveChatLocally(messages, activeSpecialist);
-    }
     
-    // Start a new chat with the new specialist
+    // Switch specialist without starting a new chat
     setActiveSpecialist(newSpecialist);
-    startNewChat(newSpecialist);
-  };
+    
+    const systemMessage: Message = {
+        role: "system",
+        content: `You are now talking to ${specialistConfig[newSpecialist].name}, the ${newSpecialist.replace('_', ' ')}.`
+    };
+    
+    setMessages(prev => [...prev, systemMessage]);
+};
+
 
   useEffect(() => {
     if (!currentUserEmail) return;
@@ -499,6 +503,10 @@ function SupportChatPageContent() {
             const parsedHistory = JSON.parse(storedHistory);
             if(Array.isArray(parsedHistory) && parsedHistory.length > 0) {
               setMessages(parsedHistory);
+               const lastAssistantMsg = [...parsedHistory].reverse().find(m => m.role === 'assistant');
+                if(lastAssistantMsg && lastAssistantMsg.metadata?.specialist) {
+                    setActiveSpecialist(lastAssistantMsg.metadata.specialist);
+                }
             } else {
                  throw new Error("History is not valid");
             }
@@ -655,13 +663,12 @@ function SupportChatPageContent() {
                    const specialist = message.metadata?.specialist || activeSpecialist;
                    const buddyAvatarUrl = getAvatarForSpecialist(specialist);
                   return (
-                  <div
-                    key={index}
-                    className={cn(
-                      "flex items-start gap-4 group",
-                      message.role === "user" ? "justify-end" : "justify-start"
-                    )}
-                  >
+                    <div
+                        key={index}
+                        className={cn("flex items-start gap-4 group", 
+                            message.role === 'system' ? 'justify-center' : message.role === "user" ? "justify-end" : "justify-start"
+                        )}
+                    >
                     {message.role === "assistant" && (
                         <div className="flex items-end gap-2">
                              <Avatar className="w-24 h-24 border bg-accent/50">
@@ -704,6 +711,11 @@ function SupportChatPageContent() {
                                 </AvatarFallback>
                             </Avatar>
                         </>
+                    )}
+                    {message.role === "system" && (
+                        <div className="text-center text-xs text-muted-foreground italic px-4 py-2 my-4 rounded-full bg-muted">
+                            {message.content}
+                        </div>
                     )}
                   </div>
                   )})}
@@ -792,3 +804,4 @@ export default function SupportChatPage() {
     )
 }
 
+    

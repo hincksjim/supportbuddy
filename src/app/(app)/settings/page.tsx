@@ -49,16 +49,16 @@ interface UserData {
 }
 
 const voices = [
-    { name: 'Enceladus', gender: 'Male' },
-    { name: 'Achernar', gender: 'Male' },
-    { name: 'Gacrux', gender: 'Male' },
-    { name: 'Umbriel', gender: 'Male' },
-    { name: 'Algenib', gender: 'Male' },
-    { name: 'Leda', gender: 'Female' },
-    { name: 'Aoede', gender: 'Female' },
-    { name: 'Autonoe', gender: 'Female' },
-    { name: 'Schedar', gender: 'Female' },
-    { name: 'Callirrhoe', gender: 'Female' },
+    { id: 'Enceladus', name: 'Peter', gender: 'Male' },
+    { id: 'Achernar', name: 'David', gender: 'Male' },
+    { id: 'Gacrux', name: 'James', gender: 'Male' },
+    { id: 'Umbriel', name: 'Michael', gender: 'Male' },
+    { id: 'Algenib', name: 'Chris', gender: 'Male' },
+    { id: 'Leda', name: 'Sarah', gender: 'Female' },
+    { id: 'Aoede', name: 'Emily', gender: 'Female' },
+    { id: 'Autonoe', name: 'Jennifer', gender: 'Female' },
+    { id: 'Schedar', name: 'Mary', gender: 'Female' },
+    { id: 'Callirrhoe', name: 'Linda', gender: 'Female' },
 ]
 
 const specialistAvatarMap = {
@@ -105,8 +105,8 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
         setUserData(prev => ({ ...prev, [avatarKey]: avatarId }));
     };
 
-    const handleVoiceChange = (voiceName: string) => {
-        setUserData(prev => ({ ...prev, [voiceKey]: voiceName }));
+    const handleVoiceChange = (voiceId: string) => {
+        setUserData(prev => ({ ...prev, [voiceKey]: voiceId }));
     };
 
     const handleMoodChange = (mood: string) => {
@@ -169,8 +169,8 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
     }, [selectedAvatar, avatars]);
     
     useEffect(() => {
-        if (!filteredVoices.some(v => v.name === selectedVoice)) {
-            handleVoiceChange(filteredVoices[0]?.name || '');
+        if (!filteredVoices.some(v => v.id === selectedVoice)) {
+            handleVoiceChange(filteredVoices[0]?.id || '');
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filteredVoices]);
@@ -197,8 +197,8 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
                                 <Image 
                                     src={avatar.imageUrl}
                                     alt={avatar.label}
-                                    width={100}
-                                    height={100}
+                                    width={50}
+                                    height={50}
                                     className="rounded-full aspect-square object-cover"
                                     data-ai-hint={avatar.hint}
                                 />
@@ -217,7 +217,7 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
                                 </SelectTrigger>
                                 <SelectContent>
                                     {filteredVoices.map(v => (
-                                        <SelectItem key={v.name} value={v.name}>{v.name}</SelectItem>
+                                        <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>

@@ -54,11 +54,21 @@ const voices = [
     { id: 'Gacrux', name: 'James', gender: 'Male' },
     { id: 'Umbriel', name: 'Michael', gender: 'Male' },
     { id: 'Algenib', name: 'Chris', gender: 'Male' },
+    { id: 'Janus', name: 'Daniel', gender: 'Male' },
+    { id: 'Mimas', name: 'Paul', gender: 'Male' },
+    { id: 'Oberon', name: 'Mark', gender: 'Male' },
+    { id: 'Phobos', name: 'Steven', gender: 'Male' },
+    { id: 'Proteus', name: 'Andrew', gender: 'Male' },
     { id: 'Leda', name: 'Sarah', gender: 'Female' },
     { id: 'Aoede', name: 'Emily', gender: 'Female' },
     { id: 'Autonoe', name: 'Jennifer', gender: 'Female' },
     { id: 'Schedar', name: 'Mary', gender: 'Female' },
     { id: 'Callirrhoe', name: 'Linda', gender: 'Female' },
+    { id: 'Dione', name: 'Jessica', gender: 'Female' },
+    { id: 'Helene', name: 'Susan', gender: 'Female' },
+    { id: 'Io', name: 'Karen', gender: 'Female' },
+    { id: 'Kale', name: 'Nancy', gender: 'Female' },
+    { id: 'Larissa', name: 'Betty', gender: 'Female' },
 ]
 
 const specialistAvatarMap = {

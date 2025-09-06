@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
-import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download, X, Lightbulb, Zap } from "lucide-react"
+import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download, X, Lightbulb, Zap, Camera, Utensils } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Medication } from "@/app/(app)/medication/page"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -38,6 +38,9 @@ import { checkMedicationDose } from "@/ai/flows/check-medication-dose"
 import { analyzeSymptomPattern } from "@/ai/flows/analyze-symptom-pattern"
 import { marked } from "marked"
 import { DiarySummary } from "@/components/diary-summary"
+import { analyzeFoodPhoto } from "@/ai/flows/analyze-food-photo"
+import Image from "next/image"
+
 
 // Data structure for meds taken
 export interface MedsTaken {
@@ -46,6 +49,13 @@ export interface MedsTaken {
     time: string; // e.g., '09:00'
     quantity: number;
     isPrescribed: boolean;
+}
+
+// Data structure for food intake
+export interface FoodIntake {
+    photoDataUri: string;
+    description: string;
+    calories: number;
 }
 
 // Data structure for a diary entry
@@ -61,7 +71,7 @@ export interface DiaryEntry {
   symptomAnalysis?: string; // To store AI analysis for recurring symptoms
   weight: string;
   sleep: string;
-  food: string;
+  foodIntake: FoodIntake | null;
   worriedAbout: string;
   positiveAbout: string;
   notes: string;
@@ -142,6 +152,115 @@ const bodyParts = [
     "Left Ankle", "Right Ankle",
     "Left Foot", "Right Foot"
 ];
+
+
+function LogFoodDialog({ onLog, open, onOpenChange }: { onLog: (food: FoodIntake) => void, open: boolean, onOpenChange: (open: boolean) => void }) {
+    const { toast } = useToast();
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [hasCameraPermission, setHasCameraPermission] = useState(true);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    useEffect(() => {
+        const getCameraPermission = async () => {
+            if (!open) return;
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                setHasCameraPermission(false);
+                return;
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+                setHasCameraPermission(true);
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                setHasCameraPermission(false);
+                toast({
+                    variant: 'destructive',
+                    title: 'Camera Access Denied',
+                    description: 'Please enable camera permissions in your browser settings to use this feature.',
+                });
+            }
+        };
+        getCameraPermission();
+
+        return () => {
+            if (videoRef.current && videoRef.current.srcObject) {
+                const stream = videoRef.current.srcObject as MediaStream;
+                stream.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, [toast, open]);
+
+    const handleCaptureAndAnalyze = async () => {
+        if (!videoRef.current || !canvasRef.current) return;
+        setIsAnalyzing(true);
+
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        context?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+
+        const photoDataUri = canvas.toDataURL('image/jpeg');
+
+        try {
+            const result = await analyzeFoodPhoto({ photoDataUri });
+            const foodLog: FoodIntake = {
+                photoDataUri,
+                description: result.description,
+                calories: result.calories
+            };
+            onLog(foodLog);
+            onOpenChange(false);
+        } catch (error) {
+            console.error("Failed to analyze food photo:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Analysis Failed',
+                description: 'Could not analyze the photo. Please try again or enter manually.',
+            });
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+    
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Log Food with Photo</DialogTitle>
+                    <DialogDescription>
+                        Point your camera at your meal. Ensure it is clear and well-lit.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                     <div className="relative">
+                        <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted playsInline />
+                        <canvas ref={canvasRef} className="hidden" />
+                        {!hasCameraPermission && (
+                             <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md">
+                                <p className="text-white text-center">Camera access is required.</p>
+                             </div>
+                        )}
+                    </div>
+                </div>
+                <DialogFooter>
+                     <DialogClose asChild>
+                        <Button variant="ghost">Cancel</Button>
+                     </DialogClose>
+                    <Button onClick={handleCaptureAndAnalyze} disabled={!hasCameraPermission || isAnalyzing}>
+                        {isAnalyzing ? <Loader2 className="animate-spin mr-2"/> : <Camera className="mr-2"/>}
+                        Capture & Analyze
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 
 function LogMedicationDialog({ onLog, prescribedMeds, existingMedsTaken, onDoseWarning }: { onLog: (med: MedsTaken) => void; prescribedMeds: Medication[]; existingMedsTaken: MedsTaken[], onDoseWarning: (warning: string) => void; }) {
@@ -271,7 +390,8 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
     const [painRemarks, setPainRemarks] = useState('');
     const [weight, setWeight] = useState('');
     const [sleep, setSleep] = useState('');
-    const [food, setFood] = useState('');
+    const [foodIntake, setFoodIntake] = useState<FoodIntake | null>(null);
+    const [isFoodDialogOpen, setIsFoodDialogOpen] = useState(false);
     const [worriedAbout, setWorriedAbout] = useState('');
     const [positiveAbout, setPositiveAbout] = useState('');
     const [notes, setNotes] = useState('');
@@ -320,7 +440,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             symptomAnalysis: '',
             weight: '',
             sleep: '',
-            food: '',
+            foodIntake: null,
             worriedAbout: '',
             positiveAbout: '',
             notes: '',
@@ -337,7 +457,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
         setSymptomAnalysis(entryToEdit.symptomAnalysis || null);
         setWeight(entryToEdit.weight);
         setSleep(entryToEdit.sleep);
-        setFood(entryToEdit.food);
+        setFoodIntake(entryToEdit.foodIntake || null);
         setWorriedAbout(entryToEdit.worriedAbout);
         setPositiveAbout(entryToEdit.positiveAbout);
         setNotes(entryToEdit.notes);
@@ -358,7 +478,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             symptomAnalysis: symptomAnalysis || undefined,
             weight,
             sleep,
-            food,
+            foodIntake,
             worriedAbout,
             positiveAbout,
             notes,
@@ -431,204 +551,224 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
     
 
     return (
-        <Dialog>
-             <DialogTrigger asChild>
-                {existingEntry ? (
-                     <Button variant="outline" size="sm">Edit</Button>
-                ) : (
-                    <Button size="lg" className="fixed bottom-24 right-6 h-16 w-16 rounded-full shadow-lg md:bottom-8 md:right-8">
-                        <PlusCircle className="h-8 w-8" />
-                        <span className="sr-only">Add New Diary Entry</span>
-                    </Button>
-                )}
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl">
-                <DialogHeader>
-                    <DialogTitle>{existingEntry ? 'Edit' : 'New'} Diary Entry</DialogTitle>
-                    <DialogDescription>Log how you're feeling and other key factors for today.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+        <>
+            <Dialog>
+                <DialogTrigger asChild>
+                    {existingEntry ? (
+                        <Button variant="outline" size="sm">Edit</Button>
+                    ) : (
+                        <Button size="lg" className="fixed bottom-24 right-6 h-16 w-16 rounded-full shadow-lg md:bottom-8 md:right-8">
+                            <PlusCircle className="h-8 w-8" />
+                            <span className="sr-only">Add New Diary Entry</span>
+                        </Button>
+                    )}
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>{existingEntry ? 'Edit' : 'New'} Diary Entry</DialogTitle>
+                        <DialogDescription>Log how you're feeling and other key factors for today.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="date">Date</Label>
+                            <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                        </div>
                     <div className="space-y-2">
-                        <Label htmlFor="date">Date</Label>
-                        <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-                    </div>
-                   <div className="space-y-2">
-                        <Label>How are you feeling overall?</Label>
-                        <div className="flex items-center gap-4">
-                           <span className="text-4xl">{moodOptions[mood ?? 'meh']}</span>
-                           <Slider 
-                            value={[moodToValue(mood)]} 
-                            onValueChange={(value) => setMood(moodValueMap[value[0]])}
-                            max={5}
-                            min={1}
-                            step={1}
-                           />
-                           <span className="font-bold w-6 text-center">{moodToValue(mood)}</span>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>How are you feeling about your diagnosis?</Label>
-                        <div className="flex items-center gap-4">
-                           <span className="text-4xl">{moodOptions[diagnosisMood ?? 'meh']}</span>
-                           <Slider 
-                            value={[moodToValue(diagnosisMood)]} 
-                            onValueChange={(value) => setDiagnosisMood(moodValueMap[value[0]])}
-                            max={5}
-                            min={1}
-                            step={1}
-                           />
-                            <span className="font-bold w-6 text-center">{moodToValue(diagnosisMood)}</span>
-                        </div>
-                    </div>
-                     <div className="space-y-2">
-                        <Label>How are you feeling about your treatment?</Label>
-                        <div className="flex items-center gap-4">
-                           <span className="text-4xl">{moodOptions[treatmentMood ?? 'meh']}</span>
-                           <Slider 
-                            value={[moodToValue(treatmentMood)]} 
-                            onValueChange={(value) => setTreatmentMood(moodValueMap[value[0]])}
-                            max={5}
-                            min={1}
-                            step={1}
-                           />
-                           <span className="font-bold w-6 text-center">{moodToValue(treatmentMood)}</span>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Pain Score (0=No Pain, 10=Severe)</Label>
-                        <div className="flex items-center gap-4">
-                           <span className="text-4xl">{painEmojis[painScore ?? 0]}</span>
-                           <Slider 
-                            value={[painScore ?? 0]} 
-                            onValueChange={(value) => setPainScore(value[0])}
-                            max={10}
-                            step={1}
-                           />
-                           <span className="font-bold w-6 text-center">{painScore ?? 0}</span>
-                        </div>
-                    </div>
-
-                    {(painScore ?? 0) > 0 && (
-                         <div className="space-y-4 pt-4 border-t">
-                            <Label className="font-semibold">Pain Details</Label>
-                             <div className="grid grid-cols-1 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="pain-location">Pain Location</Label>
-                                    <Select value={painLocation || ""} onValueChange={(val) => { setPainLocation(val); setSymptomAnalysis(null); }}>
-                                        <SelectTrigger id="pain-location">
-                                            <SelectValue placeholder="Select where it hurts" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {bodyParts.map(part => (
-                                                <SelectItem key={part} value={part}>{part}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="pain-remarks">Pain Remarks</Label>
-                                    <Textarea id="pain-remarks" placeholder="Describe the pain (e.g., sharp, dull, aching)..." value={painRemarks} onChange={(e) => setPainRemarks(e.target.value)} />
-                                </div>
-                                
-                                {isSymptomRecurring && (
-                                     <div className="flex flex-col items-start gap-2">
-                                         <Button onClick={handleSymptomAnalysis} disabled={isCheckingSymptom || !painLocation} size="sm" variant="outline">
-                                             {isCheckingSymptom ? <Loader2 className="animate-spin mr-2"/> : <Zap className="mr-2"/>}
-                                             Check Symptom
-                                         </Button>
-                                         <p className="text-xs text-muted-foreground">This seems to be a recurring symptom. Click to check for possible connections.</p>
-                                     </div>
-                                )}
-                                
-                                {symptomAnalysis && !isCheckingSymptom && (
-                                    <Alert>
-                                        <Lightbulb className="h-4 w-4" />
-                                        <AlertTitle>Possible Causes Analysis</AlertTitle>
-                                        <AlertDescription>
-                                            <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: marked(symptomAnalysis) as string }} />
-                                            <p className="text-xs italic mt-2">This is an AI-generated analysis, not medical advice. Always consult your doctor.</p>
-                                        </AlertDescription>
-                                    </Alert>
-                                )}
+                            <Label>How are you feeling overall?</Label>
+                            <div className="flex items-center gap-4">
+                            <span className="text-4xl">{moodOptions[mood ?? 'meh']}</span>
+                            <Slider 
+                                value={[moodToValue(mood)]} 
+                                onValueChange={(value) => setMood(moodValueMap[value[0]])}
+                                max={5}
+                                min={1}
+                                step={1}
+                            />
+                            <span className="font-bold w-6 text-center">{moodToValue(mood)}</span>
                             </div>
                         </div>
-                    )}
-
-
-                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="weight">Weight (kg)</Label>
-                            <Input id="weight" type="number" placeholder="e.g., 70.5" value={weight} onChange={(e) => setWeight(e.target.value)} />
+                            <Label>How are you feeling about your diagnosis?</Label>
+                            <div className="flex items-center gap-4">
+                            <span className="text-4xl">{moodOptions[diagnosisMood ?? 'meh']}</span>
+                            <Slider 
+                                value={[moodToValue(diagnosisMood)]} 
+                                onValueChange={(value) => setDiagnosisMood(moodValueMap[value[0]])}
+                                max={5}
+                                min={1}
+                                step={1}
+                            />
+                                <span className="font-bold w-6 text-center">{moodToValue(diagnosisMood)}</span>
+                            </div>
                         </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="sleep">Sleep (hours)</Label>
-                            <Input id="sleep" type="number" placeholder="e.g., 7.5" value={sleep} onChange={(e) => setSleep(e.target.value)} />
+                        <div className="space-y-2">
+                            <Label>How are you feeling about your treatment?</Label>
+                            <div className="flex items-center gap-4">
+                            <span className="text-4xl">{moodOptions[treatmentMood ?? 'meh']}</span>
+                            <Slider 
+                                value={[moodToValue(treatmentMood)]} 
+                                onValueChange={(value) => setTreatmentMood(moodValueMap[value[0]])}
+                                max={5}
+                                min={1}
+                                step={1}
+                            />
+                            <span className="font-bold w-6 text-center">{moodToValue(treatmentMood)}</span>
+                            </div>
                         </div>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="food">Food Intake</Label>
-                        <Textarea id="food" placeholder="e.g., Breakfast: Porridge, Lunch: Soup..." value={food} onChange={(e) => setFood(e.target.value)} />
-                    </div>
+                        <div className="space-y-2">
+                            <Label>Pain Score (0=No Pain, 10=Severe)</Label>
+                            <div className="flex items-center gap-4">
+                            <span className="text-4xl">{painEmojis[painScore ?? 0]}</span>
+                            <Slider 
+                                value={[painScore ?? 0]} 
+                                onValueChange={(value) => setPainScore(value[0])}
+                                max={10}
+                                step={1}
+                            />
+                            <span className="font-bold w-6 text-center">{painScore ?? 0}</span>
+                            </div>
+                        </div>
 
-                    <div className="space-y-2">
-                        <Label>Medications Taken Today</Label>
-                        <div className="space-y-2 rounded-md border p-4">
-                           {medsTaken.length > 0 ? (
-                            <ul className="space-y-2">
-                               {medsTaken.map(med => (
-                                   <li key={med.id} className="flex items-center justify-between text-sm">
-                                       <div>
-                                            <span className="font-semibold">{med.name}</span>
-                                            <span className="text-muted-foreground"> (x{med.quantity})</span>
-                                       </div>
-                                       <div className="flex items-center gap-2">
-                                            <span className="text-muted-foreground text-xs flex items-center gap-1"><Clock className="w-3 h-3"/>{med.time}</span>
-                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveMedication(med.id)}>
-                                                <Trash2 className="w-3 h-3" />
+                        {(painScore ?? 0) > 0 && (
+                            <div className="space-y-4 pt-4 border-t">
+                                <Label className="font-semibold">Pain Details</Label>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="pain-location">Pain Location</Label>
+                                        <Select value={painLocation || ""} onValueChange={(val) => { setPainLocation(val); setSymptomAnalysis(null); }}>
+                                            <SelectTrigger id="pain-location">
+                                                <SelectValue placeholder="Select where it hurts" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {bodyParts.map(part => (
+                                                    <SelectItem key={part} value={part}>{part}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="pain-remarks">Pain Remarks</Label>
+                                        <Textarea id="pain-remarks" placeholder="Describe the pain (e.g., sharp, dull, aching)..." value={painRemarks} onChange={(e) => setPainRemarks(e.target.value)} />
+                                    </div>
+                                    
+                                    {isSymptomRecurring && (
+                                        <div className="flex flex-col items-start gap-2">
+                                            <Button onClick={handleSymptomAnalysis} disabled={isCheckingSymptom || !painLocation} size="sm" variant="outline">
+                                                {isCheckingSymptom ? <Loader2 className="animate-spin mr-2"/> : <Zap className="mr-2"/>}
+                                                Check Symptom
                                             </Button>
-                                       </div>
-                                   </li>
-                               ))}
-                            </ul>
-                           ) : (
-                               <p className="text-sm text-muted-foreground">No medications logged for today.</p>
-                           )}
-                           <div className="pt-2">
-                             <LogMedicationDialog 
-                                onLog={handleLogMedication} 
-                                prescribedMeds={prescribedMeds} 
-                                existingMedsTaken={medsTaken} 
-                                onDoseWarning={handleDoseWarning}
-                             />
-                           </div>
+                                            <p className="text-xs text-muted-foreground">This seems to be a recurring symptom. Click to check for possible connections.</p>
+                                        </div>
+                                    )}
+                                    
+                                    {symptomAnalysis && !isCheckingSymptom && (
+                                        <Alert>
+                                            <Lightbulb className="h-4 w-4" />
+                                            <AlertTitle>Possible Causes Analysis</AlertTitle>
+                                            <AlertDescription>
+                                                <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: marked(symptomAnalysis) as string }} />
+                                                <p className="text-xs italic mt-2">This is an AI-generated analysis, not medical advice. Always consult your doctor.</p>
+                                            </AlertDescription>
+                                        </Alert>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="weight">Weight (kg)</Label>
+                                <Input id="weight" type="number" placeholder="e.g., 70.5" value={weight} onChange={(e) => setWeight(e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="sleep">Sleep (hours)</Label>
+                                <Input id="sleep" type="number" placeholder="e.g., 7.5" value={sleep} onChange={(e) => setSleep(e.target.value)} />
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label>Food Intake</Label>
+                            <Card className="p-4">
+                                {foodIntake ? (
+                                    <div className="flex items-start gap-4">
+                                        <Image src={foodIntake.photoDataUri} alt="Logged meal" width={100} height={100} className="rounded-md object-cover aspect-square"/>
+                                        <div className="flex-1 space-y-2">
+                                            <p className="font-semibold">{foodIntake.description}</p>
+                                            <p className="text-sm text-muted-foreground">~{foodIntake.calories} calories</p>
+                                            <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setFoodIntake(null)}>Remove Photo</Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <Button variant="outline" className="w-full" onClick={() => setIsFoodDialogOpen(true)}>
+                                        <Camera className="mr-2"/> Log Meal with Photo
+                                    </Button>
+                                )}
+                            </Card>
+                        </div>
+
+
+                        <div className="space-y-2">
+                            <Label>Medications Taken Today</Label>
+                            <div className="space-y-2 rounded-md border p-4">
+                            {medsTaken.length > 0 ? (
+                                <ul className="space-y-2">
+                                {medsTaken.map(med => (
+                                    <li key={med.id} className="flex items-center justify-between text-sm">
+                                        <div>
+                                                <span className="font-semibold">{med.name}</span>
+                                                <span className="text-muted-foreground"> (x{med.quantity})</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                                <span className="text-muted-foreground text-xs flex items-center gap-1"><Clock className="w-3 h-3"/>{med.time}</span>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveMedication(med.id)}>
+                                                    <Trash2 className="w-3 h-3" />
+                                                </Button>
+                                        </div>
+                                    </li>
+                                ))}
+                                </ul>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">No medications logged for today.</p>
+                            )}
+                            <div className="pt-2">
+                                <LogMedicationDialog 
+                                    onLog={handleLogMedication} 
+                                    prescribedMeds={prescribedMeds} 
+                                    existingMedsTaken={medsTaken} 
+                                    onDoseWarning={handleDoseWarning}
+                                />
+                            </div>
+                            </div>
+                        </div>
+
+
+                        <div className="space-y-2">
+                            <Label htmlFor="worried-about">Worried About</Label>
+                            <Textarea id="worried-about" placeholder="What's on your mind? Any specific fears or concerns?" value={worriedAbout} onChange={(e) => setWorriedAbout(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="positive-about">Feeling Positive About</Label>
+                            <Textarea id="positive-about" placeholder="What went well today? Any small wins or things you're grateful for?" value={positiveAbout} onChange={(e) => setPositiveAbout(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="notes">Other Notes</Label>
+                            <Textarea id="notes" placeholder="Any other symptoms, thoughts, or medical facts to note?" value={notes} onChange={(e) => setNotes(e.target.value)} />
                         </div>
                     </div>
-
-
-                     <div className="space-y-2">
-                        <Label htmlFor="worried-about">Worried About</Label>
-                        <Textarea id="worried-about" placeholder="What's on your mind? Any specific fears or concerns?" value={worriedAbout} onChange={(e) => setWorriedAbout(e.target.value)} />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="positive-about">Feeling Positive About</Label>
-                        <Textarea id="positive-about" placeholder="What went well today? Any small wins or things you're grateful for?" value={positiveAbout} onChange={(e) => setPositiveAbout(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="notes">Other Notes</Label>
-                        <Textarea id="notes" placeholder="Any other symptoms, thoughts, or medical facts to note?" value={notes} onChange={(e) => setNotes(e.target.value)} />
-                    </div>
-                </div>
-                 <DialogFooter>
-                    <DialogClose id={`close-diary-dialog-${existingEntry?.id || 'new'}`} asChild>
-                         <Button variant="ghost">Cancel</Button>
-                    </DialogClose>
-                    <Button onClick={handleSave} disabled={isSaving}>
-                        {isSaving && <Loader2 className="animate-spin mr-2" />}
-                        Save Entry
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                    <DialogFooter>
+                        <DialogClose id={`close-diary-dialog-${existingEntry?.id || 'new'}`} asChild>
+                            <Button variant="ghost">Cancel</Button>
+                        </DialogClose>
+                        <Button onClick={handleSave} disabled={isSaving}>
+                            {isSaving && <Loader2 className="animate-spin mr-2" />}
+                            Save Entry
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <LogFoodDialog open={isFoodDialogOpen} onOpenChange={setIsFoodDialogOpen} onLog={setFoodIntake} />
+        </>
     )
 }
 
@@ -691,6 +831,20 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries 
                         </div>
                     </div>
                 )}
+                
+                {entry.foodIntake && (
+                    <div className="space-y-2">
+                        <h4 className="font-semibold text-sm">Food Intake</h4>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                           <Image src={entry.foodIntake.photoDataUri} alt={entry.foodIntake.description} width={80} height={80} className="rounded-md object-cover aspect-square border" />
+                           <div>
+                               <p>{entry.foodIntake.description}</p>
+                               <p className="font-semibold">~{entry.foodIntake.calories} calories</p>
+                           </div>
+                        </div>
+                    </div>
+                )}
+
                  {entry.medsTaken && entry.medsTaken.length > 0 && (
                      <div className="space-y-1">
                         <h4 className="font-semibold text-sm">Medications Taken</h4>
@@ -701,12 +855,6 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries 
                                 </li>
                             ))}
                         </ul>
-                    </div>
-                )}
-                 {entry.food && (
-                    <div className="space-y-1">
-                        <h4 className="font-semibold text-sm">Food Intake</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{entry.food}</p>
                     </div>
                 )}
                  {entry.worriedAbout && (

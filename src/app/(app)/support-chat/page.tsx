@@ -390,7 +390,7 @@ function SupportChatPageContent() {
         }, 100);
     } else {
         setInput("");
-        startListening();
+        startListening();     // Manages SpeechRecognition
     }
   }
 
@@ -565,10 +565,11 @@ function SupportChatPageContent() {
       });
       if (!newTtsState && audioRef.current) {
           audioRef.current.pause();
-          setAudioDataUri(null); // This will also cause the useEffect to set src to null
+          setAudioDataUri(null);
       }
   }
-   useEffect(() => {
+
+  useEffect(() => {
     if (audioRef.current) {
       audioRef.current.src = audioDataUri || "";
     }

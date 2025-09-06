@@ -63,9 +63,7 @@ interface AnalysisResult {
   id: string
   title: string
   question: string
-  fileDataUri: string
-  fileType: string
-  fileName: string
+  files: { fileDataUri: string; fileType: string; fileName: string }[]
   analysis: string
   date: string; // Should be ISO String for sorting
 }
@@ -141,11 +139,11 @@ function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; chil
         </DialogHeader>
         <div className="grid md:grid-cols-2 gap-4 overflow-hidden flex-1">
           <div className="overflow-y-auto rounded-md border">
-            {result.fileType.startsWith("image/") ? (
-                <Image src={result.fileDataUri} alt={result.fileName} width={800} height={1200} className="object-contain" />
-            ) : (
-                <iframe src={result.fileDataUri} className="w-full h-full" title={result.fileName} />
-            )}
+            {result.files?.[0]?.fileType?.startsWith("image/") ? (
+                <Image src={result.files[0].fileDataUri} alt={result.files[0].fileName} width={800} height={1200} className="object-contain" />
+            ) : result.files?.[0]?.fileDataUri ? (
+                <iframe src={result.files[0].fileDataUri} className="w-full h-full" title={result.files[0].fileName} />
+            ) : null}
           </div>
           <div 
             className="prose prose-sm dark:prose-invert max-w-none text-foreground p-2 overflow-y-auto"
@@ -671,18 +669,35 @@ function ConversationCard({ summary, onDelete }: { summary: ConversationSummary,
 }
 
 function AnalysisCard({ result, onDelete }: { result: AnalysisResult, onDelete: (id: string, type: ActivityItem['type']) => void }) {
+    // This function handles both old and new data structures
+    const getFirstFile = () => {
+        if (result.files && result.files.length > 0) {
+            return result.files[0];
+        }
+        // Fallback for old structure for backwards compatibility
+        // @ts-ignore
+        if (result.fileDataUri && result.fileType && result.fileName) {
+            // @ts-ignore
+            return { fileDataUri: result.fileDataUri, fileType: result.fileType, fileName: result.fileName };
+        }
+        return null;
+    }
+    const firstFile = getFirstFile();
+
+    if (!firstFile) return null;
+
     return (
         <div className="relative group h-full">
         <ViewAnalysisDialog result={result}>
             <Card className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col h-full">
-                <CardHeader>
+                <CardHeader className="flex-shrink-0">
                   <div className="relative aspect-[1.4/1] w-full rounded-md overflow-hidden border">
-                    {result.fileType.startsWith("image/") ? (
-                      <Image src={result.fileDataUri} alt={result.fileName} fill className="object-cover" />
+                    {firstFile.fileType.startsWith("image/") ? (
+                      <Image src={firstFile.fileDataUri} alt={firstFile.fileName} fill className="object-cover" />
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full bg-secondary p-4">
                           <FileText className="w-12 h-12 text-muted-foreground" />
-                          <p className="text-xs text-center mt-2 text-muted-foreground break-all">{result.fileName}</p>
+                          <p className="text-xs text-center mt-2 text-muted-foreground break-all">{firstFile.fileName}</p>
                       </div>
                     )}
                   </div>
@@ -1164,3 +1179,5 @@ export default function DashboardPage() {
         </div>
     )
 }
+
+    

@@ -22,3 +22,4 @@ import '@/ai/flows/generate-diary-summary.ts';
 import '@/ai/flows/types.ts';
 import '@/ai/flows/analyze-food-photo.ts';
 import '@/ai/flows/analyze-food-ingredients.ts';
+import '@/ai/flows/generate-dietary-recommendation.ts';

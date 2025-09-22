@@ -380,7 +380,6 @@ export default function DietaryMenuPage() {
                 </Button>
             </div>
 
-            {/* Suggestions */}
             {favoriteMeals.length > 0 && (
                  <Card>
                     <CardHeader>
@@ -452,14 +451,13 @@ export default function DietaryMenuPage() {
                 </div>
             ) : null}
 
-            {/* Meal Planner */}
             <Card>
                 <CardHeader>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                         <div>
                             <CardTitle className="flex items-center gap-2"><Calendar /> Your Meal Plan</CardTitle>
                             <CardDescription>
-                                {mealCount > 0 ? `You have ${mealCount} meal(s) planned for this week.` : "Your meal plan is empty. Add meals from the suggestions below."}
+                                {mealCount > 0 ? `You have ${mealCount} meal(s) planned for this week.` : "Your meal plan is empty. Add meals from the suggestions above."}
                             </CardDescription>
                         </div>
                          <Button onClick={handleGenerateList} disabled={isLoadingList || mealCount === 0}>
@@ -505,7 +503,6 @@ export default function DietaryMenuPage() {
                 </CardContent>
             </Card>
             
-            {/* Shopping List */}
             {isLoadingList ? (
                  <div className="flex items-center justify-center py-20 gap-2 text-muted-foreground">
                     <Loader2 className="h-8 w-8 animate-spin" />
@@ -549,6 +546,9 @@ export default function DietaryMenuPage() {
                                 </table>
                             </div>
                         ))}
+                         <div className="text-right font-bold text-lg pt-4 border-t">
+                            Total: £{shoppingList.totalEstimatedCost.toFixed(2)}
+                        </div>
                     </CardContent>
                 </Card>
             ) : error ? (
@@ -569,6 +569,3 @@ export default function DietaryMenuPage() {
         </div>
     )
 }
-
-
-    

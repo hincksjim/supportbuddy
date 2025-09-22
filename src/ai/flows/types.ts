@@ -129,3 +129,33 @@ export const PersonalSummaryOutputSchema = ReportSectionSchema.extend({
 });
 
 export type PersonalSummaryOutput = z.infer<typeof PersonalSummaryOutputSchema>;
+
+
+// Schemas for Shopping List
+const MealInputSchema = z.object({
+  name: z.string().describe("The name of the meal."),
+  ingredients: z.array(z.string()).describe("A list of ingredients for the meal."),
+});
+
+export const GenerateShoppingListInputSchema = z.object({
+  meals: z.array(MealInputSchema).describe("A list of meals to generate a shopping list for."),
+});
+export type GenerateShoppingListInput = z.infer<typeof GenerateShoppingListInputSchema>;
+
+
+const ShoppingListItemSchema = z.object({
+  name: z.string().describe("The name of the ingredient."),
+  quantity: z.string().describe("The consolidated quantity needed (e.g., '2', '500g', '1 bunch')."),
+  estimatedCost: z.number().describe("An estimated cost for the item in GBP (£)."),
+});
+
+const ShoppingListCategorySchema = z.object({
+    category: z.string().describe("The category name (e.g., 'Produce', 'Meat & Fish', 'Dairy & Eggs', 'Pantry')."),
+    items: z.array(ShoppingListItemSchema).describe("A list of items in this category."),
+});
+
+export const GenerateShoppingListOutputSchema = z.object({
+    list: z.array(ShoppingListCategorySchema).describe("The categorized shopping list."),
+    totalEstimatedCost: z.number().describe("The total estimated cost for all items on the list in GBP (£).")
+});
+export type GenerateShoppingListOutput = z.infer<typeof GenerateShoppingListOutputSchema>;

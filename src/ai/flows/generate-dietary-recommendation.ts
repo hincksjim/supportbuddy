@@ -27,6 +27,7 @@ const MealSuggestionSchema = z.object({
   ingredients: z.array(z.string()).describe("A list of simple ingredients for the meal."),
   instructions: z.string().describe("Simple, step-by-step cooking instructions, formatted as a numbered list in a single string."),
   calories: z.number().describe("An estimated calorie count for the meal."),
+  costPerPortion: z.number().describe("An estimated cost per portion in GBP (£)."),
 });
 
 const GenerateDietaryRecommendationOutputSchema = z.object({
@@ -46,7 +47,7 @@ export async function generateDietaryRecommendation(
 ): Promise<GenerateDietaryRecommendationOutput> {
   // Return a default/empty state if there's no diagnosis to work with.
   if (!input.diagnosis || input.diagnosis === "Not specified" || input.diagnosis.toLowerCase().includes("all types")) {
-      return { 
+      return {
           dietaryCommentary: "To provide the best dietary advice, it's essential to have information about your recent meals. Please start logging your food intake so we can create a personalized plan that supports your health journey and complements your renal cell carcinoma treatment.",
           recommendations: {
               breakfast: [],
@@ -64,7 +65,7 @@ const prompt = ai.definePrompt({
   name: 'generateDietaryRecommendationPrompt',
   input: {schema: GenerateDietaryRecommendationInputSchema},
   output: {schema: GenerateDietaryRecommendationOutputSchema},
-  prompt: `You are an expert nutritionist AI. Your task is to provide dietary recommendations and commentary for a user with a specific health condition. Your tone must be supportive, encouraging, and easy to understand.
+  prompt: `You are an expert nutritionist AI. Your task is to provide dietary recommendations and commentary for a user with a specific health condition. Your tone must be supportive, encouraging, and easy to understand. You should aim to provide new and creative suggestions each time you are called.
 
 **CONTEXT:**
 *   **User's Diagnosis:** {{{diagnosis}}}
@@ -91,11 +92,12 @@ You MUST perform two actions:
         *   name: The name of the meal (e.g., "Grilled Salmon with Quinoa").
         *   reason: A brief, one-sentence explanation of *why* it's a good choice for their condition (e.g., "Rich in omega-3s, which are good for heart health.").
         *   calories: An estimated calorie count for the meal (e.g. 450).
+        *   costPerPortion: An estimated cost per portion in GBP (£), returned as a number (e.g., 3.50).
         *   ingredients: A list of simple, common ingredients.
         *   instructions: Simple, step-by-step cooking instructions, formatted as a numbered list within a single string (e.g., "1. Preheat oven to 200°C.\\n2. Season salmon with herbs.\\n3. Bake for 15 minutes.").
 
 **CRITICAL RULES:**
-*   Do NOT provide specific portion sizes in the recipe, but your calorie estimate should assume a standard single serving.
+*   Do NOT provide specific portion sizes in the recipe, but your calorie and cost estimates should assume a standard single serving.
 *   Your output MUST be a valid JSON object that strictly follows the provided schema.
 `,
 });

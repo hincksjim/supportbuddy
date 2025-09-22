@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw, Lightbulb, Utensils, Apple, Soup, Cookie, Coffee, ChevronDown, Flame } from "lucide-react";
+import { Loader2, RefreshCw, Lightbulb, Utensils, Apple, Soup, Cookie, Coffee, ChevronDown, Flame, Wallet } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { generateDietaryRecommendation, GenerateDietaryRecommendationOutput } from "@/ai/flows/generate-dietary-recommendation";
 import { DiaryEntry } from "@/app/(app)/diary/page";
@@ -92,7 +92,7 @@ export default function DietaryMenuPage() {
                 </div>
                 <Button onClick={handleRefresh} disabled={isLoading}>
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                    Refresh
+                    New Suggestions
                 </Button>
             </div>
 
@@ -148,7 +148,10 @@ export default function DietaryMenuPage() {
                                                             <CardContent className="pt-0 p-4 space-y-4">
                                                                 <div className="flex items-center justify-between text-sm font-semibold border-t pt-4">
                                                                      <span>Recipe</span>
-                                                                     <span className="flex items-center gap-1"><Flame className="w-4 h-4 text-destructive"/>~{suggestion.calories} kcal</span>
+                                                                     <div className="flex items-center gap-4">
+                                                                        <span className="flex items-center gap-1"><Wallet className="w-4 h-4 text-green-600"/>~£{suggestion.costPerPortion.toFixed(2)}</span>
+                                                                        <span className="flex items-center gap-1"><Flame className="w-4 h-4 text-destructive"/>~{suggestion.calories} kcal</span>
+                                                                     </div>
                                                                 </div>
                                                                  <div>
                                                                     <h4 className="font-semibold text-sm mb-2">Ingredients</h4>

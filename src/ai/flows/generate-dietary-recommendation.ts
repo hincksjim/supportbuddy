@@ -33,10 +33,10 @@ const MealSuggestionSchema = z.object({
 const GenerateDietaryRecommendationOutputSchema = z.object({
     dietaryCommentary: z.string().describe("A 2-3 sentence commentary on the user's current diet based on their logged meals, providing gentle, constructive feedback."),
     recommendations: z.object({
-        breakfast: z.array(MealSuggestionSchema).describe("A list of 2-3 breakfast suggestions."),
-        lunch: z.array(MealSuggestionSchema).describe("A list of 2-3 lunch suggestions."),
-        dinner: z.array(MealSuggestionSchema).describe("A list of 2-3 dinner suggestions."),
-        snacks: z.array(MealSuggestionSchema).describe("A list of 2-3 snack suggestions for the week."),
+        breakfast: z.array(MealSuggestionSchema).describe("A list of at least 12 breakfast suggestions."),
+        lunch: z.array(MealSuggestionSchema).describe("A list of at least 12 lunch suggestions."),
+        dinner: z.array(MealSuggestionSchema).describe("A list of at least 12 dinner suggestions."),
+        snacks: z.array(MealSuggestionSchema).describe("A list of at least 12 snack suggestions for the week."),
     })
 });
 export type GenerateDietaryRecommendationOutput = z.infer<typeof GenerateDietaryRecommendationOutputSchema>;
@@ -87,7 +87,7 @@ You MUST perform two actions:
     *   If no meals are logged, encourage them to start logging to get feedback.
 
 2.  **Generate Meal Recommendations:**
-    *   Based on the user's diagnosis, create a list of 2-3 simple, healthy meal suggestions for EACH of the following categories: Breakfast, Lunch, Dinner, and Snacks.
+    *   Based on the user's diagnosis, create a list of at least 12 simple, healthy meal suggestions for EACH of the following categories: Breakfast, Lunch, Dinner, and Snacks.
     *   For each meal suggestion, you MUST provide:
         *   name: The name of the meal (e.g., "Grilled Salmon with Quinoa").
         *   reason: A brief, one-sentence explanation of *why* it's a good choice for their condition (e.g., "Rich in omega-3s, which are good for heart health.").

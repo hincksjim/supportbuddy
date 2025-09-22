@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw, Lightbulb, Utensils, Apple, Soup, Coffee, ChevronDown, Flame, Wallet, Star } from "lucide-react";
+import { Loader2, RefreshCw, Lightbulb, Utensils, Apple, Soup, Coffee, ChevronDown, Flame, Wallet, Star, PlusCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { generateDietaryRecommendation, GenerateDietaryRecommendationOutput } from "@/ai/flows/generate-dietary-recommendation";
 import { DiaryEntry } from "@/app/(app)/diary/page";
@@ -12,13 +12,26 @@ import { marked } from "marked";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+
 
 interface UserData {
     initialDiagnosis?: string;
 }
 
 // Extracted from generate-dietary-recommendation.ts to be used here
-interface MealSuggestion {
+export interface MealSuggestion {
   name: string;
   reason: string;
   ingredients: string[];
@@ -27,6 +40,12 @@ interface MealSuggestion {
   costPerPortion: number;
 }
 
+interface PlannedMeal extends MealSuggestion {
+  id: string; // Unique ID for this planning instance
+}
+
+type MealType = 'breakfast' | 'lunch' | 'dinner';
+
 const categoryIcons = {
     breakfast: <Coffee className="w-6 h-6 text-primary" />,
     lunch: <Soup className="w-6 h-6 text-primary" />,
@@ -34,12 +53,71 @@ const categoryIcons = {
     snacks: <Apple className="w-6 h-6 text-primary" />,
 };
 
-function MealCard({ suggestion, isFavorite, onToggleFavorite }: { suggestion: MealSuggestion, isFavorite: boolean, onToggleFavorite: (suggestion: MealSuggestion) => void }) {
+function AddToMealPlanDialog({ meal, onAddToPlan }: { meal: MealSuggestion, onAddToPlan: (day: string, mealType: MealType, meal: MealSuggestion) => void }) {
+    const [day, setDay] = useState('Monday');
+    const [mealType, setMealType] = useState<MealType>('dinner');
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleSave = () => {
+        onAddToPlan(day, mealType, meal);
+        setIsOpen(false);
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="secondary" size="sm" className="w-full mt-4">
+                    <PlusCircle className="mr-2" />
+                    Add to Meal Plan
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add "{meal.name}" to Meal Plan</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-2 gap-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="day-select">Day</Label>
+                        <Select value={day} onValueChange={setDay}>
+                            <SelectTrigger id="day-select">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => (
+                                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="meal-type-select">Meal</Label>
+                        <Select value={mealType} onValueChange={(v) => setMealType(v as MealType)}>
+                            <SelectTrigger id="meal-type-select">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="breakfast">Breakfast</SelectItem>
+                                <SelectItem value="lunch">Lunch</SelectItem>
+                                <SelectItem value="dinner">Dinner</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+                    <Button onClick={handleSave}>Add to Plan</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+function MealCard({ suggestion, isFavorite, onToggleFavorite, onAddToPlan }: { suggestion: MealSuggestion, isFavorite: boolean, onToggleFavorite: (suggestion: MealSuggestion) => void, onAddToPlan: (day: string, mealType: MealType, meal: MealSuggestion) => void }) {
     const [isOpen, setIsOpen] = useState(false);
     return (
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-            <Card className="bg-muted/30 relative">
-                <Button
+            <Card className="bg-muted/30 relative flex flex-col h-full">
+                 <Button
                     variant="ghost"
                     size="icon"
                     className="absolute top-2 right-2 h-8 w-8 z-10"
@@ -48,7 +126,7 @@ function MealCard({ suggestion, isFavorite, onToggleFavorite }: { suggestion: Me
                     <Star className={cn("h-5 w-5", isFavorite ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground")} />
                 </Button>
                 <CollapsibleTrigger asChild>
-                    <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 rounded-t-lg">
+                    <div className="flex items-start justify-between p-4 cursor-pointer hover:bg-accent/50 rounded-t-lg flex-grow">
                         <div className="flex-1 pr-8">
                             <CardTitle className="text-base">{suggestion.name}</CardTitle>
                             <p className="text-sm text-muted-foreground mt-1">{suggestion.reason}</p>
@@ -77,6 +155,7 @@ function MealCard({ suggestion, isFavorite, onToggleFavorite }: { suggestion: Me
                             <h4 className="font-semibold text-sm mb-2">Instructions</h4>
                             <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground" dangerouslySetInnerHTML={{ __html: marked.parse(suggestion.instructions.replace(/\\n/g, '\n')) as string }} />
                         </div>
+                        <AddToMealPlanDialog meal={suggestion} onAddToPlan={onAddToPlan} />
                     </CardContent>
                 </CollapsibleContent>
             </Card>
@@ -90,8 +169,10 @@ export default function DietaryMenuPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+    const { toast } = useToast();
 
     const getFavoritesKey = (email: string) => `favoriteMeals_${email}`;
+    const getMealPlanKey = (email: string) => `mealPlan_${email}`;
 
     useEffect(() => {
         const email = localStorage.getItem("currentUserEmail");
@@ -162,6 +243,26 @@ export default function DietaryMenuPage() {
         localStorage.setItem(getFavoritesKey(currentUserEmail), JSON.stringify(updatedFavorites));
     }
 
+    const handleAddToPlan = (day: string, mealType: MealType, meal: MealSuggestion) => {
+        if (!currentUserEmail) return;
+
+        const mealPlanKey = getMealPlanKey(currentUserEmail);
+        const storedPlan = localStorage.getItem(mealPlanKey);
+        const mealPlan = storedPlan ? JSON.parse(storedPlan) : {};
+
+        if (!mealPlan[day]) {
+            mealPlan[day] = { breakfast: null, lunch: null, dinner: null };
+        }
+        
+        mealPlan[day][mealType] = { ...meal, id: new Date().toISOString() };
+        localStorage.setItem(mealPlanKey, JSON.stringify(mealPlan));
+        
+        toast({
+            title: `Added to ${day}'s ${mealType}`,
+            description: `"${meal.name}" has been added to your meal plan.`,
+        });
+    };
+
 
     return (
         <div className="p-4 md:p-6 space-y-8">
@@ -192,6 +293,7 @@ export default function DietaryMenuPage() {
                                     suggestion={suggestion}
                                     isFavorite={true}
                                     onToggleFavorite={handleToggleFavorite}
+                                    onAddToPlan={handleAddToPlan}
                                 />
                             ))}
                         </div>
@@ -241,6 +343,7 @@ export default function DietaryMenuPage() {
                                                     suggestion={suggestion}
                                                     isFavorite={favoriteMeals.some(fav => fav.name === suggestion.name)}
                                                     onToggleFavorite={handleToggleFavorite}
+                                                    onAddToPlan={handleAddToPlan}
                                                 />
                                             ))}
                                         </div>

@@ -44,7 +44,7 @@ export async function generateDietaryRecommendation(
   // Return a default/empty state if there's no diagnosis to work with.
   if (!input.diagnosis || input.diagnosis === "Not specified" || input.diagnosis.toLowerCase().includes("all types")) {
       return { 
-          dietaryCommentary: "Please set your primary health condition in your profile to receive personalized dietary recommendations.",
+          dietaryCommentary: "To provide the best dietary advice, it's essential to have information about your recent meals. Please start logging your food intake so we can create a personalized plan that supports your health journey and complements your renal cell carcinoma treatment.",
           recommendations: {
               breakfast: [],
               lunch: [],
@@ -67,7 +67,7 @@ const prompt = ai.definePrompt({
 *   **User's Diagnosis:** {{{diagnosis}}}
 *   **User's Recent Meals (from their diary):**
     {{#each recentMeals}}
-    - **{{date}}:** {{#each foodIntake}} {{title}} (~{{calories}} kcal, Ingredients: {{#each ingredients}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}); {{/each}}
+    - **{{date}}:** {{#if foodIntake}} {{#each foodIntake}} {{title}} (~{{calories}} kcal, Ingredients: {{#each ingredients}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}); {{/each}} {{else if food}} {{food}} {{/if}}
     {{else}}
     - No meals logged recently.
     {{/each}}

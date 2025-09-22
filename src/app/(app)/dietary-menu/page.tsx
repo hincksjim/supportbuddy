@@ -380,6 +380,78 @@ export default function DietaryMenuPage() {
                 </Button>
             </div>
 
+            {/* Suggestions */}
+            {favoriteMeals.length > 0 && (
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Star className="text-yellow-400 fill-yellow-400" /> My Favorite Meals</CardTitle>
+                        <CardDescription>Your saved meal ideas for quick reference.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {favoriteMeals.map(suggestion => (
+                                <MealCard 
+                                    key={`fav-${suggestion.name}`}
+                                    suggestion={suggestion}
+                                    isFavorite={true}
+                                    onToggleFavorite={handleToggleFavorite}
+                                    onAddToPlan={handleAddToPlan}
+                                />
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {isLoadingSuggestions ? (
+                <div className="flex items-center justify-center py-20 gap-2 text-muted-foreground">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <p>Generating your personalized dietary plan...</p>
+                </div>
+            ) : recommendations ? (
+                <div className="space-y-8">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Lightbulb className="text-primary"/> AI Dietary Commentary</CardTitle>
+                            <CardDescription>A quick look at your recent eating habits.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: marked.parse(recommendations.dietaryCommentary) as string }} />
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                         <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Utensils className="text-primary"/> Meal Suggestions</CardTitle>
+                            <CardDescription>Here are some healthy ideas to try. Click on any meal to see the recipe, and save your favorites using the star icon.</CardDescription>
+                        </CardHeader>
+                         <CardContent className="space-y-6">
+                            {Object.entries(recommendations.recommendations).map(([category, suggestions]) => (
+                                (suggestions as MealSuggestion[]).length > 0 && (
+                                     <div key={category}>
+                                        <h3 className="font-semibold text-lg capitalize flex items-center gap-2 mb-3">
+                                             {categoryIcons[category as keyof typeof categoryIcons]}
+                                            {category}
+                                        </h3>
+                                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                            {(suggestions as MealSuggestion[]).map(suggestion => (
+                                                <MealCard
+                                                    key={suggestion.name}
+                                                    suggestion={suggestion}
+                                                    isFavorite={favoriteMeals.some(fav => fav.name === suggestion.name)}
+                                                    onToggleFavorite={handleToggleFavorite}
+                                                    onAddToPlan={handleAddToPlan}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )
+                            ))}
+                         </CardContent>
+                    </Card>
+                </div>
+            ) : null}
+
             {/* Meal Planner */}
             <Card>
                 <CardHeader>
@@ -494,77 +566,9 @@ export default function DietaryMenuPage() {
                 </Alert>
             )}
 
-            {/* Suggestions */}
-            {favoriteMeals.length > 0 && (
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Star className="text-yellow-400 fill-yellow-400" /> My Favorite Meals</CardTitle>
-                        <CardDescription>Your saved meal ideas for quick reference.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {favoriteMeals.map(suggestion => (
-                                <MealCard 
-                                    key={`fav-${suggestion.name}`}
-                                    suggestion={suggestion}
-                                    isFavorite={true}
-                                    onToggleFavorite={handleToggleFavorite}
-                                    onAddToPlan={handleAddToPlan}
-                                />
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
-            {isLoadingSuggestions ? (
-                <div className="flex items-center justify-center py-20 gap-2 text-muted-foreground">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <p>Generating your personalized dietary plan...</p>
-                </div>
-            ) : recommendations ? (
-                <div className="space-y-8">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Lightbulb className="text-primary"/> AI Dietary Commentary</CardTitle>
-                            <CardDescription>A quick look at your recent eating habits.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                             <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: marked.parse(recommendations.dietaryCommentary) as string }} />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Utensils className="text-primary"/> Meal Suggestions</CardTitle>
-                            <CardDescription>Here are some healthy ideas to try. Click on any meal to see the recipe, and save your favorites using the star icon.</CardDescription>
-                        </CardHeader>
-                         <CardContent className="space-y-6">
-                            {Object.entries(recommendations.recommendations).map(([category, suggestions]) => (
-                                (suggestions as MealSuggestion[]).length > 0 && (
-                                     <div key={category}>
-                                        <h3 className="font-semibold text-lg capitalize flex items-center gap-2 mb-3">
-                                             {categoryIcons[category as keyof typeof categoryIcons]}
-                                            {category}
-                                        </h3>
-                                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                            {(suggestions as MealSuggestion[]).map(suggestion => (
-                                                <MealCard
-                                                    key={suggestion.name}
-                                                    suggestion={suggestion}
-                                                    isFavorite={favoriteMeals.some(fav => fav.name === suggestion.name)}
-                                                    onToggleFavorite={handleToggleFavorite}
-                                                    onAddToPlan={handleAddToPlan}
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-                                )
-                            ))}
-                         </CardContent>
-                    </Card>
-                </div>
-            ) : null}
         </div>
     )
 }
+
+
+    

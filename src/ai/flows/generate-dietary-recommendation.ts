@@ -24,6 +24,9 @@ export type GenerateDietaryRecommendationInput = z.infer<typeof GenerateDietaryR
 const MealSuggestionSchema = z.object({
   name: z.string().describe("The name of the meal suggestion (e.g., 'Oatmeal with Berries')."),
   reason: z.string().describe("A brief, one-sentence explanation of why this meal is a good choice for the user's condition."),
+  ingredients: z.array(z.string()).describe("A list of simple ingredients for the meal."),
+  instructions: z.string().describe("Simple, step-by-step cooking instructions, formatted as a numbered list in a single string."),
+  calories: z.number().describe("An estimated calorie count for the meal."),
 });
 
 const GenerateDietaryRecommendationOutputSchema = z.object({
@@ -87,9 +90,12 @@ You MUST perform two actions:
     *   For each meal suggestion, you MUST provide:
         *   name: The name of the meal (e.g., "Grilled Salmon with Quinoa").
         *   reason: A brief, one-sentence explanation of *why* it's a good choice for their condition (e.g., "Rich in omega-3s, which are good for heart health.").
+        *   calories: An estimated calorie count for the meal (e.g. 450).
+        *   ingredients: A list of simple, common ingredients.
+        *   instructions: Simple, step-by-step cooking instructions, formatted as a numbered list within a single string (e.g., "1. Preheat oven to 200°C.\\n2. Season salmon with herbs.\\n3. Bake for 15 minutes.").
 
 **CRITICAL RULES:**
-*   Do NOT provide specific calorie counts or portion sizes. Keep the advice general.
+*   Do NOT provide specific portion sizes in the recipe, but your calorie estimate should assume a standard single serving.
 *   Your output MUST be a valid JSON object that strictly follows the provided schema.
 `,
 });

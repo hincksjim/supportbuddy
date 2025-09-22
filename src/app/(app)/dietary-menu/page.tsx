@@ -4,11 +4,14 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw, Lightbulb, Utensils, Apple, Drumstick, Soup, Cookie } from "lucide-react";
+import { Loader2, RefreshCw, Lightbulb, Utensils, Apple, Soup, Cookie, Coffee, ChevronDown, Flame } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { generateDietaryRecommendation, GenerateDietaryRecommendationOutput } from "@/ai/flows/generate-dietary-recommendation";
 import { DiaryEntry } from "@/app/(app)/diary/page";
 import { marked } from "marked";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface UserData {
     initialDiagnosis?: string;
@@ -17,17 +20,20 @@ interface UserData {
 const categoryIcons = {
     breakfast: <Coffee className="w-6 h-6 text-primary" />,
     lunch: <Soup className="w-6 h-6 text-primary" />,
-    dinner: <Drumstick className="w-6 h-6 text-primary" />,
+    dinner: <Utensils className="w-6 h-6 text-primary" />,
     snacks: <Apple className="w-6 h-6 text-primary" />,
 };
-import { Coffee } from 'lucide-react'; // Make sure to import Coffee icon
-
 
 export default function DietaryMenuPage() {
     const [recommendations, setRecommendations] = useState<GenerateDietaryRecommendationOutput | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+    const [openCollapsibles, setOpenCollapsibles] = useState<string[]>([]);
+
+    const toggleCollapsible = (id: string) => {
+        setOpenCollapsibles(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+    }
 
     const fetchDataAndGenerate = async (email: string) => {
         setIsLoading(true);
@@ -66,6 +72,7 @@ export default function DietaryMenuPage() {
             setIsLoading(false);
             setError("Could not identify user. Please log in again.");
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleRefresh = () => {
@@ -114,7 +121,7 @@ export default function DietaryMenuPage() {
                     <Card>
                          <CardHeader>
                             <CardTitle className="flex items-center gap-2"><Utensils className="text-primary"/> Meal Suggestions</CardTitle>
-                            <CardDescription>Here are some healthy ideas to try for the week ahead.</CardDescription>
+                            <CardDescription>Here are some healthy ideas to try for the week ahead. Click on any meal to see the recipe.</CardDescription>
                         </CardHeader>
                          <CardContent className="space-y-6">
                             {Object.entries(recommendations.recommendations).map(([category, suggestions]) => (
@@ -126,14 +133,39 @@ export default function DietaryMenuPage() {
                                         </h3>
                                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                                             {suggestions.map(suggestion => (
-                                                <Card key={suggestion.name} className="bg-muted/50">
-                                                    <CardHeader>
-                                                        <CardTitle className="text-base">{suggestion.name}</CardTitle>
-                                                    </CardHeader>
-                                                    <CardContent>
-                                                        <p className="text-sm text-muted-foreground">{suggestion.reason}</p>
-                                                    </CardContent>
-                                                </Card>
+                                                <Collapsible key={suggestion.name} open={openCollapsibles.includes(suggestion.name)} onOpenChange={() => toggleCollapsible(suggestion.name)}>
+                                                    <Card className="bg-muted/30">
+                                                        <CollapsibleTrigger asChild>
+                                                            <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 rounded-t-lg">
+                                                                <div className="flex-1">
+                                                                    <CardTitle className="text-base">{suggestion.name}</CardTitle>
+                                                                    <p className="text-sm text-muted-foreground mt-1">{suggestion.reason}</p>
+                                                                </div>
+                                                                 <ChevronDown className={cn("h-5 w-5 transition-transform", openCollapsibles.includes(suggestion.name) && "rotate-180")} />
+                                                            </div>
+                                                        </CollapsibleTrigger>
+                                                        <CollapsibleContent>
+                                                            <CardContent className="pt-0 p-4 space-y-4">
+                                                                <div className="flex items-center justify-between text-sm font-semibold border-t pt-4">
+                                                                     <span>Recipe</span>
+                                                                     <span className="flex items-center gap-1"><Flame className="w-4 h-4 text-destructive"/>~{suggestion.calories} kcal</span>
+                                                                </div>
+                                                                 <div>
+                                                                    <h4 className="font-semibold text-sm mb-2">Ingredients</h4>
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {suggestion.ingredients.map((ing, i) => (
+                                                                            <Badge key={i} variant="secondary">{ing}</Badge>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="font-semibold text-sm mb-2">Instructions</h4>
+                                                                    <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground" dangerouslySetInnerHTML={{ __html: marked.parse(suggestion.instructions.replace(/\\n/g, '\n')) as string }} />
+                                                                </div>
+                                                            </CardContent>
+                                                        </CollapsibleContent>
+                                                    </Card>
+                                                </Collapsible>
                                             ))}
                                         </div>
                                     </div>

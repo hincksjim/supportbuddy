@@ -11,12 +11,12 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { DiaryEntryForAI } from './types';
+import { type DiaryEntryForAI, DiaryEntrySchemaForAI } from './types';
 
 
 const GenerateDietaryRecommendationInputSchema = z.object({
   diagnosis: z.string().describe("The user's primary health diagnosis."),
-  recentMeals: z.array(DiaryEntryForAI).describe("An array of the user's recent diary entries, including their logged food intake."),
+  recentMeals: z.array(DiaryEntrySchemaForAI).describe("An array of the user's recent diary entries, including their logged food intake."),
 });
 export type GenerateDietaryRecommendationInput = z.infer<typeof GenerateDietaryRecommendationInputSchema>;
 
@@ -85,8 +85,8 @@ You MUST perform two actions:
 2.  **Generate Meal Recommendations:**
     *   Based on the user's diagnosis, create a list of 2-3 simple, healthy meal suggestions for EACH of the following categories: Breakfast, Lunch, Dinner, and Snacks.
     *   For each meal suggestion, you MUST provide:
-        *   `name`: The name of the meal (e.g., "Grilled Salmon with Quinoa").
-        *   `reason`: A brief, one-sentence explanation of *why* it's a good choice for their condition (e.g., "Rich in omega-3s, which are good for heart health.").
+        *   name: The name of the meal (e.g., "Grilled Salmon with Quinoa").
+        *   reason: A brief, one-sentence explanation of *why* it's a good choice for their condition (e.g., "Rich in omega-3s, which are good for heart health.").
 
 **CRITICAL RULES:**
 *   Do NOT provide specific calorie counts or portion sizes. Keep the advice general.

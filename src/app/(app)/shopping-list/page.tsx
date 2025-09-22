@@ -28,6 +28,12 @@ type MealType = 'breakfast' | 'lunch' | 'dinner';
 
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+const mealIcons: Record<MealType, React.ReactNode> = {
+    breakfast: <Coffee className="w-4 h-4 text-muted-foreground" />,
+    lunch: <Soup className="w-4 h-4 text-muted-foreground" />,
+    dinner: <Utensils className="w-4 h-4 text-muted-foreground" />,
+};
+
 export default function ShoppingListPage() {
     const [mealPlan, setMealPlan] = useState<Record<string, Record<MealType, PlannedMeal | null>>>({});
     const [shoppingList, setShoppingList] = useState<GenerateShoppingListOutput | null>(null);
@@ -116,6 +122,17 @@ export default function ShoppingListPage() {
         setIsDownloading(false);
     };
 
+    const handleRemoveMeal = (day: string, mealType: MealType) => {
+        if (!currentUserEmail) return;
+        
+        const newMealPlan = { ...mealPlan };
+        newMealPlan[day][mealType] = null;
+        setMealPlan(newMealPlan);
+        
+        localStorage.setItem(getStorageKey(currentUserEmail), JSON.stringify(newMealPlan));
+        toast({ title: "Meal removed from plan." });
+    };
+
     const allMeals = Object.values(mealPlan).flatMap(day => Object.values(day));
     const mealCount = allMeals.filter(Boolean).length;
 
@@ -141,6 +158,41 @@ export default function ShoppingListPage() {
                         {mealCount > 0 ? `You have ${mealCount} meal(s) planned for this week.` : "Your meal plan is empty. Go to the Dietary Menu to add meals."}
                     </CardDescription>
                 </CardHeader>
+                 <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {daysOfWeek.map(day => (
+                        <Card key={day} className="bg-muted/30">
+                            <CardHeader className="p-4">
+                                <CardTitle className="text-base">{day}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0 space-y-3">
+                                {(['breakfast', 'lunch', 'dinner'] as MealType[]).map(mealType => {
+                                    const meal = mealPlan[day]?.[mealType];
+                                    return (
+                                        <div key={mealType} className="flex items-start gap-3 text-sm">
+                                            {mealIcons[mealType]}
+                                            {meal ? (
+                                                <div className="flex-1 relative group">
+                                                    <p className="font-semibold leading-tight">{meal.name}</p>
+                                                    <p className="text-xs text-muted-foreground">~{meal.calories} kcal</p>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="absolute -top-1 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        onClick={() => handleRemoveMeal(day, mealType)}
+                                                    >
+                                                        <Trash2 className="w-4 h-4 text-destructive" />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <p className="text-muted-foreground italic">Not planned</p>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </CardContent>
+                        </Card>
+                    ))}
+                </CardContent>
             </Card>
 
             {shoppingList ? (
@@ -155,7 +207,8 @@ export default function ShoppingListPage() {
                             </div>
                             <div className="flex gap-2">
                                 <Button onClick={handleDownloadPdf} variant="outline" disabled={isDownloading}>
-                                    <Download className="mr-2"/> Download PDF
+                                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Download className="mr-2"/>}
+                                    Download PDF
                                 </Button>
                                 <Button onClick={() => window.print()} variant="outline">
                                     <Printer className="mr-2"/> Print

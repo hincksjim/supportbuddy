@@ -299,8 +299,12 @@ const aiConversationalSupportFlow = ai.defineFlow(
           throw new Error("The AI model returned an empty response.");
       }
       return output;
-    } catch(e) {
+    } catch(e: any) {
+       // Added detailed logging
        console.error("Error in aiConversationalSupportFlow:", e);
+       if (e.cause?.issues) {
+           console.error("Zod Schema Validation Issues:", JSON.stringify(e.cause.issues, null, 2));
+       }
        // Return a user-friendly error message in the expected format.
        return {
            answer: "I'm sorry, I had trouble processing that request. Could you try rephrasing your question? If the problem continues, there might be a temporary issue with the AI service."

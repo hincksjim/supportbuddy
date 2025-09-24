@@ -144,14 +144,14 @@ function UploadAnalysisDialog({ onAnalysisComplete }: { onAnalysisComplete: (new
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="document">Medical Document</Label>
+              <Label htmlFor="document">Medical Document (PDF, JPG, PNG)</Label>
               <div className="relative">
                 <Input
                   id="document"
                   type="file"
                   className="absolute inset-0 z-10 w-full h-full opacity-0 cursor-pointer"
                   onChange={handleFileChange}
-                  accept="image/*,application/pdf"
+                  accept="application/pdf,image/jpeg,image/png"
                   required
                 />
                 <div className="flex items-center justify-center w-full h-24 border-2 border-dashed rounded-md hover:border-primary transition-colors">

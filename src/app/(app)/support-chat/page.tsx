@@ -25,7 +25,6 @@ import type { AnalysisResult } from "@/app/(app)/document-analysis/page"
 import { medicalAvatars, mentalHealthAvatars, financialAvatars } from "@/lib/avatars"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog"
-import { MeetingNote, TextNote } from "@/ai/flows/types"
 
 type Specialist = "medical" | "mental_health" | "financial";
 
@@ -58,12 +57,6 @@ interface StoredConversation {
     messages: Message[];
 }
 
-interface CustomPersona {
-    id: string;
-    name: string;
-    persona: string;
-}
-
 interface UserData {
   name?: string;
   lastName?: string;
@@ -81,12 +74,10 @@ interface UserData {
   voice_medical?: string;
   voice_mental_health?: string;
   voice_financial?: string;
+  responseMood?: string; // This is the old generic mood
   responseMood_medical?: string;
   responseMood_mental_health?: string;
   responseMood_financial?: string;
-  customPersonas_medical?: CustomPersona[];
-  customPersonas_mental_health?: CustomPersona[];
-  customPersonas_financial?: CustomPersona[];
   dob?: string;
   employmentStatus?: string;
   income?: string;
@@ -97,9 +88,9 @@ interface UserData {
 }
 
 const specialistConfig = {
-    medical: { name: "Dr. Aris", icon: User, avatars: medicalAvatars },
-    mental_health: { name: "Sarah", icon: Heart, avatars: mentalHealthAvatars },
-    financial: { name: "David", icon: Landmark, avatars: financialAvatars },
+    medical: { name: "Medical Expert", icon: User, avatars: medicalAvatars },
+    mental_health: { name: "Mental Health Nurse", icon: Heart, avatars: mentalHealthAvatars },
+    financial: { name: "Financial Support Specialist", icon: Landmark, avatars: financialAvatars },
 }
 
 // Define a type for all the contextual data we will load
@@ -108,8 +99,6 @@ interface AppContextData {
     diaryData: DiaryEntry[];
     medicationData: Medication[];
     sourceDocuments: AnalysisResult[];
-    textNotes: TextNote[];
-    meetingNotes: MeetingNote[];
 }
 
 
@@ -125,8 +114,6 @@ function SupportChatPageContent() {
       diaryData: [],
       medicationData: [],
       sourceDocuments: [],
-      textNotes: [],
-      meetingNotes: [],
   });
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
   const [isHistoricChat, setIsHistoricChat] = useState(false);
@@ -153,21 +140,17 @@ function SupportChatPageContent() {
         const storedMeds = localStorage.getItem(`medications_${currentUserEmail}`);
         const storedDocs = localStorage.getItem(`analysisResults_${currentUserEmail}`);
         const storedUserData = localStorage.getItem(`userData_${currentUserEmail}`);
-        const summariesAndNotes = localStorage.getItem(`conversationSummaries_${currentUserEmail}`)
 
         if (storedUserData) {
           const parsedUserData = JSON.parse(storedUserData);
           setUserData(parsedUserData);
         }
 
-        const parsedSummariesAndNotes = summariesAndNotes ? JSON.parse(summariesAndNotes) : [];
         setAppContextData({
             timelineData: storedTimeline ? JSON.parse(storedTimeline) : null,
             diaryData: storedDiary ? JSON.parse(storedDiary) : [],
             medicationData: storedMeds ? JSON.parse(storedMeds) : [],
             sourceDocuments: storedDocs ? JSON.parse(storedDocs) : [],
-            textNotes: parsedSummariesAndNotes.filter((item: any) => item.type === 'textNote'),
-            meetingNotes: parsedSummariesAndNotes.filter((item: any) => item.type === 'meetingNote'),
         });
     } catch (e) {
         console.error("Failed to load app context data:", e);
@@ -177,13 +160,6 @@ function SupportChatPageContent() {
   
   const speakMessage = async (text: string, specialist: Specialist) => {
     if (!isTtsEnabled) return;
-
-    // Stop any currently playing audio
-    if (audioRef.current && !audioRef.current.paused) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-    }
-
     try {
       const voiceKey = `voice_${specialist}` as keyof UserData;
       const voice = userData[voiceKey] || 'Algenib';
@@ -209,15 +185,7 @@ function SupportChatPageContent() {
 
     try {
       const responseMoodKey = `responseMood_${activeSpecialist}` as keyof UserData;
-      const responseMood = userData[responseMoodKey] || 'standard';
-
-      let customPersonaText: string | undefined = undefined;
-      const customPersonasKey = `customPersonas_${activeSpecialist}` as keyof UserData;
-      const customPersonas: CustomPersona[] = userData[customPersonasKey] || [];
-      const selectedPersona = customPersonas.find(p => p.id === responseMood);
-      if (selectedPersona) {
-          customPersonaText = selectedPersona.persona;
-      }
+      const responseMood = userData[responseMoodKey] || userData.responseMood || 'standard';
       
       const relevantHistory = newMessages.filter(m => m.role !== 'system');
 
@@ -236,16 +204,12 @@ function SupportChatPageContent() {
         dob: userData.dob || "",
         employmentStatus: userData.employmentStatus || "",
         existingBenefits: userData.benefits || [],
-        responseMood: 'standard', // This is now overridden by persona logic
-        customPersona: customPersonaText,
+        responseMood: responseMood,
         conversationHistory: relevantHistory,
         question: finalInput,
         
         timelineData: appContextData.timelineData,
-        diaryData: appContextData.diaryData.map(d => ({
-            ...d,
-            food: d.foodIntake?.map(f => f.title).join(', ') || d.food || ''
-        })),
+        diaryData: appContextData.diaryData,
         medicationData: appContextData.medicationData,
         sourceDocuments: appContextData.sourceDocuments.map(d => ({
             id: d.id,
@@ -253,8 +217,6 @@ function SupportChatPageContent() {
             date: d.date,
             analysis: d.analysis,
         })),
-        textNotes: appContextData.textNotes,
-        meetingNotes: appContextData.meetingNotes,
       };
 
       if (userData.income) flowInput.income = userData.income;
@@ -430,7 +392,7 @@ function SupportChatPageContent() {
       const specialistName = specialistConfig[specialist].name;
       switch(specialist) {
           case 'medical':
-              return `Hello ${userName}, I'm ${specialistName}, your consultant oncologist. How can I help you today with your health or treatment?`;
+              return `Hello ${userName}, I'm ${specialistName}, your medical expert. How can I help you today with your health or treatment?`;
           case 'mental_health':
               return `Hi ${userName}, I'm ${specialistName}, your specialist nurse. It's a safe space to talk about how you're feeling. What's on your mind?`;
           case 'financial':
@@ -541,12 +503,7 @@ function SupportChatPageContent() {
   useEffect(() => {
     if (audioRef.current && audioDataUri) {
       audioRef.current.src = audioDataUri;
-      audioRef.current.play().catch(e => {
-          // This error is often benign, caused by rapid re-renders.
-          if (e.name !== 'AbortError') {
-             console.error("Audio playback failed:", e)
-          }
-      });
+      audioRef.current.play();
     }
   }, [audioDataUri]);
 
@@ -818,3 +775,5 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
+
+    

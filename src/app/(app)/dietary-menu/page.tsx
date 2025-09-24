@@ -448,60 +448,59 @@ export default function DietaryMenuPage() {
                             ))}
                          </CardContent>
                     </Card>
+                    <Card>
+                        <CardHeader>
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <div>
+                                    <CardTitle className="flex items-center gap-2"><Calendar /> Your Meal Plan</CardTitle>
+                                    <CardDescription>
+                                        {mealCount > 0 ? `You have ${mealCount} meal(s) planned for this week.` : "Your meal plan is empty. Add meals from the suggestions above."}
+                                    </CardDescription>
+                                </div>
+                                 <Button onClick={handleGenerateList} disabled={isLoadingList || mealCount === 0}>
+                                    {isLoadingList ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
+                                    Generate Shopping List
+                                </Button>
+                            </div>
+                        </CardHeader>
+                         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {daysOfWeek.map(day => (
+                                <Card key={day} className="bg-muted/30">
+                                    <CardHeader className="p-4">
+                                        <CardTitle className="text-base">{day}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-4 pt-0 space-y-3">
+                                        {(['breakfast', 'lunch', 'dinner'] as MealType[]).map(mealType => {
+                                            const meal = mealPlan[day]?.[mealType];
+                                            return (
+                                                <div key={mealType} className="flex items-start gap-3 text-sm">
+                                                    {mealIcons[mealType]}
+                                                    {meal ? (
+                                                        <div className="flex-1 relative group">
+                                                            <p className="font-semibold leading-tight">{meal.name}</p>
+                                                            <p className="text-xs text-muted-foreground">~{meal.calories} kcal</p>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="absolute -top-1 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                onClick={() => handleRemoveMeal(day, mealType)}
+                                                            >
+                                                                <Trash2 className="w-4 h-4 text-destructive" />
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-muted-foreground italic">Not planned</p>
+                                                    )}
+                                                </div>
+                                            )
+                                        })}
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </CardContent>
+                    </Card>
                 </div>
             ) : null}
-
-            <Card>
-                <CardHeader>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <div>
-                            <CardTitle className="flex items-center gap-2"><Calendar /> Your Meal Plan</CardTitle>
-                            <CardDescription>
-                                {mealCount > 0 ? `You have ${mealCount} meal(s) planned for this week.` : "Your meal plan is empty. Add meals from the suggestions above."}
-                            </CardDescription>
-                        </div>
-                         <Button onClick={handleGenerateList} disabled={isLoadingList || mealCount === 0}>
-                            {isLoadingList ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
-                            Generate Shopping List
-                        </Button>
-                    </div>
-                </CardHeader>
-                 <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {daysOfWeek.map(day => (
-                        <Card key={day} className="bg-muted/30">
-                            <CardHeader className="p-4">
-                                <CardTitle className="text-base">{day}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-4 pt-0 space-y-3">
-                                {(['breakfast', 'lunch', 'dinner'] as MealType[]).map(mealType => {
-                                    const meal = mealPlan[day]?.[mealType];
-                                    return (
-                                        <div key={mealType} className="flex items-start gap-3 text-sm">
-                                            {mealIcons[mealType]}
-                                            {meal ? (
-                                                <div className="flex-1 relative group">
-                                                    <p className="font-semibold leading-tight">{meal.name}</p>
-                                                    <p className="text-xs text-muted-foreground">~{meal.calories} kcal</p>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="absolute -top-1 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        onClick={() => handleRemoveMeal(day, mealType)}
-                                                    >
-                                                        <Trash2 className="w-4 h-4 text-destructive" />
-                                                    </Button>
-                                                </div>
-                                            ) : (
-                                                <p className="text-muted-foreground italic">Not planned</p>
-                                            )}
-                                        </div>
-                                    )
-                                })}
-                            </CardContent>
-                        </Card>
-                    ))}
-                </CardContent>
-            </Card>
             
             {isLoadingList ? (
                  <div className="flex items-center justify-center py-20 gap-2 text-muted-foreground">
@@ -515,7 +514,7 @@ export default function DietaryMenuPage() {
                              <div>
                                 <CardTitle className="flex items-center gap-2">Generated Shopping List</CardTitle>
                                 <CardDescription>
-                                    Total Estimated Cost: <span className="font-bold text-primary">£{shoppingList.totalEstimatedCost.toFixed(2)}</span>
+                                    Total Estimated Cost: <span className="font-bold text-primary">£{shoppingList.totalEstimatedCost}</span>
                                 </CardDescription>
                             </div>
                             <div className="flex gap-2">
@@ -546,9 +545,6 @@ export default function DietaryMenuPage() {
                                 </table>
                             </div>
                         ))}
-                         <div className="text-right font-bold text-lg pt-4 border-t">
-                            Total: £{shoppingList.totalEstimatedCost.toFixed(2)}
-                        </div>
                     </CardContent>
                 </Card>
             ) : error ? (
@@ -569,3 +565,5 @@ export default function DietaryMenuPage() {
         </div>
     )
 }
+
+    

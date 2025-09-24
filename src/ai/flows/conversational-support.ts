@@ -27,23 +27,28 @@ const DiaryEntrySchema = z.object({
   id: z.string(),
   date: z.string(),
   mood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
-  diagnosisMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
-  treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
+  diagnosisMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable().optional(),
+  treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable().optional(),
   painScore: z.number().nullable(),
-  weight: z.string(),
-  sleep: z.string(),
-  food: z.string(),
-  worriedAbout: z.string(),
-  positiveAbout: z.string(),
-  notes: z.string(),
+  weight: z.string().optional(),
+  sleep: z.string().optional(),
+  foodIntake: z.array(z.any()).optional(), // Accept any structure for foodIntake
+  food: z.string().optional(), // Old food field
+  worriedAbout: z.string().optional(),
+  positiveAbout: z.string().optional(),
+  notes: z.string().optional(),
   medsTaken: z.array(z.object({
     id: z.string(),
     name: z.string(),
     time: z.string(),
     quantity: z.number(),
     isPrescribed: z.boolean(),
-  })),
+  })).optional(),
+  painLocation: z.string().nullable().optional(),
+  painRemarks: z.string().optional(),
+  symptomAnalysis: z.string().optional(),
 });
+
 
 const MedicationSchema = z.object({
   id: z.string(),
@@ -143,7 +148,14 @@ export async function aiConversationalSupport(input: AiConversationalSupportInpu
     isFinancial: input.specialist === 'financial',
   };
   
-  return aiConversationalSupportFlow(enrichedInput);
+  try {
+    return await aiConversationalSupportFlow(enrichedInput);
+  } catch (e: any) {
+      console.error("Error in aiConversationalSupportFlow:", e.message);
+      console.error("Detailed validation error:", e.cause);
+      // Return a standard error message to the user
+      return { answer: "I'm sorry, I had trouble processing that request. Could you try rephrasing your question? If the problem continues, there might be a temporary issue with the AI service." };
+  }
 }
 
 const prompt = ai.definePrompt({
@@ -255,7 +267,3 @@ const aiConversationalSupportFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    
-
-    

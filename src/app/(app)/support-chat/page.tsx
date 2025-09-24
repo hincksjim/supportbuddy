@@ -177,6 +177,13 @@ function SupportChatPageContent() {
   
   const speakMessage = async (text: string, specialist: Specialist) => {
     if (!isTtsEnabled) return;
+
+    // Stop any currently playing audio
+    if (audioRef.current && !audioRef.current.paused) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+    }
+
     try {
       const voiceKey = `voice_${specialist}` as keyof UserData;
       const voice = userData[voiceKey] || 'Algenib';
@@ -235,7 +242,10 @@ function SupportChatPageContent() {
         question: finalInput,
         
         timelineData: appContextData.timelineData,
-        diaryData: appContextData.diaryData,
+        diaryData: appContextData.diaryData.map(d => ({
+            ...d,
+            food: d.foodIntake?.map(f => f.title).join(', ') || d.food || ''
+        })),
         medicationData: appContextData.medicationData,
         sourceDocuments: appContextData.sourceDocuments.map(d => ({
             id: d.id,
@@ -531,7 +541,12 @@ function SupportChatPageContent() {
   useEffect(() => {
     if (audioRef.current && audioDataUri) {
       audioRef.current.src = audioDataUri;
-      audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+      audioRef.current.play().catch(e => {
+          // This error is often benign, caused by rapid re-renders.
+          if (e.name !== 'AbortError') {
+             console.error("Audio playback failed:", e)
+          }
+      });
     }
   }, [audioDataUri]);
 
@@ -803,5 +818,3 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
-
-    

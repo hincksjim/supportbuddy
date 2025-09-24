@@ -231,16 +231,25 @@ function SupportChatPageContent() {
       const finalMessages = [...newMessages, assistantMessage];
       setMessages(finalMessages)
       await speakMessage(result.answer, activeSpecialist)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error from AI support flow: ", error)
-      const errorMessageText = "I'm sorry, I encountered an error. Please try again. If the problem persists, please check the server logs."
+      const errorMessageText = "I'm sorry, I had trouble processing that request. Could you try rephrasing your question? If the problem continues, there might be a temporary issue with the AI service."
       const errorMessage: Message = {
         role: "assistant",
         content: errorMessageText,
         metadata: { specialist: activeSpecialist }
       }
       setMessages((prev) => [...prev, errorMessage])
-      await speakMessage(errorMessageText, activeSpecialist)
+      // Only log the detailed error in development environments
+        if (process.env.NODE_ENV === 'development') {
+            toast({
+                title: "AI Flow Error",
+                description: "There was an error processing the request. Check the server console for details.",
+                variant: "destructive",
+                duration: 10000,
+            });
+            console.error("Detailed validation error:", error.cause);
+        }
     } finally {
       setIsLoading(false)
     }
@@ -501,9 +510,19 @@ function SupportChatPageContent() {
   }, [currentUserEmail, searchParams]);
 
   useEffect(() => {
-    if (audioRef.current && audioDataUri) {
-      audioRef.current.src = audioDataUri;
-      audioRef.current.play();
+    if (audioRef.current) {
+      // If there's an existing audio source, pause it and reset it.
+      if (!audioRef.current.paused) {
+        audioRef.current.pause();
+      }
+      audioRef.current.src = audioDataUri || "";
+      if (audioDataUri) {
+          audioRef.current.play().catch(e => {
+              if (e.name !== 'AbortError') {
+                  console.error("Audio playback failed:", e)
+              }
+          });
+      }
     }
   }, [audioDataUri]);
 
@@ -548,12 +567,6 @@ function SupportChatPageContent() {
           setAudioDataUri(null);
       }
   }
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.src = audioDataUri || "";
-    }
-  }, [audioDataUri]);
 
   const handleDownloadMessage = (content: string) => {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -776,4 +789,3 @@ export default function SupportChatPage() {
     )
 }
 
-    

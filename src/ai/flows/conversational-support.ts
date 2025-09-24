@@ -23,6 +23,16 @@ const SourceDocumentSchema = z.object({
     analysis: z.string(),
 });
 
+const FoodIntakeSchema = z.object({
+    id: z.string(),
+    title: z.string(),
+    photoDataUri: z.string(),
+    description: z.string(),
+    calories: z.number(),
+    ingredients: z.array(z.string()),
+});
+
+
 const DiaryEntrySchema = z.object({
   id: z.string(),
   date: z.string(),
@@ -32,7 +42,8 @@ const DiaryEntrySchema = z.object({
   painScore: z.number().nullable(),
   weight: z.string(),
   sleep: z.string(),
-  food: z.string(),
+  foodIntake: z.array(FoodIntakeSchema).optional(),
+  food: z.string().optional(), // For backward compatibility
   worriedAbout: z.string(),
   positiveAbout: z.string(),
   notes: z.string(),
@@ -249,7 +260,7 @@ You are a helpful AI assistant. You MUST adopt the following persona for your re
 
 **Diary Entries (For Recent Feelings and Symptoms):**
 {{#each diaryData}}
-- Date: {{date}} - Mood: {{mood}}, Pain: {{painScore}}, Worried: "{{worriedAbout}}", Positive: "{{positiveAbout}}", Notes: "{{notes}}"
+- Date: {{date}} - Mood: {{mood}}, Pain: {{painScore}}, Worried: "{{worriedAbout}}", Positive: "{{positiveAbout}}", Notes: "{{notes}}", Food: {{#if foodIntake}} {{#each foodIntake}} {{title}} (~{{calories}} kcal); {{/each}} {{else if food}} {{food}} {{/if}}
 {{else}}
 - No diary entries yet.
 {{/each}}
@@ -294,3 +305,5 @@ const aiConversationalSupportFlow = ai.defineFlow(
     }
   }
 );
+
+    

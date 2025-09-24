@@ -58,14 +58,14 @@ const TimelineStepSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
-  target: zstring(),
+  target: z.string(),
   status: z.enum(['pending', 'completed']),
   notes: z.string(),
 });
 
 const TimelineStageSchema = z.object({
   title: z.string(),
-  description: zstring(),
+  description: z.string(),
   steps: z.array(TimelineStepSchema),
 });
 
@@ -255,5 +255,7 @@ const aiConversationalSupportFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    
 
     

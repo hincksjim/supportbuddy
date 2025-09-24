@@ -421,6 +421,7 @@ function MemoryVaultTab({ data, setData, disabled, onDownload }: { data: VaultIt
                         className="absolute inset-0 z-10 w-full h-full opacity-0 cursor-pointer"
                         onChange={handleFileUpload}
                         disabled={isUploading || disabled}
+                        accept="application/pdf,image/*,video/*,audio/*"
                         />
                         <div className="flex items-center justify-center w-full h-24 border-2 border-dashed rounded-md hover:border-primary transition-colors">
                         {isUploading ? <Loader2 className="h-8 w-8 animate-spin"/> : (
@@ -690,5 +691,3 @@ export default function GoodbyePage() {
     </div>
   )
 }
-
-    

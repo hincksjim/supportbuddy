@@ -17,71 +17,71 @@ import { TextNoteSchema, MeetingNoteSchema } from './types';
 
 // Schemas for external data sources
 const SourceDocumentSchema = z.object({
-    id: z.string(),
-    title: z.string(),
-    date: z.string(),
-    analysis: z.string(),
+    id: z.string().optional(),
+    title: z.string().optional(),
+    date: z.string().optional(),
+    analysis: z.string().optional(),
 });
 
 const FoodIntakeSchema = z.object({
-    id: z.string(),
-    title: z.string(),
-    photoDataUri: z.string(),
-    description: z.string(),
-    calories: z.number(),
-    ingredients: z.array(z.string()),
+    id: z.string().optional(),
+    title: z.string().optional(),
+    photoDataUri: z.string().optional(),
+    description: z.string().optional(),
+    calories: z.number().optional(),
+    ingredients: z.array(z.string()).optional(),
     dietaryWarning: z.string().optional().nullable(),
 });
 
 
 const DiaryEntrySchema = z.object({
-  id: z.string(),
-  date: z.string(),
-  mood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
-  diagnosisMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
-  treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
-  painScore: z.number().nullable(),
+  id: z.string().optional(),
+  date: z.string().optional(),
+  mood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable().optional(),
+  diagnosisMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable().optional(),
+  treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable().optional(),
+  painScore: z.number().nullable().optional(),
   painLocation: z.string().optional().nullable(),
   painRemarks: z.string().optional().nullable(),
   symptomAnalysis: z.string().optional().nullable(),
-  weight: z.string(),
-  sleep: z.string(),
+  weight: z.string().optional(),
+  sleep: z.string().optional(),
   foodIntake: z.array(FoodIntakeSchema).optional(),
   food: z.string().optional(), // For backward compatibility
-  worriedAbout: z.string(),
-  positiveAbout: z.string(),
-  notes: z.string(),
+  worriedAbout: z.string().optional(),
+  positiveAbout: z.string().optional(),
+  notes: z.string().optional(),
   medsTaken: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    time: z.string(),
-    quantity: z.number(),
-    isPrescribed: z.boolean(),
-  })),
+    id: z.string().optional(),
+    name: z.string().optional(),
+    time: z.string().optional(),
+    quantity: z.number().optional(),
+    isPrescribed: z.boolean().optional(),
+  })).optional(),
 });
 
 const MedicationSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  strength: z.string(),
-  dose: z.string(),
-  issuedBy: z.string(),
-  issuedDate: z.string(),
+  id: z.string().optional(),
+  name: z.string().optional(),
+  strength: z.string().optional(),
+  dose: z.string().optional(),
+  issuedBy: z.string().optional(),
+  issuedDate: z.string().optional(),
 });
 
 const TimelineStepSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string(),
-  target: z.string(),
-  status: z.enum(['pending', 'completed']),
-  notes: z.string(),
+  id: z.string().optional(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  target: z.string().optional(),
+  status: z.enum(['pending', 'completed']).optional(),
+  notes: z.string().optional(),
 });
 
 const TimelineStageSchema = z.object({
-  title: z.string(),
-  description: z.string(),
-  steps: z.array(TimelineStepSchema),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  steps: z.array(TimelineStepSchema).optional(),
 });
 
 
@@ -118,8 +118,8 @@ const AiConversationalSupportInputSchema = z.object({
   textNotes: z.array(TextNoteSchema.omit({ type: true })).optional().describe('An array of general text notes saved by the user.'),
   meetingNotes: z.array(MeetingNoteSchema.omit({ type: true })).optional().describe('An array of meeting notes saved by the user.'),
   timelineData: z.object({
-      disclaimer: z.string(),
-      timeline: z.array(TimelineStageSchema)
+      disclaimer: z.string().optional(),
+      timeline: z.array(TimelineStageSchema).optional()
   }).nullable().optional().describe('The user\'s current treatment timeline data.'),
 });
 export type AiConversationalSupportInput = z.infer<typeof AiConversationalSupportInputSchema>;

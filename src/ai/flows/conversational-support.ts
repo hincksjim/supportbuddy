@@ -30,6 +30,7 @@ const FoodIntakeSchema = z.object({
     description: z.string(),
     calories: z.number(),
     ingredients: z.array(z.string()),
+    dietaryWarning: z.string().optional().nullable(),
 });
 
 
@@ -40,9 +41,9 @@ const DiaryEntrySchema = z.object({
   diagnosisMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
   treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
   painScore: z.number().nullable(),
-  painLocation: z.string().nullable().optional(),
-  painRemarks: z.string().optional(),
-  symptomAnalysis: z.string().optional(),
+  painLocation: z.string().optional().nullable(),
+  painRemarks: z.string().optional().nullable(),
+  symptomAnalysis: z.string().optional().nullable(),
   weight: z.string(),
   sleep: z.string(),
   foodIntake: z.array(FoodIntakeSchema).optional(),
@@ -72,7 +73,7 @@ const TimelineStepSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
-  target: z.string(),
+  target: zstring(),
   status: z.enum(['pending', 'completed']),
   notes: z.string(),
 });
@@ -300,12 +301,16 @@ const aiConversationalSupportFlow = ai.defineFlow(
       }
       return output;
     } catch(e: any) {
-       // Added detailed logging
-       console.error("Error in aiConversationalSupportFlow:", e);
+       console.error("==========================================================================================");
+       console.error("ERROR in aiConversationalSupportFlow");
+       console.error("==========================================================================================");
+       console.error("Error Message:", e.message);
        if (e.cause?.issues) {
            console.error("Zod Schema Validation Issues:", JSON.stringify(e.cause.issues, null, 2));
        }
-       // Return a user-friendly error message in the expected format.
+       console.error("------------------------------------------------------------------------------------------");
+       console.error("Full Error Object:", e);
+       console.error("==========================================================================================");
        return {
            answer: "I'm sorry, I had trouble processing that request. Could you try rephrasing your question? If the problem continues, there might be a temporary issue with the AI service."
        };

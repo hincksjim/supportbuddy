@@ -2,9 +2,10 @@
 "use client"
 
 import React, { useState, useEffect, useCallback, useRef } from "react"
-import { Sun, Moon, Laptop, Bot, Save, Play, Loader2, User, Heart, Landmark, Edit } from "lucide-react"
+import { Sun, Moon, Laptop, Bot, Save, Play, Loader2, User, Heart, Landmark, Edit, Trash2 } from "lucide-react"
 import { useTheme } from "next-themes"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -14,6 +15,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -276,15 +289,16 @@ function SpecialistCard({ specialist, title, icon, userData, setUserData, avatar
     )
 }
 
-export default function SettingsPage() {
+function SettingsPageContent() {
     const { theme, setTheme } = useTheme()
     const { toast } = useToast()
+    const router = useRouter();
+    
+    const [isMounted, setIsMounted] = useState(false)
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
     const [userData, setUserData] = useState<UserData>({});
-    const [isMounted, setIsMounted] = useState(false)
 
-    useEffect(() => {
-        setIsMounted(true)
+    const loadData = useCallback(() => {
         const email = localStorage.getItem("currentUserEmail");
         if (email) {
             setCurrentUserEmail(email);
@@ -293,7 +307,12 @@ export default function SettingsPage() {
                 setUserData(JSON.parse(storedData));
             }
         }
-    }, [])
+    }, []);
+
+    useEffect(() => {
+        setIsMounted(true)
+        loadData();
+    }, [loadData])
 
     const handleSave = () => {
         if (!currentUserEmail) return;
@@ -305,9 +324,30 @@ export default function SettingsPage() {
             description: "Your preferences have been updated.",
         });
     }
+
+    const handleClearData = () => {
+        if (typeof window !== 'undefined') {
+            const email = localStorage.getItem("currentUserEmail");
+            localStorage.clear();
+            if (email) {
+                localStorage.setItem("currentUserEmail", email);
+            }
+            toast({
+                title: "Local Data Cleared",
+                description: "All application data has been removed from your browser. You will be logged out.",
+            });
+            setTimeout(() => {
+                router.push('/login');
+            }, 1500);
+        }
+    }
     
     if (!isMounted) {
-        return null
+        return (
+            <div className="flex justify-center items-center h-full p-6">
+                <Loader2 className="h-8 w-8 animate-spin"/>
+            </div>
+        );
     }
 
     return (
@@ -369,6 +409,38 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle>Data Management</CardTitle>
+                    <CardDescription>Manage the data stored in your browser for this application.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Clear Local Data
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete all your conversations, document analyses, diary entries, and other settings from this browser.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleClearData}>Continue</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                    <p className="text-xs text-muted-foreground mt-2">
+                        If you are experiencing persistent errors, clearing your local data can resolve them by resetting the application state.
+                    </p>
+                </CardContent>
+            </Card>
 
             <div className="space-y-6">
                 <SpecialistCard specialist="medical" title="Medical Expert" icon={<User />} userData={userData} setUserData={setUserData} avatars={specialistAvatarMap.medical} />
@@ -379,3 +451,10 @@ export default function SettingsPage() {
         </div>
     )
 }
+
+export default function SettingsPage() {
+    // This wrapper is here in case we need to add providers in the future
+    return <SettingsPageContent />;
+}
+
+    

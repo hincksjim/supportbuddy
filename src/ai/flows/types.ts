@@ -71,17 +71,17 @@ const FoodIntakeSchema = z.object({
 });
 
 // This schema is for AI flows that need to process diary entries.
-// It keeps the structure consistent.
+// It keeps the structure consistent and flexible.
 export const DiaryEntrySchemaForAI = z.object({
     id: z.string(),
     date: z.string(),
-    mood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
+    mood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable().optional(),
     diagnosisMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable().optional(),
     treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable().optional(),
-    painScore: z.number().nullable(),
+    painScore: z.number().nullable().optional(),
     painLocation: z.string().nullable().optional(),
-    painRemarks: z.string().optional().nullable(),
-    symptomAnalysis: z.string().optional().nullable(),
+    painRemarks: z.string().nullable().optional(),
+    symptomAnalysis: z.string().nullable().optional(),
     weight: z.string().optional(),
     sleep: z.string().optional(),
     foodIntake: z.array(FoodIntakeSchema).optional(),
@@ -113,7 +113,7 @@ export const MeetingNoteSchema = z.object({
         assignedTo: z.array(z.string()),
         dueDate: z.string().nullable(),
         priority: z.enum(['low', 'medium', 'high']),
-    })).optional(), // Make actions optional
+    })).optional(),
 });
 export type MeetingNote = z.infer<typeof MeetingNoteSchema>;
 

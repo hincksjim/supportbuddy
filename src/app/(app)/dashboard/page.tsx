@@ -783,7 +783,7 @@ function ViewMeetingNoteDialog({ note, children }: { note: MeetingNote; children
                         <h4 className="font-semibold text-sm">Notes</h4>
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{note.notes || "No notes were taken."}</p>
                     </div>
-                    {note.actions.length > 0 && (
+                    {note.actions && note.actions.length > 0 && (
                         <div>
                             <h4 className="font-semibold text-sm">Action Items</h4>
                             <div className="space-y-2 mt-2">
@@ -994,9 +994,9 @@ export default function DashboardPage() {
                     } else if ('type' in s && s.type === 'textNote') {
                         allActivity.push({ type: 'textNote', data: s });
                     } else if ('type' in s && s.type === 'meetingNote') {
-                        allActivity.push({ type: 'meetingNote', data: s });
+                        allActivity.push({ type: 'meetingNote', data: s as MeetingNote });
                     } else if ('type' in s && s.type === 'appointment') {
-                        allActivity.push({ type: 'appointment', data: s });
+                        allActivity.push({ type: 'appointment', data: s as AppointmentActivity });
                     } else if (!('type' in s)) {
                          // This is a conversation summary
                         allActivity.push({ type: 'conversation', data: s as ConversationSummary });

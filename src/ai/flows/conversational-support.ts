@@ -74,7 +74,7 @@ const AiConversationalSupportInputSchema = z.object({
   })).describe("The history of the conversation so far."),
   question: z.string().describe('The user question about their condition or treatment options.'),
   
-  // New context fields
+  // Use the centralized schemas
   sourceDocuments: z.array(SourceDocumentSchema).optional().describe('An array of previously analyzed documents.'),
   diaryData: z.array(DiaryEntrySchemaForAI).optional().describe('An array of the user\'s diary entries.'),
   medicationData: z.array(MedicationSchema).optional().describe('An array of the user\'s prescribed medications.'),
@@ -259,4 +259,4 @@ const aiConversationalSupportFlow = ai.defineFlow(
   }
 );
 
-
+    

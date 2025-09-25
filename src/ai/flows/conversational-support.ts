@@ -51,7 +51,7 @@ const TimelineStageSchema = z.object({
 const AiConversationalSupportInputSchema = z.object({
   specialist: z.enum(['medical', 'mental_health', 'financial']).describe("The specialist the user is addressing."),
   userName: z.string().describe("The user's first name."),
-  initialDiagnosis: z.string().optional().describe("The user's primary diagnosis selected at signup (e.g., 'Cancer', 'Heart Condition')."),
+  initialDiagnosis: z.string().optional().describe("The user's primary diagnosis selected at signup (e.g., 'Cancer', 'Heart Condition'). This may contain multiple conditions separated by commas."),
   age: z.string().describe("The user's age."),
   gender: z.string().describe("The user's gender."),
   address1: z.string().optional().describe("The user's street address (line 1)."),
@@ -68,20 +68,20 @@ const AiConversationalSupportInputSchema = z.object({
   responseMood: z.string().describe("The desired conversational tone for the AI. Can be 'standard', a predefined persona ID (e.g. 'direct_factual'), or a custom persona ID."),
   customPersona: z.string().optional().describe("A user-defined persona for the AI to adopt if the responseMood is a custom one."),
   conversationHistory: z.array(z.object({
-    role: z.enum(['user', 'assistant']),
+    role: z.enum(['user', 'assistant', 'system']),
     content: z.string(),
     metadata: z.object({ specialist: z.enum(['medical', 'mental_health', 'financial']) }).optional(),
   })).describe("The history of the conversation so far."),
   question: z.string().describe('The user question about their condition or treatment options.'),
   
   // New context fields
-  sourceDocuments: z.array(SourceDocumentSchema).describe('An array of previously analyzed documents.'),
-  diaryData: z.array(DiaryEntrySchemaForAI).describe('An array of the user\'s diary entries.'),
-  medicationData: z.array(MedicationSchema).describe('An array of the user\'s prescribed medications.'),
+  sourceDocuments: z.array(SourceDocumentSchema).optional().describe('An array of previously analyzed documents.'),
+  diaryData: z.array(DiaryEntrySchemaForAI).optional().describe('An array of the user\'s diary entries.'),
+  medicationData: z.array(MedicationSchema).optional().describe('An array of the user\'s prescribed medications.'),
   timelineData: z.object({
       disclaimer: z.string(),
       timeline: z.array(TimelineStageSchema)
-  }).nullable().describe('The user\'s current treatment timeline data.'),
+  }).nullable().optional().describe('The user\'s current treatment timeline data.'),
   textNotes: z.array(TextNoteSchema.omit({ type: true })).optional().describe('An array of general text notes saved by the user.'),
   meetingNotes: z.array(MeetingNoteSchema.omit({ type: true })).optional().describe('An array of meeting notes saved by the user.'),
 });
@@ -128,9 +128,9 @@ export async function aiConversationalSupport(input: AiConversationalSupportInpu
     return await aiConversationalSupportFlow(enrichedInput);
   } catch (e: any) {
       // Improved logging to catch Zod errors
-      console.error("Error in aiConversationalSupportFlow. Zod validation likely failed.", e.message);
+      console.error("Error in aiConversationalSupportFlow.", e.message);
       if (e.cause) {
-        console.error("Detailed Zod validation error:", e.cause);
+        console.error("Detailed validation error:", e.cause);
       }
       // Return a standard error message to the user
       return { answer: "I'm sorry, I had trouble processing that request. Could you try rephrasing your question? If the problem continues, there might be a temporary issue with the AI service." };
@@ -149,7 +149,7 @@ You are a caring, friendly, and very supportive AI health companion acting as a 
 **CORE INSTRUCTIONS (MUST FOLLOW):**
 1.  **Prioritize Tool Use for Location Questions:** If the user asks about local services, hospitals, clinics, or their health board, you **MUST** use the 'lookupPostcode' tool. Use the postcode from their profile: **{{{postcode}}}**. Do not claim you cannot access this information. Provide the information from the tool directly.
 2.  **Synthesize Medical Data:** Before answering, you **MUST** review all context provided below, focusing on: **Analyzed Documents, Treatment Timeline, Medications, and Diary entries related to physical symptoms (pain, weight, etc.)**. Use this information to provide a truly personalized and informed response.
-3.  **Be a Specialist:** Adapt your persona based on the user's 'initialDiagnosis'. If it's 'Cancer', you are a consultant oncologist. If 'Heart', a cardiologist, etc.
+3.  **Handle Multiple Diagnoses:** The user's diagnosis field may contain multiple conditions separated by commas. Address all of them if relevant to the question. If adapting your persona, focus on the first diagnosis in the list.
 4.  **Explain Simply & Define Terms:** All explanations should be clear and easy to understand. If you must use a medical term, define it simply.
 5.  **Refer to Teammates:** If the conversation touches on financial worries or emotional distress, gently guide the user to talk to your teammates, the **Financial Support Specialist** or the **Mental Health Nurse**, who are better equipped to handle those topics.
 {{/if}}
@@ -186,7 +186,7 @@ You are an expert **Financial Support Specialist**. Your role is to provide clea
 - Annual Income: {{{income}}}
 - Savings: {{{savings}}}
 - Existing Benefits: {{#if existingBenefits}}{{#each existingBenefits}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}None{{/if}}
-- Stated Initial Condition: **{{{initialDiagnosis}}}**
+- Stated Health Condition(s): **{{{initialDiagnosis}}}** (Note: This may contain multiple conditions separated by commas).
 
 **Analyzed Documents (Key Source of Medical Facts):**
 {{#each sourceDocuments}}
@@ -209,7 +209,7 @@ You are an expert **Financial Support Specialist**. Your role is to provide clea
 
 **Diary Entries (For Recent Feelings and Symptoms):**
 {{#each diaryData}}
-- Date: {{date}} - Mood: {{mood}}, Pain: {{painScore}}, Worried: "{{worriedAbout}}", Positive: "{{positiveAbout}}", Notes: "{{notes}}"
+- Date: {{date}} - Mood: {{mood}}, Pain: {{painScore}}, Worried: "{{worriedAbout}}", Positive: "{{positiveAbout}}", Notes: "{{notes}}", Food: {{#if foodIntake}} {{#each foodIntake}} {{title}} (~{{calories}} cal); {{/each}} {{else if food}} {{food}} {{/if}}
 {{else}}
 - No diary entries yet.
 {{/each}}
@@ -259,4 +259,3 @@ const aiConversationalSupportFlow = ai.defineFlow(
   }
 );
 
-    

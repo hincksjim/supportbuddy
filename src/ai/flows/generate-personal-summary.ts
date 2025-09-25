@@ -55,7 +55,7 @@ const SectionsToGenerateSchema = z.object({
 const GeneratePersonalSummaryInputSchema = z.object({
     sectionsToGenerate: SectionsToGenerateSchema,
     userName: z.string().describe("The user's first name."),
-    initialDiagnosis: z.string().optional().describe("The user's primary diagnosis selected at signup."),
+    initialDiagnosis: z.string().optional().describe("The user's primary diagnosis selected at signup. This may contain multiple conditions separated by commas."),
     age: z.string().describe("The user's age."),
     gender: z.string().describe("The user's gender."),
     postcode: z.string().describe("The user's postcode."),
@@ -131,7 +131,7 @@ Your primary goal is to synthesize ALL information provided into clear, organize
 **CRITICAL INSTRUCTIONS:**
 1.  **IDENTIFY THE LATEST DIAGNOSIS (Most Important Task):**
     *   Review all provided source documents and conversations chronologically.
-    *   Identify the most specific and recent diagnosis mentioned. For example, if the user's initial diagnosis is "Cancer (All Types)" but a recent document [D1] specifies "Renal Cell Carcinoma, 7cm", then "Renal Cell Carcinoma, 7cm" is the latest diagnosis.
+    *   The user's initial diagnosis may contain a comma-separated list. Your job is to find the most up-to-date and specific diagnosis from the provided documents. For example, if the initial diagnosis is "Cancer (All Types), Hypertension" but a recent document [D1] specifies "Renal Cell Carcinoma, 7cm", then "Renal Cell Carcinoma, 7cm" is the latest primary diagnosis.
     *   You **MUST** populate the \`updatedDiagnosis\` field in the output JSON with this single, most specific diagnosis string.
 
 2.  **USE ALL PROVIDED DATA:** You MUST use the user's personal details and all available data sources (Documents, Conversations, Meeting Notes, Diary, Medications, Timeline, Financials) to build the report. The saved conversation transcripts are a primary source of truth for the user's narrative.
@@ -147,7 +147,7 @@ Your primary goal is to synthesize ALL information provided into clear, organize
 *   **User Profile:**
     - Name: {{{userName}}}, Age: {{{age}}}, Gender: {{{gender}}}
     - Address: {{#if address1}}{{{address1}}}{{/if}}{{#if address2}}, {{{address2}}}{{/if}}{{#if townCity}}, {{{townCity}}}{{/if}}{{#if countyState}}, {{{countyState}}}{{/if}}{{#if postcode}}, {{{postcode}}}{{/if}}{{#if country}}, {{{country}}}{{/if}}
-    - Initial Diagnosis: {{{initialDiagnosis}}}
+    - Initial Diagnosis/Conditions: {{{initialDiagnosis}}} (Note: This may be a comma-separated list. Look for a more specific diagnosis in the documents below).
     - Financials: Employment: {{{employmentStatus}}}, Income: {{{income}}}, Savings: {{{savings}}}, Benefits: {{#if existingBenefits}}{{#each existingBenefits}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}None listed{{/if}}
 *   **Location Info:** Local Health Authority: {{{locationInfo.nhs_ha}}}
 *   **Source Documents:**
@@ -159,9 +159,9 @@ Your primary goal is to synthesize ALL information provided into clear, organize
 *   **Source Conversations:**
     {{#each sourceConversations}}
     - **[C{{@index}}] {{title}} ({{date}}):** {{{summary}}}
+    - Full Transcript: {{{fullConversation}}}
     {{else}}
     - No conversations.
-    - Full Transcript: {{{fullConversation}}}
     {{/each}}
 *   **Meeting Notes:**
     {{#each meetingNotes}}

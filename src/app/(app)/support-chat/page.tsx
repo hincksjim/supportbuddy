@@ -147,6 +147,53 @@ function SupportChatPageContent() {
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+  
+  // Data cleaning and migration functions
+  const cleanDiaryEntry = (entry: any): DiaryEntry => {
+    return {
+      id: entry.id || new Date().toISOString(),
+      date: entry.date || new Date().toISOString(),
+      mood: entry.mood || null,
+      diagnosisMood: entry.diagnosisMood || null,
+      treatmentMood: entry.treatmentMood || null,
+      painScore: entry.painScore !== undefined ? entry.painScore : null,
+      painLocation: entry.painLocation || null,
+      painRemarks: entry.painRemarks || null,
+      symptomAnalysis: entry.symptomAnalysis || null,
+      weight: entry.weight || undefined,
+      sleep: entry.sleep || undefined,
+      foodIntake: entry.foodIntake || [],
+      food: entry.food || undefined,
+      worriedAbout: entry.worriedAbout || undefined,
+      positiveAbout: entry.positiveAbout || undefined,
+      notes: entry.notes || undefined,
+      medsTaken: entry.medsTaken || [],
+    };
+  };
+
+  const cleanTextNote = (note: any): TextNote => {
+    return {
+      id: note.id || new Date().toISOString(),
+      type: 'textNote',
+      title: note.title || 'Untitled Note',
+      content: note.content || '',
+      date: note.date || new Date().toISOString(),
+    };
+  };
+
+  const cleanMeetingNote = (note: any): MeetingNote => {
+    return {
+      id: note.id || new Date().toISOString(),
+      type: 'meetingNote',
+      date: note.date || new Date().toISOString(),
+      location: note.location || 'in-person',
+      attendees: note.attendees || [],
+      subject: note.subject || 'Untitled Meeting',
+      notes: note.notes || '',
+      actions: note.actions || [],
+    };
+  };
+
 
   const loadAppContext = useCallback(() => {
     if (!currentUserEmail) return;
@@ -172,14 +219,15 @@ function SupportChatPageContent() {
         }));
         
         const summariesAndNotes = storedSummariesAndNotes ? JSON.parse(storedSummariesAndNotes) : [];
+        const rawDiaryEntries = storedDiary ? JSON.parse(storedDiary) : [];
 
         setAppContextData({
             timelineData: storedTimeline ? JSON.parse(storedTimeline) : null,
-            diaryData: storedDiary ? JSON.parse(storedDiary) : [],
+            diaryData: rawDiaryEntries.map(cleanDiaryEntry),
             medicationData: storedMeds ? JSON.parse(storedMeds) : [],
             sourceDocuments: analysisForAI,
-            textNotes: summariesAndNotes.filter((item: any) => item.type === 'textNote'),
-            meetingNotes: summariesAndNotes.filter((item: any) => item.type === 'meetingNote'),
+            textNotes: summariesAndNotes.filter((item: any) => item.type === 'textNote').map(cleanTextNote),
+            meetingNotes: summariesAndNotes.filter((item: any) => item.type === 'meetingNote').map(cleanMeetingNote),
         });
     } catch (e) {
         console.error("Failed to load app context data:", e);
@@ -542,20 +590,20 @@ function SupportChatPageContent() {
 
   useEffect(() => {
     if (audioRef.current) {
-      if (!audioRef.current.paused) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-      audioRef.current.src = audioDataUri || "";
-      if (audioDataUri) {
-          audioRef.current.play().catch(e => {
-              if (e.name !== 'AbortError') {
-                  console.error("Audio playback failed:", e)
-              }
-          });
-      }
+        if (!audioRef.current.paused) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+        }
+        audioRef.current.src = audioDataUri || "";
+        if (audioDataUri) {
+            audioRef.current.play().catch(e => {
+                if (e.name !== 'AbortError') {
+                    console.error("Audio playback failed:", e)
+                }
+            });
+        }
     }
-  }, [audioDataUri]);
+}, [audioDataUri]);
 
   useEffect(() => {
     if (viewportRef.current) {
@@ -819,5 +867,6 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
+
 
 

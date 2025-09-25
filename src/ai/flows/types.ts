@@ -67,6 +67,7 @@ const FoodIntakeSchema = z.object({
     description: z.string(),
     calories: z.number(),
     ingredients: z.array(z.string()),
+    dietaryWarning: z.string().optional(),
 });
 
 // This schema is for AI flows that need to process diary entries.
@@ -80,6 +81,7 @@ export const DiaryEntrySchemaForAI = z.object({
     painScore: z.number().nullable(),
     painLocation: z.string().nullable().optional(),
     painRemarks: z.string().optional(),
+    symptomAnalysis: z.string().optional(),
     weight: z.string().optional(),
     sleep: z.string().optional(),
     foodIntake: z.array(FoodIntakeSchema).optional(),
@@ -87,6 +89,13 @@ export const DiaryEntrySchemaForAI = z.object({
     worriedAbout: z.string().optional(),
     positiveAbout: z.string().optional(),
     notes: z.string().optional(),
+    medsTaken: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        time: z.string(),
+        quantity: z.number(),
+        isPrescribed: z.boolean(),
+    })).optional(),
 });
 export type DiaryEntryForAI = z.infer<typeof DiaryEntrySchemaForAI>;
 

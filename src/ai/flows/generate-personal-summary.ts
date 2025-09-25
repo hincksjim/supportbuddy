@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { SourceConversation, SourceDocument, TextNoteSchema, MeetingNoteSchema, PersonalSummaryOutputSchema, ReportSectionSchema } from './types';
+import { SourceConversation, SourceDocument, TextNoteSchema, MeetingNoteSchema, PersonalSummaryOutputSchema, DiaryEntrySchemaForAI } from './types';
 import type { PersonalSummaryOutput } from './types';
 
 
@@ -39,41 +39,6 @@ const MedicationSchema = z.object({
   issuedDate: z.string(),
 });
 
-const FoodIntakeSchema = z.object({
-    id: z.string(),
-    title: z.string(),
-    photoDataUri: z.string(),
-    description: z.string(),
-    calories: z.number(),
-    ingredients: z.array(z.string()),
-});
-
-const DiaryEntrySchema = z.object({
-  id: z.string(),
-  date: z.string(),
-  mood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
-  diagnosisMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
-  treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
-  painScore: z.number().nullable(),
-  painLocation: z.string().nullable().optional(),
-  painRemarks: z.string().optional(),
-  symptomAnalysis: z.string().optional(),
-  weight: z.string(),
-  sleep: z.string(),
-  foodIntake: z.array(FoodIntakeSchema).optional(),
-  food: z.string().optional(), // For backward compatibility
-  worriedAbout: z.string(),
-  positiveAbout: z.string(),
-  notes: z.string(),
-  medsTaken: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    time: z.string(),
-    quantity: z.number(),
-    isPrescribed: z.boolean(),
-  })),
-});
-
 const SectionsToGenerateSchema = z.object({
     personalDetails: z.boolean().optional(),
     medicalTeam: z.boolean().optional(),
@@ -99,7 +64,7 @@ const GeneratePersonalSummaryInputSchema = z.object({
     townCity: z.string().optional().describe("The user's town or city."),
     countyState: z.string().optional().describe("The user's county or state."),
     country: z.string().optional().describe("The user's country."),
-    employmentStatus: z.string().describe("The user's current employment status."),
+    employmentStatus: z.string().optional().describe("The user's current employment status."),
     income: z.string().optional().describe("The user's annual income, if provided."),
     savings: z.string().optional().describe("The user's savings, if provided."),
     existingBenefits: z.array(z.string()).optional().describe("A list of benefits the user is already receiving."),
@@ -111,7 +76,7 @@ const GeneratePersonalSummaryInputSchema = z.object({
     sourceConversations: z.array(SourceConversation).describe('An array of summaries and full transcripts from previous conversations.'),
     textNotes: z.array(TextNoteSchema.omit({ type: true })).optional().describe('An array of general text notes saved by the user.'),
     meetingNotes: z.array(MeetingNoteSchema.omit({ type: true })).optional().describe('An array of meeting notes saved by the user.'),
-    diaryData: z.array(DiaryEntrySchema).describe('An array of the user\'s diary entries.'),
+    diaryData: z.array(DiaryEntrySchemaForAI).describe('An array of the user\'s diary entries.'),
     medicationData: z.array(MedicationSchema).describe('An array of the user\'s prescribed medications.'),
     locationInfo: z.object({
         city: z.string(),
@@ -353,3 +318,4 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     }
   }
 );
+

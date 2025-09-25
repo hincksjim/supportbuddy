@@ -12,7 +12,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { lookupPostcode } from '@/services/postcode-lookup';
-import { TextNoteSchema, MeetingNoteSchema } from './types';
+import { DiaryEntrySchemaForAI, MeetingNoteSchema, TextNoteSchema } from './types';
 
 
 // Schemas for external data sources
@@ -22,33 +22,6 @@ const SourceDocumentSchema = z.object({
     date: z.string(),
     analysis: z.string(),
 });
-
-const DiaryEntrySchema = z.object({
-  id: z.string(),
-  date: z.string(),
-  mood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
-  diagnosisMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable().optional(),
-  treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable().optional(),
-  painScore: z.number().nullable(),
-  weight: z.string().optional(),
-  sleep: z.string().optional(),
-  foodIntake: z.array(z.any()).optional(), // Accept any structure for foodIntake
-  food: z.string().optional(), // Old food field
-  worriedAbout: z.string().optional(),
-  positiveAbout: z.string().optional(),
-  notes: z.string().optional(),
-  medsTaken: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    time: z.string(),
-    quantity: z.number(),
-    isPrescribed: z.boolean(),
-  })).optional(),
-  painLocation: z.string().nullable().optional(),
-  painRemarks: z.string().optional(),
-  symptomAnalysis: z.string().optional(),
-});
-
 
 const MedicationSchema = z.object({
   id: z.string(),
@@ -78,20 +51,20 @@ const TimelineStageSchema = z.object({
 const AiConversationalSupportInputSchema = z.object({
   specialist: z.enum(['medical', 'mental_health', 'financial']).describe("The specialist the user is addressing."),
   userName: z.string().describe("The user's first name."),
-  initialDiagnosis: z.string().describe("The user's primary diagnosis selected at signup (e.g., 'Cancer', 'Heart Condition')."),
+  initialDiagnosis: z.string().optional().describe("The user's primary diagnosis selected at signup (e.g., 'Cancer', 'Heart Condition')."),
   age: z.string().describe("The user's age."),
   gender: z.string().describe("The user's gender."),
-  address1: z.string().describe("The user's street address (line 1)."),
-  address2: z.string().describe("The user's street address (line 2)."),
-  townCity: z.string().describe("The user's town or city."),
-  countyState: z.string().describe("The user's county or state."),
-  country: z.string().describe("The user's country of residence."),
+  address1: z.string().optional().describe("The user's street address (line 1)."),
+  address2: z.string().optional().describe("The user's street address (line 2)."),
+  townCity: z.string().optional().describe("The user's town or city."),
+  countyState: z.string().optional().describe("The user's county or state."),
+  country: z.string().optional().describe("The user's country of residence."),
   postcode: z.string().describe("The user's postcode or ZIP code."),
-  dob: z.string().describe("The user's date of birth."),
-  employmentStatus: z.string().describe("The user's current employmentStatus."),
-  income: z.string().describe("The user's annual income, if provided."),
-  savings: z.string().describe("The user's savings, if provided."),
-  existingBenefits: z.array(z.string()).describe("A list of benefits the user is already receiving."),
+  dob: z.string().optional().describe("The user's date of birth."),
+  employmentStatus: z.string().optional().describe("The user's current employmentStatus."),
+  income: z.string().optional().describe("The user's annual income, if provided."),
+  savings: z.string().optional().describe("The user's savings, if provided."),
+  existingBenefits: z.array(z.string()).optional().describe("A list of benefits the user is already receiving."),
   responseMood: z.string().describe("The desired conversational tone for the AI. Can be 'standard', a predefined persona ID (e.g. 'direct_factual'), or a custom persona ID."),
   customPersona: z.string().optional().describe("A user-defined persona for the AI to adopt if the responseMood is a custom one."),
   conversationHistory: z.array(z.object({
@@ -103,12 +76,14 @@ const AiConversationalSupportInputSchema = z.object({
   
   // New context fields
   sourceDocuments: z.array(SourceDocumentSchema).describe('An array of previously analyzed documents.'),
-  diaryData: z.array(DiaryEntrySchema).describe('An array of the user\'s diary entries.'),
+  diaryData: z.array(DiaryEntrySchemaForAI).describe('An array of the user\'s diary entries.'),
   medicationData: z.array(MedicationSchema).describe('An array of the user\'s prescribed medications.'),
   timelineData: z.object({
       disclaimer: z.string(),
       timeline: z.array(TimelineStageSchema)
   }).nullable().describe('The user\'s current treatment timeline data.'),
+  textNotes: z.array(TextNoteSchema.omit({ type: true })).optional().describe('An array of general text notes saved by the user.'),
+  meetingNotes: z.array(MeetingNoteSchema.omit({ type: true })).optional().describe('An array of meeting notes saved by the user.'),
 });
 export type AiConversationalSupportInput = z.infer<typeof AiConversationalSupportInputSchema>;
 
@@ -153,9 +128,9 @@ export async function aiConversationalSupport(input: AiConversationalSupportInpu
     return await aiConversationalSupportFlow(enrichedInput);
   } catch (e: any) {
       // Improved logging to catch Zod errors
-      console.error("Error in aiConversationalSupportFlow:", e.message);
+      console.error("Error in aiConversationalSupportFlow. Zod validation likely failed.", e.message);
       if (e.cause) {
-        console.error("Detailed validation error:", e.cause);
+        console.error("Detailed Zod validation error:", e.cause);
       }
       // Return a standard error message to the user
       return { answer: "I'm sorry, I had trouble processing that request. Could you try rephrasing your question? If the problem continues, there might be a temporary issue with the AI service." };
@@ -244,6 +219,18 @@ You are an expert **Financial Support Specialist**. Your role is to provide clea
 - {{name}} ({{strength}}), Dose: "{{dose}}"
 {{else}}
 - No medications listed yet.
+{{/each}}
+
+**Meeting & Text Notes (For additional context):**
+{{#each textNotes}}
+- Note: "{{title}}" ({{date}}) - Content: {{{content}}}
+{{else}}
+- No text notes saved.
+{{/each}}
+{{#each meetingNotes}}
+- Meeting: "{{subject}}" ({{date}}) - Notes: {{{notes}}}
+{{else}}
+- No meeting notes saved.
 {{/each}}
 
 **Response Mood:**

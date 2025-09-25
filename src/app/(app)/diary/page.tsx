@@ -69,20 +69,20 @@ export interface DiaryEntry {
   id: string; // ISO date string 'YYYY-MM-DD'
   date: string; // ISO date string
   mood: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
-  diagnosisMood: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
-  treatmentMood: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
+  diagnosisMood?: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
+  treatmentMood?: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
   painScore: number | null;
   painLocation: string | null;
-  painRemarks: string;
+  painRemarks?: string;
   symptomAnalysis?: string; // To store AI analysis for recurring symptoms
-  weight: string;
-  sleep: string;
-  foodIntake: FoodIntake[];
+  weight?: string;
+  sleep?: string;
+  foodIntake?: FoodIntake[];
   food?: string; // Keep for backward compatibility, but make it optional
-  worriedAbout: string;
-  positiveAbout: string;
-  notes: string;
-  medsTaken: MedsTaken[];
+  worriedAbout?: string;
+  positiveAbout?: string;
+  notes?: string;
+  medsTaken?: MedsTaken[];
 }
 
 interface UserData {
@@ -578,12 +578,12 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
         setPainLocation(entryToEdit.painLocation || null);
         setPainRemarks(entryToEdit.painRemarks || '');
         setSymptomAnalysis(entryToEdit.symptomAnalysis || null);
-        setWeight(entryToEdit.weight);
-        setSleep(entryToEdit.sleep);
+        setWeight(entryToEdit.weight || '');
+        setSleep(entryToEdit.sleep || '');
         setFoodIntake(entryToEdit.foodIntake || []);
-        setWorriedAbout(entryToEdit.worriedAbout);
-        setPositiveAbout(entryToEdit.positiveAbout);
-        setNotes(entryToEdit.notes);
+        setWorriedAbout(entryToEdit.worriedAbout || '');
+        setPositiveAbout(entryToEdit.positiveAbout || '');
+        setNotes(entryToEdit.notes || '');
         setMedsTaken(entryToEdit.medsTaken || []);
     }, [existingEntry]);
 
@@ -650,7 +650,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             ) || [];
             
             const relevantEntries = allEntries.filter(e => e.painLocation === painLocation);
-            const painRemarksForSymptom = relevantEntries.map(e => e.painRemarks).filter(Boolean);
+            const painRemarksForSymptom = relevantEntries.map(e => e.painRemarks || '').filter(Boolean);
             if(painRemarks) {
                 painRemarksForSymptom.push(painRemarks);
             }
@@ -996,7 +996,7 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries 
                                        </div>
                                        {meal.dietaryWarning && (
                                             <Alert variant="destructive" className="mt-2 text-xs">
-                                                <AlertTriangle className="h-3 w-3" />
+                                                <AlertTriangle className="w-3 h-3" />
                                                 <AlertTitle className="font-semibold">Dietary Note</AlertTitle>
                                                 <AlertDescription>{meal.dietaryWarning}</AlertDescription>
                                             </Alert>

@@ -75,18 +75,18 @@ export const DiaryEntrySchemaForAI = z.object({
     id: z.string(),
     date: z.string(),
     mood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
-    diagnosisMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
-    treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable(),
+    diagnosisMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable().optional(),
+    treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable().optional(),
     painScore: z.number().nullable(),
     painLocation: z.string().nullable().optional(),
     painRemarks: z.string().optional(),
-    weight: z.string(),
-    sleep: z.string(),
+    weight: z.string().optional(),
+    sleep: z.string().optional(),
     foodIntake: z.array(FoodIntakeSchema).optional(),
     food: z.string().optional(), // For backward compatibility
-    worriedAbout: z.string(),
-    positiveAbout: z.string(),
-    notes: z.string(),
+    worriedAbout: z.string().optional(),
+    positiveAbout: z.string().optional(),
+    notes: z.string().optional(),
 });
 export type DiaryEntryForAI = z.infer<typeof DiaryEntrySchemaForAI>;
 
@@ -159,3 +159,5 @@ export const GenerateShoppingListOutputSchema = z.object({
     totalEstimatedCost: z.number().describe("The total estimated cost for all items on the list in GBP (£).")
 });
 export type GenerateShoppingListOutput = z.infer<typeof GenerateShoppingListOutputSchema>;
+
+    

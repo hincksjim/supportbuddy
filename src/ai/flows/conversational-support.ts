@@ -92,7 +92,8 @@ const AiConversationalSupportInputSchema = z.object({
   income: z.string().describe("The user's annual income, if provided."),
   savings: z.string().describe("The user's savings, if provided."),
   existingBenefits: z.array(z.string()).describe("A list of benefits the user is already receiving."),
-  responseMood: z.string().describe("The desired conversational tone for the AI. Can be 'standard', 'extra_supportive', or 'direct_factual'."),
+  responseMood: z.string().describe("The desired conversational tone for the AI. Can be 'standard', a predefined persona ID (e.g. 'direct_factual'), or a custom persona ID."),
+  customPersona: z.string().optional().describe("A user-defined persona for the AI to adopt if the responseMood is a custom one."),
   conversationHistory: z.array(z.object({
     role: z.enum(['user', 'assistant']),
     content: z.string(),
@@ -151,8 +152,11 @@ export async function aiConversationalSupport(input: AiConversationalSupportInpu
   try {
     return await aiConversationalSupportFlow(enrichedInput);
   } catch (e: any) {
+      // Improved logging to catch Zod errors
       console.error("Error in aiConversationalSupportFlow:", e.message);
-      console.error("Detailed validation error:", e.cause);
+      if (e.cause) {
+        console.error("Detailed validation error:", e.cause);
+      }
       // Return a standard error message to the user
       return { answer: "I'm sorry, I had trouble processing that request. Could you try rephrasing your question? If the problem continues, there might be a temporary issue with the AI service." };
   }
@@ -267,3 +271,5 @@ const aiConversationalSupportFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

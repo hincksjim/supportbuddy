@@ -78,6 +78,7 @@ export interface DiaryEntry {
   weight: string;
   sleep: string;
   foodIntake: FoodIntake[];
+  food?: string; // Keep for backward compatibility, but make it optional
   worriedAbout: string;
   positiveAbout: string;
   notes: string;
@@ -98,7 +99,7 @@ interface TimelineData {
     }[];
 }
 
-const moodOptions: { [key in NonNullable<DiaryEntry['mood']>]: string } = {
+const moodOptions: { [key in NonNullable<DiaryEntry['mood']>] : string } = {
     great: '😊',
     good: '🙂',
     meh: '😐',
@@ -1219,3 +1220,5 @@ export default function DiaryPage() {
         </div>
     )
 }
+
+    

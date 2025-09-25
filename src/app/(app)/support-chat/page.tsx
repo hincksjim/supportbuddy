@@ -21,10 +21,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { GenerateTreatmentTimelineOutput } from "@/app/(app)/timeline/page"
 import type { DiaryEntry } from "@/app/(app)/diary/page"
 import type { Medication } from "@/app/(app)/medication/page"
-import type { AnalysisResult } from "@/app/(app)/document-analysis/page"
+import type { AnalysisResult as LegacyAnalysisResult } from "@/app/(app)/document-analysis/page"
 import { medicalAvatars, mentalHealthAvatars, financialAvatars } from "@/lib/avatars"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import { TextNote, MeetingNote } from "@/ai/flows/types"
 
 type Specialist = "medical" | "mental_health" | "financial";
 
@@ -78,6 +79,9 @@ interface UserData {
   responseMood_medical?: string;
   responseMood_mental_health?: string;
   responseMood_financial?: string;
+  customPersonas_medical?: any[];
+  customPersonas_mental_health?: any[];
+  customPersonas_financial?: any[];
   dob?: string;
   employmentStatus?: string;
   income?: string;
@@ -85,6 +89,14 @@ interface UserData {
   benefits?: string[];
   initialDiagnosis?: string;
   profilePicture?: string;
+}
+
+// A more flexible type for what's passed to the AI
+interface AnalysisResultForAI {
+  id: string
+  title: string
+  analysis: string
+  date: string
 }
 
 const specialistConfig = {
@@ -98,7 +110,9 @@ interface AppContextData {
     timelineData: GenerateTreatmentTimelineOutput | null;
     diaryData: DiaryEntry[];
     medicationData: Medication[];
-    sourceDocuments: AnalysisResult[];
+    sourceDocuments: AnalysisResultForAI[];
+    textNotes: TextNote[];
+    meetingNotes: MeetingNote[];
 }
 
 
@@ -114,6 +128,8 @@ function SupportChatPageContent() {
       diaryData: [],
       medicationData: [],
       sourceDocuments: [],
+      textNotes: [],
+      meetingNotes: [],
   });
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null)
   const [isHistoricChat, setIsHistoricChat] = useState(false);
@@ -139,6 +155,7 @@ function SupportChatPageContent() {
         const storedDiary = localStorage.getItem(`diaryEntries_${currentUserEmail}`);
         const storedMeds = localStorage.getItem(`medications_${currentUserEmail}`);
         const storedDocs = localStorage.getItem(`analysisResults_${currentUserEmail}`);
+        const storedSummariesAndNotes = localStorage.getItem(`conversationSummaries_${currentUserEmail}`);
         const storedUserData = localStorage.getItem(`userData_${currentUserEmail}`);
 
         if (storedUserData) {
@@ -146,11 +163,23 @@ function SupportChatPageContent() {
           setUserData(parsedUserData);
         }
 
+        const legacyDocs: LegacyAnalysisResult[] = storedDocs ? JSON.parse(storedDocs) : [];
+        const analysisForAI: AnalysisResultForAI[] = legacyDocs.map(d => ({
+            id: d.id,
+            title: d.title,
+            analysis: d.analysis,
+            date: d.date,
+        }));
+        
+        const summariesAndNotes = storedSummariesAndNotes ? JSON.parse(storedSummariesAndNotes) : [];
+
         setAppContextData({
             timelineData: storedTimeline ? JSON.parse(storedTimeline) : null,
             diaryData: storedDiary ? JSON.parse(storedDiary) : [],
             medicationData: storedMeds ? JSON.parse(storedMeds) : [],
-            sourceDocuments: storedDocs ? JSON.parse(storedDocs) : [],
+            sourceDocuments: analysisForAI,
+            textNotes: summariesAndNotes.filter((item: any) => item.type === 'textNote'),
+            meetingNotes: summariesAndNotes.filter((item: any) => item.type === 'meetingNote'),
         });
     } catch (e) {
         console.error("Failed to load app context data:", e);
@@ -185,7 +214,11 @@ function SupportChatPageContent() {
 
     try {
       const responseMoodKey = `responseMood_${activeSpecialist}` as keyof UserData;
+      const customPersonasKey = `customPersonas_${activeSpecialist}` as keyof UserData;
       const responseMood = userData[responseMoodKey] || userData.responseMood || 'standard';
+      const customPersonas = userData[customPersonasKey] || [];
+      const customPersonaText = customPersonas.find((p: any) => p.id === responseMood)?.persona;
+
       
       const relevantHistory = newMessages.filter(m => m.role !== 'system');
 
@@ -205,18 +238,16 @@ function SupportChatPageContent() {
         employmentStatus: userData.employmentStatus || "",
         existingBenefits: userData.benefits || [],
         responseMood: responseMood,
+        customPersona: customPersonaText,
         conversationHistory: relevantHistory,
         question: finalInput,
         
         timelineData: appContextData.timelineData,
         diaryData: appContextData.diaryData,
         medicationData: appContextData.medicationData,
-        sourceDocuments: appContextData.sourceDocuments.map(d => ({
-            id: d.id,
-            title: d.title,
-            date: d.date,
-            analysis: d.analysis,
-        })),
+        sourceDocuments: appContextData.sourceDocuments,
+        textNotes: appContextData.textNotes,
+        meetingNotes: appContextData.meetingNotes,
       };
 
       if (userData.income) flowInput.income = userData.income;
@@ -511,9 +542,9 @@ function SupportChatPageContent() {
 
   useEffect(() => {
     if (audioRef.current) {
-      // If there's an existing audio source, pause it and reset it.
       if (!audioRef.current.paused) {
         audioRef.current.pause();
+        audioRef.current.currentTime = 0;
       }
       audioRef.current.src = audioDataUri || "";
       if (audioDataUri) {
@@ -788,4 +819,5 @@ export default function SupportChatPage() {
         </Suspense>
     )
 }
+
 

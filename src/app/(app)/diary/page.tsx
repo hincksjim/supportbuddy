@@ -73,8 +73,8 @@ export interface DiaryEntry {
   treatmentMood?: 'great' | 'good' | 'meh' | 'bad' | 'awful' | null;
   painScore: number | null;
   painLocation: string | null;
-  painRemarks?: string;
-  symptomAnalysis?: string; // To store AI analysis for recurring symptoms
+  painRemarks?: string | null;
+  symptomAnalysis?: string | null;
   weight?: string;
   sleep?: string;
   foodIntake?: FoodIntake[];
@@ -779,7 +779,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="pain-remarks">Pain Remarks</Label>
-                                        <Textarea id="pain-remarks" placeholder="Describe the pain (e.g., sharp, dull, aching)..." value={painRemarks} onChange={(e) => setPainRemarks(e.target.value)} />
+                                        <Textarea id="pain-remarks" placeholder="Describe the pain (e.g., sharp, dull, aching)..." value={painRemarks || ''} onChange={(e) => setPainRemarks(e.target.value)} />
                                     </div>
                                     
                                     {isSymptomRecurring && (

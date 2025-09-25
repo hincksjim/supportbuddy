@@ -35,7 +35,7 @@ const MedicationSchema = z.object({
   name: z.string(),
   strength: z.string(),
   dose: z.string(),
-  issuedBy: z.string(),
+  issuedBy: z.string().optional(),
   issuedDate: z.string(),
 });
 
@@ -318,4 +318,5 @@ const generatePersonalSummaryFlow = ai.defineFlow(
     }
   }
 );
+
 

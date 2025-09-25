@@ -48,7 +48,7 @@ export type TextNote = z.infer<typeof TextNoteSchema>;
 
 export const AnalyzeSymptomPatternInputSchema = z.object({
   symptom: z.string().describe("The recurring symptom being experienced by the user (e.g., 'Headache', 'Nausea', 'Back (Lower) pain')."),
-  diagnosis: z.string().describe("The user's primary diagnosis (e.g., 'Renal Cell Carcinoma')."),
+  diagnosis: z.string().describe("The user's primary diagnosis (e.g., 'Renal Cell Carcinoma'). This may contain multiple conditions separated by commas."),
   medications: z.array(z.object({ name: z.string() })).describe("A list of medications the user is currently taking."),
   treatments: z.array(z.string()).describe("A list of active or recent treatment step titles (e.g., 'Chemotherapy', 'Partial Nephrectomy')."),
   painRemarks: z.array(z.string()).describe("A list of the user's own descriptions of the pain from the days it was logged."),
@@ -80,8 +80,8 @@ export const DiaryEntrySchemaForAI = z.object({
     treatmentMood: z.enum(['great', 'good', 'meh', 'bad', 'awful']).nullable().optional(),
     painScore: z.number().nullable(),
     painLocation: z.string().nullable().optional(),
-    painRemarks: z.string().optional(),
-    symptomAnalysis: z.string().optional(),
+    painRemarks: z.string().optional().nullable(),
+    symptomAnalysis: z.string().optional().nullable(),
     weight: z.string().optional(),
     sleep: z.string().optional(),
     foodIntake: z.array(FoodIntakeSchema).optional(),
@@ -113,7 +113,7 @@ export const MeetingNoteSchema = z.object({
         assignedTo: z.array(z.string()),
         dueDate: z.string().nullable(),
         priority: z.enum(['low', 'medium', 'high']),
-    })),
+    })).optional(), // Make actions optional
 });
 export type MeetingNote = z.infer<typeof MeetingNoteSchema>;
 

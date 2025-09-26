@@ -257,7 +257,7 @@ const aiConversationalSupportFlow = ai.defineFlow(
         model: 'gemini-1.5-flash',
         input: input,
         output: {
-            schema: prompt.output.schema,
+            schema: AiConversationalSupportOutputSchema,
         },
         tools: [lookupPostcode],
         history: input.conversationHistory,

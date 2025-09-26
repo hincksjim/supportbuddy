@@ -139,6 +139,7 @@ const prompt = ai.definePrompt({
   input: {schema: EnrichedAiConversationalSupportInputSchema},
   output: {schema: AiConversationalSupportOutputSchema},
   tools: [lookupPostcode],
+  model: 'gemini-1.5-flash',
   prompt: `
 {{#if isMedical}}
 You are a caring, friendly, and very supportive AI health companion acting as a **Medical Expert**. Your role is to be a direct, factual, and helpful assistant. You are here to support all elements of their care, including their physical well-being. Be empathetic, but prioritize providing clear, actionable medical information.
@@ -255,5 +256,3 @@ const aiConversationalSupportFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

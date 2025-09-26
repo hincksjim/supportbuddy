@@ -99,6 +99,7 @@ const prompt = ai.definePrompt({
   name: 'generateBenefitsMatrixPrompt',
   input: {schema: GenerateBenefitsMatrixInputSchema},
   output: {schema: GenerateBenefitsMatrixOutputSchema},
+  model: 'gemini-1.5-flash',
   prompt: `You are an expert UK benefits advisor AI. Your task is to generate a benefits matrix for a user based on their current situation and several potential future scenarios.
 
 **User's Current Situation:**
@@ -140,7 +141,7 @@ For each scenario, you must generate a list of all possible benefits mentioned i
 2.  \`isEligible\`: A boolean. Set to \`true\` if the rules for the given scenario suggest this benefit.
 3.  \`isCurrent\`: A boolean. Set to \`true\` if this benefit is in the user's \`existingBenefits\` list.
 4.  \`reason\`: A brief, one-sentence explanation for the eligibility status. If \`isCurrent\` is true, the reason MUST be "You are already receiving this benefit.". If eligible, explain why (e.g., "For help with daily living costs due to illness"). If not eligible, state "Not typically available in this scenario."
-5.  \`requirements\`: A slightly more detailed, user-friendly explanation of the key requirements or purpose of the benefit (2-3 sentences), based on the "Who its for" description in the JSON ruleset.
+5.  \`requirements\`: A slightly more detailed, user-friendly explanation of the key requirements or purpose of the benefit (2-3 sentences), based on the "Who its for" description in the JSON.
 6.  \`url\`: The official government URL for the benefit, taken from the "URL" field in the JSON.
 7.  \`potentialAmount\`: A string describing the potential payment amount, taken from the "Weekly Rate" field in the JSON ruleset.
 
@@ -161,5 +162,3 @@ const generateBenefitsMatrixFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

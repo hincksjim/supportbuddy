@@ -134,13 +134,7 @@ export async function aiConversationalSupport(input: AiConversationalSupportInpu
   }
 }
 
-const prompt = ai.definePrompt({
-  name: 'aiConversationalSupportPrompt',
-  input: {schema: EnrichedAiConversationalSupportInputSchema},
-  output: {schema: AiConversationalSupportOutputSchema},
-  tools: [lookupPostcode],
-  model: 'gemini-1.5-flash',
-  prompt: `
+const promptText = `
 {{#if isMedical}}
 You are a caring, friendly, and very supportive AI health companion acting as a **Medical Expert**. Your role is to be a direct, factual, and helpful assistant. You are here to support all elements of their care, including their physical well-being. Be empathetic, but prioritize providing clear, actionable medical information.
 
@@ -242,7 +236,13 @@ Adjust your tone based on user preference: 'standard' (default), 'extra_supporti
 **Current User Question:** {{{question}}}
 
 Please provide a detailed, supportive, and easy-to-understand answer based on your specialist role and all the context and principles above. Your final output MUST be a valid JSON object matching the provided schema, with your response contained within the "answer" field.
-`,
+`;
+
+const prompt = ai.definePrompt({
+  name: 'aiConversationalSupportPrompt',
+  input: {schema: EnrichedAiConversationalSupportInputSchema},
+  output: {schema: AiConversationalSupportOutputSchema},
+  tools: [lookupPostcode],
 });
 
 const aiConversationalSupportFlow = ai.defineFlow(
@@ -252,7 +252,17 @@ const aiConversationalSupportFlow = ai.defineFlow(
     outputSchema: AiConversationalSupportOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt(input);
-    return output!;
+    const llmResponse = await ai.generate({
+        prompt: promptText,
+        model: 'gemini-1.5-flash',
+        input: input,
+        output: {
+            schema: prompt.output.schema,
+        },
+        tools: [lookupPostcode],
+        history: input.conversationHistory,
+    });
+
+    return llmResponse.output()!;
   }
 );

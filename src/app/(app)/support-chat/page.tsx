@@ -25,7 +25,7 @@ import type { AnalysisResult as LegacyAnalysisResult } from "@/app/(app)/documen
 import { medicalAvatars, mentalHealthAvatars, financialAvatars } from "@/lib/avatars"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog"
-import { TextNote, MeetingNote } from "@/ai/flows/types"
+import { MeetingNote, TextNote } from "@/ai/flows/types"
 
 type Specialist = "medical" | "mental_health" | "financial";
 
@@ -312,23 +312,19 @@ function SupportChatPageContent() {
       await speakMessage(result.answer, activeSpecialist)
     } catch (error: any) {
       console.error("Error from AI support flow: ", error)
-      const errorMessageText = "I'm sorry, I had trouble processing that request. Could you try rephrasing your question? If the problem continues, there might be a temporary issue with the AI service."
+      let errorMessageText = "I'm sorry, I had trouble processing that request. Could you try rephrasing your question? If the problem continues, there might be a temporary issue with the AI service."
+
+      if (error.message && (error.message.includes('429') || error.message.includes('503'))) {
+        errorMessageText = "I apologize, but the AI service is currently experiencing high demand or you may have reached your daily limit. Please try again in a little while.";
+      }
+
       const errorMessage: Message = {
         role: "assistant",
         content: errorMessageText,
         metadata: { specialist: activeSpecialist }
       }
-      setMessages((prev) => [...prev, errorMessage])
-      // Only log the detailed error in development environments
-        if (process.env.NODE_ENV === 'development') {
-            toast({
-                title: "AI Flow Error",
-                description: "There was an error processing the request. Check the server console for details.",
-                variant: "destructive",
-                duration: 10000,
-            });
-            console.error("Detailed validation error:", error.cause);
-        }
+      setMessages((prev) => [...prev, errorMessage]);
+
     } finally {
       setIsLoading(false)
     }
@@ -869,4 +865,4 @@ export default function SupportChatPage() {
 }
 
 
-
+    

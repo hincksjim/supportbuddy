@@ -127,13 +127,10 @@ export async function aiConversationalSupport(input: AiConversationalSupportInpu
   try {
     return await aiConversationalSupportFlow(enrichedInput);
   } catch (e: any) {
-      // Improved logging to catch Zod errors
       console.error("Error in aiConversationalSupportFlow.", e.message);
-      if (e.cause) {
-        console.error("Detailed validation error:", e.cause);
-      }
-      // Return a standard error message to the user
-      return { answer: "I'm sorry, I had trouble processing that request. Could you try rephrasing your question? If the problem continues, there might be a temporary issue with the AI service." };
+      
+      // Re-throw the error so the client-side can handle it (e.g., check for rate limits)
+      throw e;
   }
 }
 

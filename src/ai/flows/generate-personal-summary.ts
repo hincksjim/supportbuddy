@@ -65,7 +65,7 @@ const GeneratePersonalSummaryInputSchema = z.object({
     countyState: z.string().optional().describe("The user's county or state."),
     country: z.string().optional().describe("The user's country."),
     employmentStatus: z.string().optional().describe("The user's current employment status."),
-    income: z-string().optional().describe("The user's annual income, if provided."),
+    income: z.string().optional().describe("The user's annual income, if provided."),
     savings: z.string().optional().describe("The user's savings, if provided."),
     existingBenefits: z.array(z.string()).optional().describe("A list of benefits the user is already receiving."),
     timelineData: z.object({

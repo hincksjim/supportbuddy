@@ -238,6 +238,17 @@ Adjust your tone based on user preference: 'standard' (default), 'extra_supporti
 Please provide a detailed, supportive, and easy-to-understand answer based on your specialist role and all the context and principles above. Your final output MUST be a valid JSON object matching the provided schema, with your response contained within the "answer" field.
 `;
 
+const prompt = ai.definePrompt(
+    {
+        name: 'aiConversationalSupportPrompt',
+        input: { schema: EnrichedAiConversationalSupportInputSchema },
+        output: { schema: AiConversationalSupportOutputSchema },
+        prompt: promptText,
+        tools: [lookupPostcode],
+        model: 'googleai/gemini-2.5-flash-lite',
+    }
+);
+
 const aiConversationalSupportFlow = ai.defineFlow(
   {
     name: 'aiConversationalSupportFlow',
@@ -245,20 +256,8 @@ const aiConversationalSupportFlow = ai.defineFlow(
     outputSchema: AiConversationalSupportOutputSchema,
   },
   async (input) => {
-    const llmResponse = await ai.generate({
-        prompt: {
-          text: promptText,
-          input: input,
-        },
-        model: 'googleai/gemini-2.5-flash-lite',
-        output: {
-            schema: AiConversationalSupportOutputSchema,
-        },
-        tools: [lookupPostcode],
-        history: input.conversationHistory,
-    });
-
-    return llmResponse.output()!;
+    const {output} = await prompt(input);
+    return output!;
   }
 );
 

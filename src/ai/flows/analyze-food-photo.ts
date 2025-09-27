@@ -27,7 +27,7 @@ const AnalyzeFoodPhotoOutputSchema = z.object({
   calories: z.number().describe("An estimated calorie count for the meal."),
   ingredients: z.array(z.string()).describe("A list of the main ingredients identified in the meal."),
 });
-export type AnalyzeFoodPhotoOutput = zinfer<typeof AnalyzeFoodPhotoOutputSchema>;
+export type AnalyzeFoodPhotoOutput = z.infer<typeof AnalyzeFoodPhotoOutputSchema>;
 
 
 export async function analyzeFoodPhoto(
@@ -41,6 +41,7 @@ const prompt = ai.definePrompt({
   name: 'analyzeFoodPhotoPrompt',
   input: {schema: AnalyzeFoodPhotoInputSchema},
   output: {schema: AnalyzeFoodPhotoOutputSchema},
+  model: 'googleai/gemini-2.5-flash-lite',
   prompt: `You are an expert nutritionist AI with an amazing ability to identify food from images.
 
 **TASK:**

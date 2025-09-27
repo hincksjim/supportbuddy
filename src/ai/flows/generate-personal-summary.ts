@@ -65,7 +65,7 @@ const GeneratePersonalSummaryInputSchema = z.object({
     countyState: z.string().optional().describe("The user's county or state."),
     country: z.string().optional().describe("The user's country."),
     employmentStatus: z.string().optional().describe("The user's current employment status."),
-    income: z.string().optional().describe("The user's annual income, if provided."),
+    income: z-string().optional().describe("The user's annual income, if provided."),
     savings: z.string().optional().describe("The user's savings, if provided."),
     existingBenefits: z.array(z.string()).optional().describe("A list of benefits the user is already receiving."),
     timelineData: z.object({
@@ -123,6 +123,7 @@ const prompt = ai.definePrompt({
   name: 'generatePersonalSummaryPrompt',
   input: {schema: EnrichedGeneratePersonalSummaryInputSchema},
   output: {schema: PersonalSummaryOutputSchema},
+  model: 'googleai/gemini-2.5-flash-lite',
   prompt: `You are an AI assistant tasked with creating sections of a comprehensive "Personal Summary Report" for a user navigating their health journey.
 
 **TASK:**

@@ -253,9 +253,11 @@ const aiConversationalSupportFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await ai.generate({
-        prompt: promptText,
+        prompt: {
+          text: promptText,
+          input: input,
+        },
         model: 'googleai/gemini-2.5-flash-lite',
-        input: input,
         output: {
             schema: AiConversationalSupportOutputSchema,
         },

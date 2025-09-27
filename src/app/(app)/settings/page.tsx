@@ -409,38 +409,6 @@ function SettingsPageContent() {
                     </div>
                 </CardContent>
             </Card>
-            
-            <Card>
-                <CardHeader>
-                    <CardTitle>Data Management</CardTitle>
-                    <CardDescription>Manage the data stored in your browser for this application.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Clear Local Data
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete all your conversations, document analyses, diary entries, and other settings from this browser.
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleClearData}>Continue</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                    <p className="text-xs text-muted-foreground mt-2">
-                        If you are experiencing persistent errors, clearing your local data can resolve them by resetting the application state.
-                    </p>
-                </CardContent>
-            </Card>
 
             <div className="space-y-6">
                 <SpecialistCard specialist="medical" title="Medical Expert" icon={<User />} userData={userData} setUserData={setUserData} avatars={specialistAvatarMap.medical} />
@@ -456,5 +424,3 @@ export default function SettingsPage() {
     // This wrapper is here in case we need to add providers in the future
     return <SettingsPageContent />;
 }
-
-    

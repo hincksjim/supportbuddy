@@ -24,7 +24,6 @@ const prompt = ai.definePrompt({
   name: 'analyzeSymptomPatternPrompt',
   input: {schema: AnalyzeSymptomPatternInputSchema},
   output: {schema: AnalyzeSymptomPatternOutputSchema},
-  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an expert medical AI assistant. Your task is to analyze a user's recurring symptom and identify potential connections to their diagnosis, medications, or treatments. Your analysis should be informative but cautious, and always encourage consultation with a real doctor.
 
 **User's Situation:**

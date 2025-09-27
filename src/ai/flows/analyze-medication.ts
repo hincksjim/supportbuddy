@@ -36,7 +36,6 @@ const prompt = ai.definePrompt({
   name: 'analyzeMedicationPrompt',
   input: {schema: AnalyzeMedicationInputSchema},
   output: {schema: AnalyzeMedicationOutputSchema},
-  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an AI pharmacy assistant. Your task is to provide clear, simple information about a medication.
 
 **TASK:**

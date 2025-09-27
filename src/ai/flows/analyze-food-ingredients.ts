@@ -32,7 +32,6 @@ const prompt = ai.definePrompt({
   name: 'analyzeFoodIngredientsPrompt',
   input: {schema: AnalyzeFoodIngredientsInputSchema},
   output: {schema: AnalyzeFoodIngredientsOutputSchema},
-  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an expert nutritionist. Your task is to analyze a list of meal ingredients and provide a dietary warning if any of them are generally considered problematic for a user with a specific health condition.
 
 **TASK:**

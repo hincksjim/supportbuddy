@@ -65,10 +65,6 @@ const prompt = ai.definePrompt({
 
 Your final output MUST be a valid JSON object matching the provided schema. Do not include any other explanatory text.
 `,
-  config: {
-    apiVersion: 'v1',
-    location: 'europe-west1',
-  },
 });
 
 const checkMedicationDoseFlow = ai.defineFlow(

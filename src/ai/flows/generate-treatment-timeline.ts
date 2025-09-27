@@ -94,10 +94,6 @@ Analyze the provided conversation history. If an \`existingTimeline\` is provide
   {{role}}: {{{content}}}
 {{/each}}
 `,
-  config: {
-    apiVersion: 'v1',
-    location: 'europe-west1',
-  },
 });
 
 const generateTreatmentTimelineFlow = ai.defineFlow(

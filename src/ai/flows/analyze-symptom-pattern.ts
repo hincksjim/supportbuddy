@@ -57,10 +57,6 @@ const prompt = ai.definePrompt({
     *   Do NOT provide medical advice or suggest any actions (e.g., "stop taking your medication").
 
 Your final output must be a valid JSON object.`,
-  config: {
-    apiVersion: 'v1',
-    location: 'europe-west1',
-  },
 });
 
 const analyzeSymptomPatternFlow = ai.defineFlow(

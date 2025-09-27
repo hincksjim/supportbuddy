@@ -47,10 +47,6 @@ Conversation History:
   {{role}}: {{{content}}}
 {{/each}}
 `,
-  config: {
-    apiVersion: 'v1',
-    location: 'europe-west1',
-  },
 });
 
 const generateConversationSummaryFlow = ai.defineFlow(

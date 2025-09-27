@@ -149,10 +149,6 @@ For each scenario, you must generate a list of all possible benefits mentioned i
 
 Your final output MUST be a valid JSON object matching the provided schema.
 `,
-  config: {
-    apiVersion: 'v1',
-    location: 'europe-west1',
-  },
 });
 
 const generateBenefitsMatrixFlow = ai.defineFlow(

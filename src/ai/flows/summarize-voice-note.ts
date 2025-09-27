@@ -39,10 +39,6 @@ Based on the transcript provided, generate a summary of around 100 words.
 Transcript:
 {{{transcript}}}
 `,
-  config: {
-    apiVersion: 'v1',
-    location: 'europe-west1',
-  },
 });
 
 const summarizeVoiceNoteFlow = ai.defineFlow(

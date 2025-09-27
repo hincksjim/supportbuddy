@@ -63,10 +63,6 @@ Review the provided list of diary entries for the specified timeframe. Generate 
 {{/each}}
 
 Your final output MUST be a valid JSON object matching the provided schema, with the summary in the 'summary' field.`,
-  config: {
-    apiVersion: 'v1',
-    location: 'europe-west1',
-  },
 });
 
 

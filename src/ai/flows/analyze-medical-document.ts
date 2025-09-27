@@ -64,10 +64,6 @@ Document: {{media url=documentDataUri}}
 Question: {{{question}}}
 
 Answer:`,
-  config: {
-    apiVersion: 'v1',
-    location: 'europe-west1',
-  },
 });
 
 const analyzeMedicalDocumentFlow = ai.defineFlow(

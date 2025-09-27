@@ -282,10 +282,6 @@ Your primary goal is to synthesize ALL information provided into clear, organize
     {{/each}}
 {{/if}}
 `,
-  config: {
-    apiVersion: 'v1',
-    location: 'europe-west1',
-  },
 });
 
 

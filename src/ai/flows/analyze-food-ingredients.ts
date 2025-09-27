@@ -45,10 +45,6 @@ const prompt = ai.definePrompt({
 4.  **No Warning:** If the ingredients seem generally fine or you cannot determine a clear risk, you **MUST** return \`null\` for the 'warning' field. Do not invent warnings.
 
 Your final output MUST be a valid JSON object matching the provided schema.`,
-  config: {
-    apiVersion: 'v1',
-    location: 'europe-west1',
-  },
 });
 
 const analyzeFoodIngredientsFlow = ai.defineFlow(

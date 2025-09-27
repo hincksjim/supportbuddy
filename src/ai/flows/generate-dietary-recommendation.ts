@@ -102,10 +102,6 @@ You MUST perform two actions:
 *   Do NOT provide specific portion sizes in the recipe, but your calorie and cost estimates should assume a standard single serving.
 *   Your output MUST be a valid JSON object that strictly follows the provided schema.
 `,
-  config: {
-    apiVersion: 'v1',
-    location: 'europe-west1',
-  },
 });
 
 

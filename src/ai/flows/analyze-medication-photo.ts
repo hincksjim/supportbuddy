@@ -53,10 +53,6 @@ If any of these pieces of information cannot be clearly identified, return an em
 **IMAGE:**
 {{media url=photoDataUri}}
 `,
-  config: {
-    apiVersion: 'v1',
-    location: 'europe-west1',
-  },
 });
 
 const analyzeMedicationPhotoFlow = ai.defineFlow(

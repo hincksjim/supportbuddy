@@ -54,10 +54,6 @@ Analyze the provided image of a meal. You MUST perform the following actions and
 **IMAGE:**
 {{media url=photoDataUri}}
 `,
-  config: {
-    apiVersion: 'v1',
-    location: 'europe-west1',
-  },
 });
 
 

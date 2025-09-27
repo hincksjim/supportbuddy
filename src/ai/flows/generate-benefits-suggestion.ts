@@ -64,10 +64,6 @@ ${benefitsDecisionLogic}
 6.  If there are no new benefits to suggest, return an empty array for "suggestions".
 7.  Format the output as a valid JSON object matching the provided schema.
 `,
-  config: {
-    apiVersion: 'v1',
-    location: 'europe-west1',
-  },
 });
 
 const generateBenefitsSuggestionFlow = ai.defineFlow(

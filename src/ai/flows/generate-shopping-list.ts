@@ -48,10 +48,6 @@ const prompt = ai.definePrompt({
 - **{{name}}**: {{#each ingredients}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}
 {{/each}}
 `,
-  config: {
-    apiVersion: 'v1',
-    location: 'europe-west1',
-  },
 });
 
 

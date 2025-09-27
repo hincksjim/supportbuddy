@@ -67,6 +67,7 @@ const prompt = ai.definePrompt({
   name: 'generateTreatmentTimelinePrompt',
   input: {schema: GenerateTreatmentTimelineInputSchema},
   output: {schema: GenerateTreatmentTimelineOutputSchema},
+  model: 'googleai/gemini-2.5-flash-lite',
   prompt: `You are an AI assistant creating an illustrative, general treatment timeline for a user based on their conversation with a support buddy. Your role is to provide a helpful, high-level overview of what a typical journey might look like, NOT to give specific, actionable medical advice or concrete dates.
 
 **CRITICAL SAFETY INSTRUCTIONS & GUIDELINES:**

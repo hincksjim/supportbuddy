@@ -40,7 +40,7 @@ const prompt = ai.definePrompt({
   name: 'generateBenefitsSuggestionPrompt',
   input: {schema: GenerateBenefitsSuggestionInputSchema},
   output: {schema: GenerateBenefitsSuggestionOutputSchema},
-  model: 'gemini-2.5-flash-lite',
+  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an expert UK benefits advisor AI. Your task is to analyze a user's situation based on the data provided and suggest potential additional benefits they could claim. You MUST use the provided JSON ruleset to make your determination. The user has cancer, which is a significant health condition.
 
 **User Information:**
@@ -64,6 +64,10 @@ ${benefitsDecisionLogic}
 6.  If there are no new benefits to suggest, return an empty array for "suggestions".
 7.  Format the output as a valid JSON object matching the provided schema.
 `,
+  config: {
+    apiVersion: 'v1',
+    location: 'europe-west1',
+  },
 });
 
 const generateBenefitsSuggestionFlow = ai.defineFlow(

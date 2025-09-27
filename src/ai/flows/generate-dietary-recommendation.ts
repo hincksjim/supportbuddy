@@ -65,7 +65,7 @@ const prompt = ai.definePrompt({
   name: 'generateDietaryRecommendationPrompt',
   input: {schema: GenerateDietaryRecommendationInputSchema},
   output: {schema: GenerateDietaryRecommendationOutputSchema},
-  model: 'gemini-2.5-flash-lite',
+  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an expert nutritionist AI. Your task is to provide dietary recommendations and commentary for a user with a specific health condition. Your tone must be supportive, encouraging, and easy to understand. You should aim to provide new and creative suggestions each time you are called.
 
 **CONTEXT:**
@@ -102,6 +102,10 @@ You MUST perform two actions:
 *   Do NOT provide specific portion sizes in the recipe, but your calorie and cost estimates should assume a standard single serving.
 *   Your output MUST be a valid JSON object that strictly follows the provided schema.
 `,
+  config: {
+    apiVersion: 'v1',
+    location: 'europe-west1',
+  },
 });
 
 

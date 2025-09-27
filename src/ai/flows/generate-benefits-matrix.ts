@@ -99,7 +99,7 @@ const prompt = ai.definePrompt({
   name: 'generateBenefitsMatrixPrompt',
   input: {schema: GenerateBenefitsMatrixInputSchema},
   output: {schema: GenerateBenefitsMatrixOutputSchema},
-  model: 'gemini-2.5-flash-lite',
+  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an expert UK benefits advisor AI. Your task is to generate a benefits matrix for a user based on their current situation and several potential future scenarios.
 
 **User's Current Situation:**
@@ -149,6 +149,10 @@ For each scenario, you must generate a list of all possible benefits mentioned i
 
 Your final output MUST be a valid JSON object matching the provided schema.
 `,
+  config: {
+    apiVersion: 'v1',
+    location: 'europe-west1',
+  },
 });
 
 const generateBenefitsMatrixFlow = ai.defineFlow(

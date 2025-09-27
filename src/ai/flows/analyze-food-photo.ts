@@ -41,7 +41,7 @@ const prompt = ai.definePrompt({
   name: 'analyzeFoodPhotoPrompt',
   input: {schema: AnalyzeFoodPhotoInputSchema},
   output: {schema: AnalyzeFoodPhotoOutputSchema},
-  model: 'gemini-2.5-flash-lite',
+  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an expert nutritionist AI with an amazing ability to identify food from images.
 
 **TASK:**
@@ -54,6 +54,10 @@ Analyze the provided image of a meal. You MUST perform the following actions and
 **IMAGE:**
 {{media url=photoDataUri}}
 `,
+  config: {
+    apiVersion: 'v1',
+    location: 'europe-west1',
+  },
 });
 
 

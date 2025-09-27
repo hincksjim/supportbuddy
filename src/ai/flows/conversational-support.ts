@@ -257,12 +257,16 @@ const aiConversationalSupportFlow = ai.defineFlow(
           text: promptText,
           input: input,
         },
-        model: 'googleai/gemini-2.5-flash-lite',
+        model: 'googleai/gemini-1.5-flash-latest',
         output: {
             schema: AiConversationalSupportOutputSchema,
         },
         tools: [lookupPostcode],
         history: input.conversationHistory,
+        config: {
+            apiVersion: 'v1',
+            location: 'europe-west1',
+        },
     });
 
     return llmResponse.output()!;

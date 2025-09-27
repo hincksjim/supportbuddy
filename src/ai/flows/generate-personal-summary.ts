@@ -123,7 +123,7 @@ const prompt = ai.definePrompt({
   name: 'generatePersonalSummaryPrompt',
   input: {schema: EnrichedGeneratePersonalSummaryInputSchema},
   output: {schema: PersonalSummaryOutputSchema},
-  model: 'gemini-2.5-flash-lite',
+  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an AI assistant tasked with creating sections of a comprehensive "Personal Summary Report" for a user navigating their health journey.
 
 **TASK:**
@@ -282,6 +282,10 @@ Your primary goal is to synthesize ALL information provided into clear, organize
     {{/each}}
 {{/if}}
 `,
+  config: {
+    apiVersion: 'v1',
+    location: 'europe-west1',
+  },
 });
 
 

@@ -38,7 +38,7 @@ const prompt = ai.definePrompt({
   name: 'analyzeMedicationPhotoPrompt',
   input: {schema: AnalyzeMedicationPhotoInputSchema},
   output: {schema: AnalyzeMedicationPhotoOutputSchema},
-  model: 'gemini-2.5-flash-lite',
+  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an expert at reading and interpreting medication packaging from images.
 
 **TASK:**
@@ -53,6 +53,10 @@ If any of these pieces of information cannot be clearly identified, return an em
 **IMAGE:**
 {{media url=photoDataUri}}
 `,
+  config: {
+    apiVersion: 'v1',
+    location: 'europe-west1',
+  },
 });
 
 const analyzeMedicationPhotoFlow = ai.defineFlow(

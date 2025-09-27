@@ -31,7 +31,7 @@ const prompt = ai.definePrompt({
   name: 'summarizeVoiceNotePrompt',
   input: {schema: SummarizeVoiceNoteInputSchema},
   output: {schema: SummarizeVoiceNoteOutputSchema},
-  model: 'gemini-2.5-flash-lite',
+  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an AI assistant tasked with summarizing a voice note transcript. Your summary should be concise, informative, and capture the key points of the discussion.
 
 Based on the transcript provided, generate a summary of around 100 words.
@@ -39,6 +39,10 @@ Based on the transcript provided, generate a summary of around 100 words.
 Transcript:
 {{{transcript}}}
 `,
+  config: {
+    apiVersion: 'v1',
+    location: 'europe-west1',
+  },
 });
 
 const summarizeVoiceNoteFlow = ai.defineFlow(

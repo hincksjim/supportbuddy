@@ -25,7 +25,7 @@ const prompt = ai.definePrompt({
   name: 'generateShoppingListPrompt',
   input: {schema: GenerateShoppingListInputSchema},
   output: {schema: GenerateShoppingListOutputSchema},
-  model: 'gemini-2.5-flash-lite',
+  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an expert shopping list generator for a UK-based user. Your task is to take a list of meals and create a consolidated, categorized shopping list with estimated prices.
 
 **TASK:**
@@ -48,6 +48,10 @@ const prompt = ai.definePrompt({
 - **{{name}}**: {{#each ingredients}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}
 {{/each}}
 `,
+  config: {
+    apiVersion: 'v1',
+    location: 'europe-west1',
+  },
 });
 
 

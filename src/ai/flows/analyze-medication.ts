@@ -36,7 +36,7 @@ const prompt = ai.definePrompt({
   name: 'analyzeMedicationPrompt',
   input: {schema: AnalyzeMedicationInputSchema},
   output: {schema: AnalyzeMedicationOutputSchema},
-  model: 'gemini-2.5-flash-lite',
+  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an AI pharmacy assistant. Your task is to provide clear, simple information about a medication.
 
 **TASK:**
@@ -56,6 +56,10 @@ Given the medication name and a list of existing medications, you MUST generate 
 
 Your final output MUST be a valid JSON object matching the provided schema.
 `,
+  config: {
+    apiVersion: 'v1',
+    location: 'europe-west1',
+  },
 });
 
 const analyzeMedicationFlow = ai.defineFlow(

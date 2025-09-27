@@ -38,7 +38,7 @@ const prompt = ai.definePrompt({
   name: 'analyzeMedicationPhotoPrompt',
   input: {schema: AnalyzeMedicationPhotoInputSchema},
   output: {schema: AnalyzeMedicationPhotoOutputSchema},
-  model: 'gemini-1.5-flash',
+  model: 'gemini-2.5-flash-lite',
   prompt: `You are an expert at reading and interpreting medication packaging from images.
 
 **TASK:**

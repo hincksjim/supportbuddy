@@ -8,7 +8,7 @@ export const ai = genkit({
       location: 'europe-west1',
     }),
   ],
-  defaultModel: 'googleai/gemini-1.5-flash',
+  defaultModel: 'googleai/gemini-2.5-flash-lite',
   logLevel: 'debug',
   enableTracing: true,
 });

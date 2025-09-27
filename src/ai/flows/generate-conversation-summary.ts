@@ -37,7 +37,7 @@ const prompt = ai.definePrompt({
   name: 'generateConversationSummaryPrompt',
   input: {schema: GenerateConversationSummaryInputSchema},
   output: {schema: GenerateConversationSummaryOutputSchema},
-  model: 'gemini-1.5-flash',
+  model: 'gemini-2.5-flash-lite',
   prompt: `You are an AI assistant tasked with summarizing a conversation between a user and a cancer support buddy. Your summary should be concise, informative, and capture the essence of the discussion.
 
 Based on the conversation history provided, generate a short, engaging title (5-7 words) and a summary of around 100 words. The summary should highlight the key topics discussed, the main concerns of the user, and any significant advice or support offered by the buddy.

@@ -99,7 +99,7 @@ const prompt = ai.definePrompt({
   name: 'generateBenefitsMatrixPrompt',
   input: {schema: GenerateBenefitsMatrixInputSchema},
   output: {schema: GenerateBenefitsMatrixOutputSchema},
-  model: 'gemini-1.5-flash',
+  model: 'gemini-2.5-flash-lite',
   prompt: `You are an expert UK benefits advisor AI. Your task is to generate a benefits matrix for a user based on their current situation and several potential future scenarios.
 
 **User's Current Situation:**

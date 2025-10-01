@@ -77,6 +77,10 @@ export interface DiaryEntry {
   symptomAnalysis?: string | null;
   weight?: string;
   sleep?: string;
+  fluidIntake?: string;
+  bloodPressureSystolic?: string;
+  bloodPressureDiastolic?: string;
+  bloodSugar?: string;
   foodIntake?: FoodIntake[];
   food?: string; // Keep for backward compatibility, but make it optional
   worriedAbout?: string;
@@ -513,6 +517,10 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
     const [painRemarks, setPainRemarks] = useState('');
     const [weight, setWeight] = useState('');
     const [sleep, setSleep] = useState('');
+    const [fluidIntake, setFluidIntake] = useState('');
+    const [bloodPressureSystolic, setBloodPressureSystolic] = useState('');
+    const [bloodPressureDiastolic, setBloodPressureDiastolic] = useState('');
+    const [bloodSugar, setBloodSugar] = useState('');
     const [foodIntake, setFoodIntake] = useState<FoodIntake[]>([]);
     const [isFoodDialogOpen, setIsFoodDialogOpen] = useState(false);
     const [worriedAbout, setWorriedAbout] = useState('');
@@ -563,6 +571,10 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             symptomAnalysis: '',
             weight: '',
             sleep: '',
+            fluidIntake: '',
+            bloodPressureSystolic: '',
+            bloodPressureDiastolic: '',
+            bloodSugar: '',
             foodIntake: [],
             worriedAbout: '',
             positiveAbout: '',
@@ -580,6 +592,10 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
         setSymptomAnalysis(entryToEdit.symptomAnalysis || null);
         setWeight(entryToEdit.weight || '');
         setSleep(entryToEdit.sleep || '');
+        setFluidIntake(entryToEdit.fluidIntake || '');
+        setBloodPressureSystolic(entryToEdit.bloodPressureSystolic || '');
+        setBloodPressureDiastolic(entryToEdit.bloodPressureDiastolic || '');
+        setBloodSugar(entryToEdit.bloodSugar || '');
         setFoodIntake(entryToEdit.foodIntake || []);
         setWorriedAbout(entryToEdit.worriedAbout || '');
         setPositiveAbout(entryToEdit.positiveAbout || '');
@@ -601,6 +617,10 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             symptomAnalysis: symptomAnalysis || undefined,
             weight,
             sleep,
+            fluidIntake,
+            bloodPressureSystolic,
+            bloodPressureDiastolic,
+            bloodSugar,
             foodIntake,
             worriedAbout,
             positiveAbout,
@@ -679,8 +699,12 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
         const count = allEntries.filter(e => e.id !== date && e.painLocation === painLocation).length;
         return count >= 1;
     }, [allEntries, painLocation, date]);
-    
 
+    const diagnosis = contextData.userData?.initialDiagnosis?.toLowerCase() || "";
+    const showKidneyFields = diagnosis.includes("kidney") || diagnosis.includes("renal");
+    const showHeartFields = diagnosis.includes("heart") || diagnosis.includes("cardiac") || diagnosis.includes("stroke") || diagnosis.includes("vascular") || diagnosis.includes("hypertension");
+    const showDiabetesFields = diagnosis.includes("diabetes");
+    
     return (
         <>
             <Dialog>
@@ -806,7 +830,6 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                             </div>
                         )}
 
-
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="weight">Weight (kg)</Label>
@@ -817,6 +840,36 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                                 <Input id="sleep" type="number" placeholder="e.g., 7.5" value={sleep} onChange={(e) => setSleep(e.target.value)} />
                             </div>
                         </div>
+
+                         {(showKidneyFields || showHeartFields || showDiabetesFields) && (
+                            <div className="space-y-4 pt-4 border-t">
+                                <Label className="font-semibold">Condition-Specific Tracking</Label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {showKidneyFields && (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="fluid-intake">Fluid Intake (ml)</Label>
+                                            <Input id="fluid-intake" type="number" placeholder="e.g., 2000" value={fluidIntake} onChange={(e) => setFluidIntake(e.target.value)} />
+                                        </div>
+                                    )}
+                                    {showHeartFields && (
+                                         <div className="space-y-2">
+                                            <Label>Blood Pressure (Systolic/Diastolic)</Label>
+                                            <div className="flex items-center gap-2">
+                                                <Input id="bp-systolic" type="number" placeholder="Sys" value={bloodPressureSystolic} onChange={(e) => setBloodPressureSystolic(e.target.value)} />
+                                                <span>/</span>
+                                                <Input id="bp-diastolic" type="number" placeholder="Dia" value={bloodPressureDiastolic} onChange={(e) => setBloodPressureDiastolic(e.target.value)} />
+                                            </div>
+                                        </div>
+                                    )}
+                                    {showDiabetesFields && (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="blood-sugar">Blood Sugar (mmol/L)</Label>
+                                            <Input id="blood-sugar" type="number" placeholder="e.g., 5.5" step="0.1" value={bloodSugar} onChange={(e) => setBloodSugar(e.target.value)} />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                         
                         <div className="space-y-2">
                             <Label>Food Intake</Label>
@@ -956,12 +1009,13 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries 
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                 {(entry.weight || entry.sleep) && (
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                        {entry.weight && <div><strong>Weight:</strong> {entry.weight} kg</div>}
-                        {entry.sleep && <div><strong>Sleep:</strong> {entry.sleep} hours</div>}
-                    </div>
-                )}
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    {entry.weight && <div><strong>Weight:</strong> {entry.weight} kg</div>}
+                    {entry.sleep && <div><strong>Sleep:</strong> {entry.sleep} hours</div>}
+                    {entry.fluidIntake && <div><strong>Fluid Intake:</strong> {entry.fluidIntake} ml</div>}
+                    {entry.bloodSugar && <div><strong>Blood Sugar:</strong> {entry.bloodSugar} mmol/L</div>}
+                    {(entry.bloodPressureSystolic && entry.bloodPressureDiastolic) && <div><strong>Blood Pressure:</strong> {entry.bloodPressureSystolic}/{entry.bloodPressureDiastolic}</div>}
+                </div>
                 {hasPainDetails && (
                     <div className="space-y-2">
                         <h4 className="font-semibold text-sm">Pain Details</h4>
@@ -1220,5 +1274,3 @@ export default function DiaryPage() {
         </div>
     )
 }
-
-    

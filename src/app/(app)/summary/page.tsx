@@ -414,6 +414,11 @@ export default function SummaryPage() {
         { key: 'potentialBenefits', content: reportData?.potentialBenefits, hideToggle: hideFinancialInfo },
         { key: 'sources', content: reportData?.sources, hideToggle: false },
     ];
+    
+    const diagnosis = prereqData.userData?.initialDiagnosis?.toLowerCase() || "";
+    const showFluidChart = diagnosis.includes("kidney") || diagnosis.includes("renal");
+    const showBloodPressureChart = diagnosis.includes("heart") || diagnosis.includes("cardiac") || diagnosis.includes("stroke") || diagnosis.includes("vascular") || diagnosis.includes("hypertension") || diagnosis.includes("kidney") || diagnosis.includes("renal");
+    const showBloodSugarChart = diagnosis.includes("diabetes");
 
 
   return (
@@ -483,6 +488,18 @@ export default function SummaryPage() {
                                <h3 className="text-sm font-semibold mb-2 text-center">Calorie Intake (kcal)</h3>
                                <DiaryChart data={prereqData.diaryEntries} chartType="calories" />
                            </div>
+                           {showFluidChart && <div className="chart-card-pdf">
+                               <h3 className="text-sm font-semibold mb-2 text-center">Fluid Intake (ml)</h3>
+                               <DiaryChart data={prereqData.diaryEntries} chartType="fluid" />
+                           </div>}
+                           {showBloodPressureChart && <div className="chart-card-pdf">
+                               <h3 className="text-sm font-semibold mb-2 text-center">Blood Pressure (mmHg)</h3>
+                               <DiaryChart data={prereqData.diaryEntries} chartType="bloodPressure" />
+                           </div>}
+                           {showBloodSugarChart && <div className="chart-card-pdf">
+                               <h3 className="text-sm font-semibold mb-2 text-center">Blood Sugar (mmol/L)</h3>
+                               <DiaryChart data={prereqData.diaryEntries} chartType="bloodSugar" />
+                           </div>}
                         </div>
                     ) : (
                         <div className="text-center py-10 rounded-lg border-2 border-dashed">

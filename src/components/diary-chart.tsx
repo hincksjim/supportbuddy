@@ -48,10 +48,22 @@ const chartConfig = {
   calories: {
     label: "Calories (kcal)",
     color: "hsl(var(--chart-3))",
-  }
+  },
+  fluidIntake: {
+    label: "Fluid Intake (ml)",
+    color: "hsl(var(--chart-1))",
+  },
+  bloodPressure: {
+    label: "Blood Pressure",
+    color: "hsl(var(--chart-4))",
+  },
+  bloodSugar: {
+    label: "Blood Sugar (mmol/L)",
+    color: "hsl(var(--chart-2))",
+  },
 } satisfies ChartConfig
 
-export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType: 'mood' | 'weight' | 'sleep' | 'pain' | 'treatment' | 'diagnosis' | 'calories' }) {
+export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType: 'mood' | 'weight' | 'sleep' | 'pain' | 'treatment' | 'diagnosis' | 'calories' | 'fluid' | 'bloodPressure' | 'bloodSugar' }) {
   const chartData = React.useMemo(() => {
     return data
       .sort((a, b) => new Date(a.date).getTime() - new Date(a.date).getTime())
@@ -64,6 +76,10 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
         weight: entry.weight ? parseFloat(entry.weight) : null,
         sleep: entry.sleep ? parseFloat(entry.sleep) : null,
         calories: entry.foodIntake?.reduce((acc, meal) => acc + (meal.calories || 0), 0) || null,
+        fluidIntake: entry.fluidIntake ? parseInt(entry.fluidIntake) : null,
+        bloodPressureSystolic: entry.bloodPressureSystolic ? parseInt(entry.bloodPressureSystolic) : null,
+        bloodPressureDiastolic: entry.bloodPressureDiastolic ? parseInt(entry.bloodPressureDiastolic) : null,
+        bloodSugar: entry.bloodSugar ? parseFloat(entry.bloodSugar) : null,
       }));
   }, [data]);
 
@@ -92,6 +108,15 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
             const calories = chartData.map(d => d.calories).filter(c => c !== null && !isNaN(c)) as number[];
             if (calories.length === 0) return [0, 3000];
             return [0, Math.ceil(Math.max(...calories) / 500) * 500]; // Round up to nearest 500
+        }
+        case 'fluid': {
+            return [0, 'auto'];
+        }
+        case 'bloodPressure': {
+            return [40, 'auto'];
+        }
+        case 'bloodSugar': {
+            return [0, 'auto'];
         }
         default:
             return [0, 'auto'];
@@ -208,6 +233,51 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
                     name="Calories (kcal)"
                     type="monotone"
                     stroke="var(--color-calories)"
+                    strokeWidth={2}
+                    dot={true}
+                    connectNulls
+                />
+            )}
+            {chartType === 'fluid' && (
+                <Line
+                    dataKey="fluidIntake"
+                    name="Fluid Intake (ml)"
+                    type="monotone"
+                    stroke="var(--color-fluidIntake)"
+                    strokeWidth={2}
+                    dot={true}
+                    connectNulls
+                />
+            )}
+            {chartType === 'bloodPressure' && (
+                <>
+                    <Line
+                        dataKey="bloodPressureSystolic"
+                        name="Systolic"
+                        type="monotone"
+                        stroke="var(--color-bloodPressure)"
+                        strokeWidth={2}
+                        dot={true}
+                        connectNulls
+                    />
+                     <Line
+                        dataKey="bloodPressureDiastolic"
+                        name="Diastolic"
+                        type="monotone"
+                        stroke="var(--color-bloodPressure)"
+                        strokeOpacity={0.6}
+                        strokeWidth={2}
+                        dot={true}
+                        connectNulls
+                    />
+                </>
+            )}
+            {chartType === 'bloodSugar' && (
+                <Line
+                    dataKey="bloodSugar"
+                    name="Blood Sugar"
+                    type="monotone"
+                    stroke="var(--color-bloodSugar)"
                     strokeWidth={2}
                     dot={true}
                     connectNulls

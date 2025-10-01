@@ -110,13 +110,22 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
             return [0, Math.ceil(Math.max(...calories) / 500) * 500]; // Round up to nearest 500
         }
         case 'fluid': {
-            return [0, 'auto'];
+            const fluids = chartData.map(d => d.fluidIntake).filter(f => f !== null && !isNaN(f)) as number[];
+            if (fluids.length === 0) return [0, 'auto'];
+            const maxVal = Math.max(...fluids);
+            return [0, Math.ceil(maxVal / 500) * 500];
         }
         case 'bloodPressure': {
-            return [40, 'auto'];
+             const pressures = chartData.flatMap(d => [d.bloodPressureSystolic, d.bloodPressureDiastolic]).filter(p => p !== null && !isNaN(p)) as number[];
+            if (pressures.length === 0) return [40, 'auto'];
+            const maxVal = Math.max(...pressures);
+            return [40, Math.ceil(maxVal / 10) * 10];
         }
         case 'bloodSugar': {
-            return [0, 'auto'];
+             const sugars = chartData.map(d => d.bloodSugar).filter(s => s !== null && !isNaN(s)) as number[];
+            if (sugars.length === 0) return [0, 'auto'];
+            const maxVal = Math.max(...sugars);
+            return [0, Math.ceil(maxVal + 2)];
         }
         default:
             return [0, 'auto'];

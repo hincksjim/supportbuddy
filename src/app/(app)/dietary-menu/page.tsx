@@ -419,11 +419,12 @@ export default function DietaryMenuPage() {
                             <p>Calculating your health targets...</p>
                         </div>
                     ) : healthTargets ? (
-                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
                             <div className="p-4 bg-muted/50 rounded-lg">
                                 <p className="text-sm font-semibold text-muted-foreground">Your BMI</p>
                                 <p className={`text-3xl font-bold ${bmiColor}`}>{healthTargets.bmi}</p>
                                 <p className={`text-sm font-semibold ${bmiColor}`}>{healthTargets.bmiCategory}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Healthy Range: 18.5-24.9</p>
                             </div>
                              <div className="p-4 bg-muted/50 rounded-lg">
                                 <p className="text-sm font-semibold text-muted-foreground">Target Weight</p>
@@ -434,11 +435,6 @@ export default function DietaryMenuPage() {
                                 <p className="text-sm font-semibold text-muted-foreground">Target Calories</p>
                                 <p className="text-3xl font-bold">{healthTargets.targetCalories}</p>
                                 <p className="text-sm text-muted-foreground">per day</p>
-                            </div>
-                             <div className="p-4 bg-muted/50 rounded-lg">
-                                <p className="text-sm font-semibold text-muted-foreground">Target BMI</p>
-                                <p className="text-3xl font-bold">18.5-24.9</p>
-                                <p className="text-sm text-muted-foreground">Healthy Range</p>
                             </div>
                          </div>
                     ) : (
@@ -638,5 +634,7 @@ export default function DietaryMenuPage() {
 
         </div>
     )
+
+    
 
     

@@ -90,6 +90,7 @@ interface UserData {
     lastName?: string;
     age?: string;
     gender?: string;
+    height?: string;
     address1?: string;
     address2?: string;
     townCity?: string;
@@ -392,10 +393,14 @@ export default function ProfilePage() {
                             </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                             <div className="space-y-2">
                                 <Label htmlFor="age">Age</Label>
                                 <Input id="age" name="age" type="number" placeholder="Your age" value={userData.age || ''} onChange={handleInputChange} />
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="height">Height (cm)</Label>
+                                <Input id="height" name="height" type="number" placeholder="e.g. 175" value={userData.height || ''} onChange={handleInputChange} />
                             </div>
                             <div className="space-y-2">
                                 <Label>Gender</Label>

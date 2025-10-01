@@ -4,10 +4,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw, Lightbulb, Utensils, Apple, Soup, Coffee, ChevronDown, Flame, Wallet, Star, PlusCircle, ShoppingCart, Calendar, Trash2, Download, Printer, Info } from "lucide-react";
+import { Loader2, RefreshCw, Lightbulb, Utensils, Apple, Soup, Coffee, ChevronDown, Flame, Wallet, Star, PlusCircle, ShoppingCart, Calendar, Trash2, Download, Printer, Info, HeartPulse } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { generateDietaryRecommendation, GenerateDietaryRecommendationOutput } from "@/ai/flows/generate-dietary-recommendation";
 import { generateShoppingList, GenerateShoppingListOutput } from "@/ai/flows/generate-shopping-list";
+import { generateDietaryTargets, GenerateDietaryTargetsOutput } from "@/ai/flows/generate-dietary-targets";
 import { DiaryEntry } from "@/app/(app)/diary/page";
 import { marked } from "marked";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -30,6 +31,10 @@ import "jspdf-autotable";
 
 interface UserData {
     initialDiagnosis?: string;
+    age?: string;
+    gender?: 'male' | 'female' | 'other';
+    height?: string;
+    weight?: string;
 }
 
 export interface MealSuggestion {
@@ -175,8 +180,10 @@ function MealCard({ suggestion, isFavorite, onToggleFavorite, onAddToPlan }: { s
 
 export default function DietaryMenuPage() {
     const [recommendations, setRecommendations] = useState<GenerateDietaryRecommendationOutput | null>(null);
+    const [healthTargets, setHealthTargets] = useState<GenerateDietaryTargetsOutput | null>(null);
     const [favoriteMeals, setFavoriteMeals] = useState<MealSuggestion[]>([]);
     const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
+    const [isLoadingTargets, setIsLoadingTargets] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
     const { toast } = useToast();
@@ -191,6 +198,7 @@ export default function DietaryMenuPage() {
 
     const getFavoritesKey = (email: string) => `favoriteMeals_${email}`;
     const getMealPlanKey = (email: string) => `mealPlan_${email}`;
+    const getHealthTargetsKey = (email: string) => `healthTargets_${email}`;
 
     const loadMealPlan = useCallback(() => {
         if (!currentUserEmail) return;
@@ -205,6 +213,51 @@ export default function DietaryMenuPage() {
             setMealPlan(emptyPlan);
         }
     }, [currentUserEmail]);
+
+    const fetchDataAndGenerate = useCallback(async (email: string) => {
+        setIsLoadingSuggestions(true);
+        setIsLoadingTargets(true);
+        setError(null);
+        try {
+            const storedUser = localStorage.getItem(`userData_${email}`);
+            const storedDiary = localStorage.getItem(`diaryEntries_${email}`);
+            
+            const userData: UserData = storedUser ? JSON.parse(storedUser) : {};
+            const diaryEntries: DiaryEntry[] = storedDiary ? JSON.parse(storedDiary) : [];
+
+            // --- Generate Health Targets ---
+            const lastWeight = diaryEntries.find(e => e.weight)?.weight;
+            if (userData.age && userData.gender && userData.height && lastWeight) {
+                 const targets = await generateDietaryTargets({
+                    age: userData.age,
+                    gender: userData.gender,
+                    height: userData.height,
+                    weight: lastWeight
+                });
+                setHealthTargets(targets);
+                localStorage.setItem(getHealthTargetsKey(email), JSON.stringify(targets));
+            } else {
+                 setHealthTargets(null); // Clear targets if data is missing
+            }
+            setIsLoadingTargets(false);
+
+            // --- Generate Dietary Recommendations ---
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const recentEntries = diaryEntries.filter(entry => new Date(entry.date) >= sevenDaysAgo);
+
+            const result = await generateDietaryRecommendation({
+                diagnosis: userData.initialDiagnosis || "Not specified",
+                recentMeals: recentEntries,
+            });
+            setRecommendations(result);
+        } catch (err: any) {
+            console.error("Failed to generate dietary recommendations:", err);
+            setError("Sorry, there was an error generating your recommendations. Please try refreshing.");
+        } finally {
+            setIsLoadingSuggestions(false);
+        }
+    }, []);
 
     useEffect(() => {
         const email = localStorage.getItem("currentUserEmail");
@@ -221,40 +274,13 @@ export default function DietaryMenuPage() {
             setError("Could not identify user. Please log in again.");
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentUserEmail]);
+    }, []);
     
      useEffect(() => {
         if (currentUserEmail) {
             loadMealPlan();
         }
     }, [currentUserEmail, loadMealPlan]);
-
-    const fetchDataAndGenerate = async (email: string) => {
-        setIsLoadingSuggestions(true);
-        setError(null);
-        try {
-            const storedUser = localStorage.getItem(`userData_${email}`);
-            const storedDiary = localStorage.getItem(`diaryEntries_${email}`);
-            
-            const userData: UserData = storedUser ? JSON.parse(storedUser) : {};
-            const diaryEntries: DiaryEntry[] = storedDiary ? JSON.parse(storedDiary) : [];
-
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-            const recentEntries = diaryEntries.filter(entry => new Date(entry.date) >= sevenDaysAgo);
-
-            const result = await generateDietaryRecommendation({
-                diagnosis: userData.initialDiagnosis || "Not specified",
-                recentMeals: recentEntries,
-            });
-            setRecommendations(result);
-        } catch (err: any) {
-            console.error("Failed to generate dietary recommendations:", err);
-            setError("Sorry, there was an error generating your recommendations. Please try refreshing.");
-        } finally {
-            setIsLoadingSuggestions(false);
-        }
-    }
 
 
     const handleRefreshSuggestions = () => {
@@ -363,6 +389,7 @@ export default function DietaryMenuPage() {
     };
 
     const mealCount = Object.values(mealPlan).flatMap(day => Object.values(day)).filter(Boolean).length;
+    const bmiColor = healthTargets?.bmiCategory === 'Healthy' ? 'text-green-600' : healthTargets?.bmiCategory === 'Underweight' ? 'text-blue-600' : 'text-orange-600';
 
 
     return (
@@ -379,6 +406,53 @@ export default function DietaryMenuPage() {
                     New Suggestions
                 </Button>
             </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><HeartPulse className="text-primary"/> Health Targets</CardTitle>
+                    <CardDescription>Your personalized health and dietary goals, based on your profile.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {isLoadingTargets ? (
+                         <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
+                            <Loader2 className="h-6 w-6 animate-spin" />
+                            <p>Calculating your health targets...</p>
+                        </div>
+                    ) : healthTargets ? (
+                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                            <div className="p-4 bg-muted/50 rounded-lg">
+                                <p className="text-sm font-semibold text-muted-foreground">Your BMI</p>
+                                <p className={`text-3xl font-bold ${bmiColor}`}>{healthTargets.bmi}</p>
+                                <p className={`text-sm font-semibold ${bmiColor}`}>{healthTargets.bmiCategory}</p>
+                            </div>
+                             <div className="p-4 bg-muted/50 rounded-lg">
+                                <p className="text-sm font-semibold text-muted-foreground">Target Weight</p>
+                                <p className="text-3xl font-bold">{healthTargets.targetWeightRange}</p>
+                                <p className="text-sm text-muted-foreground">Healthy Range</p>
+                            </div>
+                             <div className="p-4 bg-muted/50 rounded-lg">
+                                <p className="text-sm font-semibold text-muted-foreground">Target Calories</p>
+                                <p className="text-3xl font-bold">{healthTargets.targetCalories}</p>
+                                <p className="text-sm text-muted-foreground">per day</p>
+                            </div>
+                             <div className="p-4 bg-muted/50 rounded-lg">
+                                <p className="text-sm font-semibold text-muted-foreground">Healthy BMI Range</p>
+                                <p className="text-3xl font-bold">18.5-24.9</p>
+                                <p className="text-sm text-muted-foreground">Globally Recommended</p>
+                            </div>
+                         </div>
+                    ) : (
+                         <Alert variant="destructive">
+                            <Info className="h-4 w-4" />
+                            <AlertTitle>Missing Information</AlertTitle>
+                            <AlertDescription>
+                                To calculate your health targets, please ensure you have entered your gender, height, and at least one weight entry in your diary. You can add your height in the <Link href="/profile" className="font-bold underline">Profile</Link> page.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                </CardContent>
+            </Card>
+
 
             {favoriteMeals.length > 0 && (
                  <Card>
@@ -565,5 +639,3 @@ export default function DietaryMenuPage() {
         </div>
     )
 }
-
-    

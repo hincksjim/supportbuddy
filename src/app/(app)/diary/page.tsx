@@ -42,6 +42,7 @@ import { analyzeFoodPhoto } from "@/ai/flows/analyze-food-photo"
 import { analyzeFoodIngredients } from "@/ai/flows/analyze-food-ingredients"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
+import { GenerateDietaryTargetsOutput } from "@/ai/flows/types"
 
 
 // Data structure for meds taken
@@ -91,6 +92,7 @@ export interface DiaryEntry {
 
 interface UserData {
     initialDiagnosis?: string;
+    height?: string;
 }
 
 interface TimelineData {
@@ -964,10 +966,11 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
     )
 }
 
-function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries }: { entry: DiaryEntry; onSave: (entry: DiaryEntry) => void; currentUserEmail: string | null; onDelete: (id: string) => void; allEntries: DiaryEntry[]; }) {
+function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries, healthTargets }: { entry: DiaryEntry; onSave: (entry: DiaryEntry) => void; currentUserEmail: string | null; onDelete: (id: string) => void; allEntries: DiaryEntry[]; healthTargets: GenerateDietaryTargetsOutput | null }) {
     const hasPainDetails = (entry.painScore ?? 0) > 0 && (entry.painLocation || entry.painRemarks);
     const dailyTotalCalories = entry.foodIntake?.reduce((acc, meal) => acc + (meal.calories || 0), 0) || 0;
-    
+    const overCalorieTarget = healthTargets && dailyTotalCalories > healthTargets.targetCalories;
+
     return (
         <Card className="diary-entry-card relative group">
             <CardHeader>
@@ -1030,8 +1033,19 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries 
                     <div className="space-y-2">
                         <div className="flex justify-between items-baseline">
                             <h4 className="font-semibold text-sm">Food Intake</h4>
-                            {dailyTotalCalories > 0 && <p className="font-bold text-sm">Daily Total: ~{dailyTotalCalories} calories</p>}
+                            {dailyTotalCalories > 0 && 
+                                <p className={cn("font-bold text-sm", overCalorieTarget && "text-destructive")}>
+                                    Daily Total: ~{dailyTotalCalories} calories
+                                </p>
+                            }
                         </div>
+                        {overCalorieTarget && (
+                             <Alert variant="destructive" className="text-xs">
+                                <AlertTriangle className="w-3 h-3" />
+                                <AlertTitle className="font-semibold">Over Calorie Target</AlertTitle>
+                                <AlertDescription>You've exceeded your daily goal of {healthTargets?.targetCalories} kcal.</AlertDescription>
+                             </Alert>
+                        )}
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             {entry.foodIntake.map(meal => (
                                 <Card key={meal.id} className="p-4 bg-muted/30">
@@ -1119,6 +1133,7 @@ export default function DiaryPage() {
     const [entries, setEntries] = useState<DiaryEntry[]>([]);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [healthTargets, setHealthTargets] = useState<GenerateDietaryTargetsOutput | null>(null);
     const entriesRef = useRef<DiaryEntry[]>([]);
     const diaryContainerRef = useRef<HTMLDivElement>(null);
 
@@ -1150,6 +1165,10 @@ export default function DiaryPage() {
                     setEntries(parsedEntries);
                 } else {
                     setEntries([]);
+                }
+                const storedTargets = localStorage.getItem(`healthTargets_${currentUserEmail}`);
+                if (storedTargets) {
+                    setHealthTargets(JSON.parse(storedTargets));
                 }
             } catch (error) {
                 console.error("Could not load diary entries from localStorage", error);
@@ -1260,7 +1279,7 @@ export default function DiaryPage() {
             {entries.length > 0 ? (
                 <div className="space-y-6" ref={diaryContainerRef}>
                     {entries.map(entry => (
-                        <DiaryEntryCard key={entry.id} entry={entry} onSave={handleSaveEntry} currentUserEmail={currentUserEmail} onDelete={handleDeleteEntry} allEntries={entries} />
+                        <DiaryEntryCard key={entry.id} entry={entry} onSave={handleSaveEntry} currentUserEmail={currentUserEmail} onDelete={handleDeleteEntry} allEntries={entries} healthTargets={healthTargets} />
                     ))}
                 </div>
             ) : (

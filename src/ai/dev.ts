@@ -23,3 +23,4 @@ import '@/ai/flows/analyze-food-photo.ts';
 import '@/ai/flows/analyze-food-ingredients.ts';
 import '@/ai/flows/generate-dietary-recommendation.ts';
 import '@/ai/flows/generate-shopping-list.ts';
+import '@/ai/flows/generate-dietary-targets.ts';

@@ -1,5 +1,6 @@
 
 import {z} from 'genkit';
+import { GenerateDietaryTargetsOutputSchema } from './generate-dietary-targets';
 
 /**
  * @fileOverview This file contains shared Zod schemas for AI flows.
@@ -169,4 +170,7 @@ export const GenerateShoppingListOutputSchema = z.object({
 });
 export type GenerateShoppingListOutput = z.infer<typeof GenerateShoppingListOutputSchema>;
 
+// Re-exporting the dietary targets schema to be used in other places
+export type { GenerateDietaryTargetsOutput } from './generate-dietary-targets';
+export { GenerateDietaryTargetsOutputSchema };
     

@@ -1,11 +1,25 @@
-
 import {z} from 'genkit';
-import { GenerateDietaryTargetsOutputSchema } from './generate-dietary-targets';
 
 /**
  * @fileOverview This file contains shared Zod schemas for AI flows.
  * It does not contain any server actions and can be safely imported by other files.
  */
+
+export const GenerateDietaryTargetsInputSchema = z.object({
+    age: z.string().describe("The user's age in years."),
+    gender: z.enum(['male', 'female', 'other']).describe("The user's gender."),
+    height: z.string().describe("The user's height in centimeters."),
+    weight: z.string().describe("The user's current weight in kilograms."),
+});
+export type GenerateDietaryTargetsInput = z.infer<typeof GenerateDietaryTargetsInputSchema>;
+
+export const GenerateDietaryTargetsOutputSchema = z.object({
+  bmi: z.number().describe("The user's calculated Body Mass Index, rounded to one decimal place."),
+  bmiCategory: z.enum(['Underweight', 'Healthy', 'Overweight', 'Obese']).describe("The user's BMI category."),
+  targetWeightRange: z.string().describe("The healthy target weight range for the user in kg (e.g., '60kg - 75kg')."),
+  targetCalories: z.number().describe("The recommended daily calorie intake, rounded to the nearest 50."),
+});
+export type GenerateDietaryTargetsOutput = z.infer<typeof GenerateDietaryTargetsOutputSchema>;
 
 export const BenefitSuggestionSchema = z.object({
     name: z.string().describe("The name of the suggested benefit."),

@@ -436,9 +436,9 @@ export default function DietaryMenuPage() {
                                 <p className="text-sm text-muted-foreground">per day</p>
                             </div>
                              <div className="p-4 bg-muted/50 rounded-lg">
-                                <p className="text-sm font-semibold text-muted-foreground">Healthy BMI Range</p>
+                                <p className="text-sm font-semibold text-muted-foreground">Target BMI</p>
                                 <p className="text-3xl font-bold">18.5-24.9</p>
-                                <p className="text-sm text-muted-foreground">Globally Recommended</p>
+                                <p className="text-sm text-muted-foreground">Healthy Range</p>
                             </div>
                          </div>
                     ) : (
@@ -446,7 +446,7 @@ export default function DietaryMenuPage() {
                             <Info className="h-4 w-4" />
                             <AlertTitle>Missing Information</AlertTitle>
                             <AlertDescription>
-                                To calculate your health targets, please ensure you have entered your gender, height, and at least one weight entry in your diary. You can add your height in the <Link href="/profile" className="font-bold underline">Profile</Link> page.
+                                To calculate your health targets, please ensure you have entered your gender, height, and at least one weight entry in your diary. You can add your height in the <a href="/profile" className="font-bold underline">Profile</a> page.
                             </AlertDescription>
                         </Alert>
                     )}
@@ -638,4 +638,5 @@ export default function DietaryMenuPage() {
 
         </div>
     )
-}
+
+    

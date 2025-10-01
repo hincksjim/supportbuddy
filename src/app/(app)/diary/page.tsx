@@ -706,6 +706,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
     const showKidneyFields = diagnosis.includes("kidney") || diagnosis.includes("renal");
     const showHeartFields = diagnosis.includes("heart") || diagnosis.includes("cardiac") || diagnosis.includes("stroke") || diagnosis.includes("vascular") || diagnosis.includes("hypertension");
     const showDiabetesFields = diagnosis.includes("diabetes");
+    const showBloodPressureFields = showHeartFields || showKidneyFields;
     
     return (
         <>
@@ -843,7 +844,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                             </div>
                         </div>
 
-                         {(showKidneyFields || showHeartFields || showDiabetesFields) && (
+                         {(showKidneyFields || showBloodPressureFields || showDiabetesFields) && (
                             <div className="space-y-4 pt-4 border-t">
                                 <Label className="font-semibold">Condition-Specific Tracking</Label>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -853,7 +854,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                                             <Input id="fluid-intake" type="number" placeholder="e.g., 2000" value={fluidIntake} onChange={(e) => setFluidIntake(e.target.value)} />
                                         </div>
                                     )}
-                                    {showHeartFields && (
+                                    {showBloodPressureFields && (
                                          <div className="space-y-2">
                                             <Label>Blood Pressure (Systolic/Diastolic)</Label>
                                             <div className="flex items-center gap-2">
@@ -1293,3 +1294,5 @@ export default function DiaryPage() {
         </div>
     )
 }
+
+    

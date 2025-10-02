@@ -57,7 +57,7 @@ Eating well is a crucial part of your journey.
 
 ### 🏦 Financial Guidance & Benefits Checker
 
-Reduce financial stress. The Finance Hub provides a clear overview of your financial situation and uses an AI-powered tool to suggest potential UK benefits you may be entitled to claim based on your profile. The Benefits Checker allows you to explore eligibility in different life scenarios.
+Reduce financial stress. The Finance Hub provides a clear overview of your financial situation and uses an AI-powered tool to suggest potential UK benefits you may be able to claim based on your profile. The Benefits Checker allows you to explore eligibility in different life scenarios.
 
 ### 🤫 The "Just In Case" Vault
 

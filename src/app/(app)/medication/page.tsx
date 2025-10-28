@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { PlusCircle, Loader2, Pill, Trash2, Download, Bot, AlertCircle, RefreshCw, Camera, Edit, CalendarClock, AlertTriangle, Tablets, Repeat } from "lucide-react"
 import jsPDF from "jspdf"
+import "jspdf-autotable"
 import { analyzeMedication } from "@/ai/flows/analyze-medication"
 import { analyzeMedicationPhoto, AnalyzeMedicationPhotoOutput } from "@/ai/flows/analyze-medication-photo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -279,87 +280,6 @@ function MedicationDialog({ onSave, existingMedication, initialValues, open, onO
     )
 }
 
-function AddMedicationChooserDialog() {
-    const [isChooserOpen, setIsChooserOpen] = useState(false);
-    const [isManualOpen, setIsManualOpen] = useState(false);
-    const [isPhotoOpen, setIsPhotoOpen] = useState(false);
-    const [photoData, setPhotoData] = useState<Partial<Medication> | null>(null);
-
-    // This is a bit of a hack to get the page to re-render.
-    // We need a better way to manage state across these dialogs.
-    const [_, setForceRender] = useState(0);
-
-    const handlePhotoAnalyzed = (details: AnalyzeMedicationPhotoOutput) => {
-        setPhotoData({
-            id: new Date().toISOString(),
-            ...details
-        });
-        setIsPhotoOpen(false); // Close photo dialog
-        setIsManualOpen(true); // Open manual dialog with pre-filled data
-    }
-    
-    // When manual dialog closes, reset photo data
-    const handleManualOpenChange = (open: boolean) => {
-        setIsManualOpen(open);
-        if (!open) {
-            setPhotoData(null);
-            setForceRender(v => v + 1); // Re-render parent to get new onSave
-        }
-    }
-
-    return (
-        <>
-            <Dialog open={isChooserOpen} onOpenChange={setIsChooserOpen}>
-                <DialogTrigger asChild>
-                    <Button size="lg" className="fixed bottom-24 right-6 h-16 w-16 rounded-full shadow-lg md:bottom-8 md:right-8">
-                        <PlusCircle className="h-8 w-8" />
-                        <span className="sr-only">Add New Medication</span>
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle>Add a New Medication</DialogTitle>
-                        <DialogDescription>
-                            How would you like to add your medication?
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex justify-around py-4">
-                        <Button
-                            variant="outline"
-                            className="h-24 w-32 flex-col gap-2"
-                            onClick={() => { setIsChooserOpen(false); setIsManualOpen(true); }}
-                        >
-                            <Edit className="h-8 w-8" />
-                            <span>Add Manually</span>
-                        </Button>
-                        <Button
-                            variant="outline"
-                             className="h-24 w-32 flex-col gap-2"
-                            onClick={() => { setIsChooserOpen(false); setIsPhotoOpen(true); }}
-                        >
-                             <Camera className="h-8 w-8" />
-                             <span>Use Camera</span>
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            {/* These dialogs are now controlled from here */}
-            <MedicationPageContent
-                isManualOpen={isManualOpen}
-                onManualOpenChange={handleManualOpenChange}
-                initialValues={photoData}
-            />
-            <AddMedicationByPhotoDialog
-                open={isPhotoOpen}
-                onOpenChange={setIsPhotoOpen}
-                onPhotoAnalyzed={handlePhotoAnalyzed}
-            />
-       </>
-    )
-}
-
-
 function MedicationCard({ medication, onSave, onDelete, onRecheck, isAnalyzingAny }: { medication: Medication; onSave: (med: Medication, isNew: boolean) => void; onDelete: (id: string) => void; onRecheck: (id: string) => void; isAnalyzingAny: boolean; }) {
     const [isEditOpen, setIsEditOpen] = useState(false);
     
@@ -464,18 +384,24 @@ function MedicationCard({ medication, onSave, onDelete, onRecheck, isAnalyzingAn
     );
 }
 
-// This is the main page content, extracted to allow the chooser dialog to manage its state
-function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues }: { isManualOpen: boolean; onManualOpenChange: (open: boolean) => void; initialValues: Partial<Medication> | null }) {
+export default function MedicationPage() {
     const [medications, setMedications] = useState<Medication[]>([]);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
     const medicationsRef = useRef(medications);
     const [medToAnalyze, setMedToAnalyze] = useState<string | null>(null);
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    // State for dialogs
+    const [isManualOpen, setIsManualOpen] = useState(false);
+    const [isPhotoOpen, setIsPhotoOpen] = useState(false);
+    const [isChooserOpen, setIsChooserOpen] = useState(false);
+    const [initialValues, setInitialValues] = useState<Partial<Medication> | null>(null);
 
     useEffect(() => {
         medicationsRef.current = medications;
     }, [medications]);
 
-     useEffect(() => {
+    useEffect(() => {
         const email = localStorage.getItem("currentUserEmail");
         setCurrentUserEmail(email);
     }, []);
@@ -613,12 +539,73 @@ function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues
         const updatedMeds = medications.filter(m => m.id !== id);
         setMedications(updatedMeds);
         saveMedications(updatedMeds);
-    }
+    };
+
+    const handlePhotoAnalyzed = (details: AnalyzeMedicationPhotoOutput) => {
+        setInitialValues({
+            id: new Date().toISOString(),
+            ...details
+        });
+        setIsPhotoOpen(false);
+        setIsManualOpen(true);
+    };
+
+    const handleManualOpenChange = (open: boolean) => {
+        setIsManualOpen(open);
+        if (!open) {
+            setInitialValues(null);
+        }
+    };
+    
+    const handleDownloadPdf = () => {
+        if (!medications || medications.length === 0) return;
+        setIsDownloading(true);
+        const doc = new jsPDF();
+        
+        doc.setFontSize(18);
+        doc.text("My Medications List", 14, 22);
+
+        const tableColumn = ["Name", "Strength", "Dose", "Issued By", "Date Issued"];
+        const tableRows: (string | null | undefined)[][] = [];
+
+        medications.forEach(med => {
+            const medData = [
+                med.name,
+                med.strength,
+                med.dose,
+                med.issuedBy,
+                new Date(med.issuedDate).toLocaleDateString(),
+            ];
+            tableRows.push(medData);
+        });
+
+        (doc as any).autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: 30,
+        });
+        
+        doc.save("Medication_List.pdf");
+        setIsDownloading(false);
+    };
 
     const isAnyMedAnalyzing = medications.some(m => m.isAnalyzing);
 
     return (
-        <>
+        <div className="p-4 md:p-6 space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold font-headline">My Medications</h1>
+                    <p className="text-muted-foreground">A list of your current and past prescriptions.</p>
+                </div>
+                 <div className="flex items-center gap-2 mt-4 sm:mt-0">
+                    <Button onClick={handleDownloadPdf} disabled={isDownloading || medications.length === 0} variant="outline">
+                        {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        Download PDF
+                    </Button>
+                </div>
+            </div>
+
             <div className="space-y-6 w-full">
                 {medications.length > 0 ? (
                     medications.map(med => (
@@ -638,41 +625,53 @@ function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues
                     </div>
                 )}
             </div>
-             <MedicationDialog 
+            
+            <Dialog open={isChooserOpen} onOpenChange={setIsChooserOpen}>
+                <DialogTrigger asChild>
+                    <Button size="lg" className="fixed bottom-24 right-6 h-16 w-16 rounded-full shadow-lg md:bottom-8 md:right-8">
+                        <PlusCircle className="h-8 w-8" />
+                        <span className="sr-only">Add New Medication</span>
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Add a New Medication</DialogTitle>
+                        <DialogDescription>
+                            How would you like to add your medication?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-around py-4">
+                        <Button
+                            variant="outline"
+                            className="h-24 w-32 flex-col gap-2"
+                            onClick={() => { setIsChooserOpen(false); setIsManualOpen(true); }}
+                        >
+                            <Edit className="h-8 w-8" />
+                            <span>Add Manually</span>
+                        </Button>
+                        <Button
+                            variant="outline"
+                             className="h-24 w-32 flex-col gap-2"
+                            onClick={() => { setIsChooserOpen(false); setIsPhotoOpen(true); }}
+                        >
+                             <Camera className="h-8 w-8" />
+                             <span>Use Camera</span>
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <MedicationDialog 
                 onSave={handleSaveMedication} 
                 initialValues={initialValues}
                 open={isManualOpen}
-                onOpenChange={onManualOpenChange}
+                onOpenChange={handleManualOpenChange}
             />
-        </>
-    )
-}
-
-export default function MedicationPage() {
-    const [isDownloading, setIsDownloading] = useState(false);
-    
-    // Most logic is moved to MedicationPageContent, this is now a shell.
-    // The handleDownloadPdf function needs access to the medications list,
-    // which is tricky now. For now, we'll keep it simple and disable it
-    // as it requires more significant state management refactoring (e.g., Zustand or Context).
-    
-    return (
-        <div className="p-4 md:p-6 space-y-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold font-headline">My Medications</h1>
-                    <p className="text-muted-foreground">A list of your current and past prescriptions.</p>
-                </div>
-                 <div className="flex items-center gap-2 mt-4 sm:mt-0">
-                    <Button onClick={() => alert("PDF Download temporarily disabled during refactor.")} disabled={isDownloading} variant="outline">
-                        {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                        Download PDF
-                    </Button>
-                </div>
-            </div>
-
-            <AddMedicationChooserDialog />
+            <AddMedicationByPhotoDialog
+                open={isPhotoOpen}
+                onOpenChange={setIsPhotoOpen}
+                onPhotoAnalyzed={handlePhotoAnalyzed}
+            />
         </div>
-    )
+    );
 }
-

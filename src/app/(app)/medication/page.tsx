@@ -469,6 +469,7 @@ function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues
     const [medications, setMedications] = useState<Medication[]>([]);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
     const medicationsRef = useRef(medications);
+    const [medToAnalyze, setMedToAnalyze] = useState<string | null>(null);
 
     useEffect(() => {
         medicationsRef.current = medications;
@@ -542,7 +543,7 @@ function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues
         saveMedications(updatedMeds);
 
         if (isNew) {
-            triggerMedicationAnalysis(medication.id);
+            setMedToAnalyze(medication.id);
         }
     };
 
@@ -588,12 +589,20 @@ function MedicationPageContent({ isManualOpen, onManualOpenChange, initialValues
              });
         }
     };
+    
+    useEffect(() => {
+        if (medToAnalyze) {
+            triggerMedicationAnalysis(medToAnalyze);
+            setMedToAnalyze(null);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [medToAnalyze]);
 
     const handleRecheckAnalysis = (medicationId: string) => {
         setMedications(prevMeds => {
             const medToRecheck = prevMeds.find(m => m.id === medicationId);
             if (medToRecheck) {
-                triggerMedicationAnalysis(medicationId);
+                setMedToAnalyze(medicationId);
             }
             return prevMeds.map(m => m.id === medicationId ? { ...m, isAnalyzing: true } : m)
         });
@@ -666,3 +675,4 @@ export default function MedicationPage() {
         </div>
     )
 }
+

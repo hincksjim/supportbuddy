@@ -25,8 +25,6 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { PlusCircle, Loader2, Pill, Trash2, Download, Bot, AlertCircle, RefreshCw, Camera, Edit, CalendarClock, AlertTriangle, Tablets, Repeat } from "lucide-react"
-import jsPDF from "jspdf"
-import "jspdf-autotable"
 import { analyzeMedication } from "@/ai/flows/analyze-medication"
 import { analyzeMedicationPhoto, AnalyzeMedicationPhotoOutput } from "@/ai/flows/analyze-medication-photo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -451,28 +449,6 @@ export default function MedicationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUserEmail]);
 
-    const handleSaveMedication = (medication: Medication, isNew: boolean) => {
-        if (!currentUserEmail) return;
-        
-        let updatedMeds: Medication[];
-        const existingIndex = medications.findIndex(m => m.id === medication.id);
-
-        if (existingIndex > -1) {
-            updatedMeds = [...medications];
-            updatedMeds[existingIndex] = { ...updatedMeds[existingIndex], ...medication, isAnalyzing: false };
-        } else {
-            updatedMeds = [medication, ...medications];
-        }
-        
-        updatedMeds.sort((a, b) => new Date(b.issuedDate).getTime() - new Date(a.issuedDate).getTime());
-        setMedications(updatedMeds);
-        saveMedications(updatedMeds);
-
-        if (isNew) {
-            setMedToAnalyze(medication.id);
-        }
-    };
-
     const triggerMedicationAnalysis = async (medicationId: string) => {
         const currentMeds = medicationsRef.current;
         const medIndex = currentMeds.findIndex(m => m.id === medicationId);
@@ -524,6 +500,28 @@ export default function MedicationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [medToAnalyze]);
 
+    const handleSaveMedication = (medication: Medication, isNew: boolean) => {
+        if (!currentUserEmail) return;
+        
+        let updatedMeds: Medication[];
+        const existingIndex = medications.findIndex(m => m.id === medication.id);
+
+        if (existingIndex > -1) {
+            updatedMeds = [...medications];
+            updatedMeds[existingIndex] = { ...updatedMeds[existingIndex], ...medication, isAnalyzing: false };
+        } else {
+            updatedMeds = [medication, ...medications];
+        }
+        
+        updatedMeds.sort((a, b) => new Date(b.issuedDate).getTime() - new Date(a.issuedDate).getTime());
+        setMedications(updatedMeds);
+        saveMedications(updatedMeds);
+
+        if (isNew) {
+            setMedToAnalyze(medication.id);
+        }
+    };
+
     const handleRecheckAnalysis = (medicationId: string) => {
         setMedications(prevMeds => {
             const medToRecheck = prevMeds.find(m => m.id === medicationId);
@@ -557,9 +555,13 @@ export default function MedicationPage() {
         }
     };
     
-    const handleDownloadPdf = () => {
+    const handleDownloadPdf = async () => {
         if (!medications || medications.length === 0) return;
         setIsDownloading(true);
+
+        const { default: jsPDF } = await import('jspdf');
+        await import('jspdf-autotable');
+
         const doc = new jsPDF();
         
         doc.setFontSize(18);

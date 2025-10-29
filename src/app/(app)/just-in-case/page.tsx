@@ -33,8 +33,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import Image from "next/image"
-import jsPDF from "jspdf"
-import html2canvas from "html2canvas"
+import type jsPDF from "jspdf"
+import type html2canvas from "html2canvas"
 
 // Main data structure for the entire page
 interface GoodbyeData {
@@ -568,6 +568,9 @@ export default function GoodbyePage() {
   const handleDownloadPdf = async (section: keyof typeof contentRefs, title: string) => {
         const contentRef = contentRefs[section];
         if (!contentRef.current) return;
+        
+        const { default: jsPDF } = await import('jspdf');
+        const { default: html2canvas } = await import('html2canvas');
 
         try {
             const canvas = await html2canvas(contentRef.current, { scale: 2 });

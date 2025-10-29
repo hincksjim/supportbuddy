@@ -32,8 +32,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import jsPDF from "jspdf"
-import html2canvas from "html2canvas"
 import { checkMedicationDose } from "@/ai/flows/check-medication-dose"
 import { analyzeSymptomPattern } from "@/ai/flows/analyze-symptom-pattern"
 import { marked } from "marked"
@@ -1223,6 +1221,9 @@ export default function DiaryPage() {
         if (!container) return;
         setIsDownloading(true);
 
+        const { default: jsPDF } = await import('jspdf');
+        const { default: html2canvas } = await import('html2canvas');
+
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
@@ -1294,5 +1295,3 @@ export default function DiaryPage() {
         </div>
     )
 }
-
-    

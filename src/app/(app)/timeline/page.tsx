@@ -16,8 +16,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
-import jsPDF from "jspdf"
-import html2canvas from "html2canvas"
 
 import { generateTreatmentTimeline, GenerateTreatmentTimelineOutput } from "@/ai/flows/generate-treatment-timeline"
 
@@ -161,6 +159,9 @@ export default function TimelinePage() {
         }
 
         try {
+          const { default: jsPDF } = await import('jspdf');
+          const { default: html2canvas } = await import('html2canvas');
+
           const pdf = new jsPDF('p', 'mm', 'a4');
           const pdfWidth = pdf.internal.pageSize.getWidth();
           const pdfHeight = pdf.internal.pageSize.getHeight();

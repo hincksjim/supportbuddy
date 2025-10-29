@@ -22,8 +22,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Loader2, RefreshCw, CheckCircle2, XCircle, MinusCircle, Info, ExternalLink, Download } from "lucide-react"
 import { generateBenefitsMatrix, GenerateBenefitsMatrixOutput } from "@/ai/flows/generate-benefits-matrix"
 import Link from "next/link"
-import jsPDF from "jspdf"
-import html2canvas from "html2canvas"
+import type jsPDF from "jspdf"
+import type html2canvas from "html2canvas"
 
 interface UserData {
     age?: string;
@@ -145,6 +145,9 @@ export default function BenefitsCheckerPage() {
         setIsDownloading(true);
 
         try {
+            const { default: jsPDF } = await import('jspdf');
+            const { default: html2canvas } = await import('html2canvas');
+
             const canvas = await html2canvas(container, {
                 scale: 2,
                 scrollX: 0,
@@ -310,5 +313,3 @@ export default function BenefitsCheckerPage() {
         </div>
     )
 }
-
-    

@@ -7,9 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2, RefreshCw, Download } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { marked } from "marked"
-import jsPDF from "jspdf"
-import "jspdf-autotable"
-import html2canvas from "html2canvas"
 import { useToast } from "@/hooks/use-toast"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
@@ -376,9 +373,12 @@ export default function SummaryPage() {
 
     setIsLoading(true);
     try {
-        const pdf = new jsPDF('p', 'mm', 'a4');
+        const { default: jsPDF } = await import('jspdf');
+        const { default: html2canvas } = await import('html2canvas');
+
         reportElement.classList.add('pdf-render');
         
+        const pdf = new jsPDF('p', 'mm', 'a4');
         await pdf.html(reportElement, {
             callback: function(doc) {
                 doc.save('Personal-Summary-Report.pdf');
@@ -569,7 +569,7 @@ export default function SummaryPage() {
             </Card>
         </div>
        </div>
-       <style jsx global>{`
+       <style jsx global>{\`
           .pdf-render {
             font-size: 10px;
           }
@@ -584,7 +584,7 @@ export default function SummaryPage() {
            .pdf-render p, .pdf-render li {
             font-size: 10px;
           }
-        `}</style>
+        \`}</style>
     </div>
   )
 }

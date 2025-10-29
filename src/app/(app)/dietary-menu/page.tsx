@@ -26,8 +26,8 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
+import type jsPDF from "jspdf"
+import 'jspdf-autotable';
 
 interface UserData {
     initialDiagnosis?: string;
@@ -360,9 +360,11 @@ export default function DietaryMenuPage() {
         }
     };
 
-    const handleDownloadPdf = () => {
+    const handleDownloadPdf = async () => {
         if (!shoppingList || !listRef.current) return;
         setIsDownloading(true);
+
+        const { default: jsPDF } = await import('jspdf');
 
         const pdf = new jsPDF();
         pdf.setFontSize(18);
@@ -584,7 +586,7 @@ export default function DietaryMenuPage() {
                              <div>
                                 <CardTitle className="flex items-center gap-2">Generated Shopping List</CardTitle>
                                 <CardDescription>
-                                    Total Estimated Cost: <span className="font-bold text-primary">£{shoppingList.totalEstimatedCost}</span>
+                                    Total Estimated Cost: <span className="font-bold text-primary">£{shoppingList.totalEstimatedCost.toFixed(2)}</span>
                                 </CardDescription>
                             </div>
                             <div className="flex gap-2">

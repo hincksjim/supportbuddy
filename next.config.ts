@@ -29,11 +29,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-   serverActions: {
-    bodySizeLimit: '2mb',
-    serverActions: true,
-    maxDuration: 120, // 2 minutes
-  },
 };
 
 export default nextConfig;

@@ -352,7 +352,7 @@ export default function DietaryMenuPage() {
         try {
             const result = await generateShoppingList({ meals: allMeals });
             setShoppingList(result);
-        } catch (err: any) {
+        } catch (err: any) => {
             console.error("Failed to generate shopping list:", err);
             setError("Sorry, there was an error generating your shopping list. Please try again.");
         } finally {
@@ -635,8 +635,5 @@ export default function DietaryMenuPage() {
             )}
 
         </div>
-    )
-
-    
-
-    
+    );
+}

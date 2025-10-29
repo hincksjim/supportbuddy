@@ -8,8 +8,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { generateBenefitsMatrix, GenerateBenefitsMatrixOutput } from "@/ai/flows/generate-benefits-matrix"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import type jsPDF from "jspdf"
-import type html2canvas from "html2canvas"
 
 interface UserData {
     name?: string;

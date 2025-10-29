@@ -569,7 +569,7 @@ export default function SummaryPage() {
             </Card>
         </div>
        </div>
-       <style jsx global>{\`
+       <style jsx global>{`
           .pdf-render {
             font-size: 10px;
           }
@@ -584,7 +584,7 @@ export default function SummaryPage() {
            .pdf-render p, .pdf-render li {
             font-size: 10px;
           }
-        \`}</style>
+        `}</style>
     </div>
   )
 }

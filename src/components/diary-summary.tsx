@@ -143,7 +143,7 @@ export function DiarySummary({ entries, currentUserEmail }: DiarySummaryProps) {
     if (entries.length === 0) return null;
 
     return (
-        <Card className="mb-8">
+        <Card className="mb-8 diary-summary-card">
             <CardHeader>
                 <CardTitle>Diary Summaries</CardTitle>
                 <CardDescription>Get AI-powered summaries of your diary entries to spot trends.</CardDescription>

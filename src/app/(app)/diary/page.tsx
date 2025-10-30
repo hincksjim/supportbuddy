@@ -1233,11 +1233,11 @@ export default function DiaryPage() {
         pdf.setFontSize(28);
         pdf.text("My Diary Report", pdfWidth / 2, pdfHeight / 2, { align: 'center' });
 
-        const entryCards = Array.from(container.querySelectorAll('.diary-entry-card')) as HTMLElement[];
+        const cardsToRender = Array.from(container.querySelectorAll('.diary-summary-card, .diary-entry-card')) as HTMLElement[];
         
-        for (let i = 0; i < entryCards.length; i++) {
+        for (let i = 0; i < cardsToRender.length; i++) {
             pdf.addPage();
-            const card = entryCards[i];
+            const card = cardsToRender[i];
             const canvas = await html2canvas(card, { scale: 2 });
             const imgData = canvas.toDataURL('image/png');
             
@@ -1275,21 +1275,23 @@ export default function DiaryPage() {
                     Download PDF
                 </Button>
             </div>
+            
+            <div ref={diaryContainerRef} className="space-y-6">
+                <DiarySummary entries={entries} currentUserEmail={currentUserEmail} />
 
-            <DiarySummary entries={entries} currentUserEmail={currentUserEmail} />
-
-            {entries.length > 0 ? (
-                <div className="space-y-6" ref={diaryContainerRef}>
-                    {entries.map(entry => (
-                        <DiaryEntryCard key={entry.id} entry={entry} onSave={handleSaveEntry} currentUserEmail={currentUserEmail} onDelete={handleDeleteEntry} allEntries={entries} healthTargets={healthTargets} />
-                    ))}
-                </div>
-            ) : (
-                <div className="text-center py-20 rounded-lg border-2 border-dashed">
-                    <h2 className="text-xl font-semibold">No entries yet</h2>
-                    <p className="text-muted-foreground mt-2">Click the '+' button to add your first diary entry.</p>
-                </div>
-            )}
+                {entries.length > 0 ? (
+                    <div className="space-y-6">
+                        {entries.map(entry => (
+                            <DiaryEntryCard key={entry.id} entry={entry} onSave={handleSaveEntry} currentUserEmail={currentUserEmail} onDelete={handleDeleteEntry} allEntries={entries} healthTargets={healthTargets} />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-20 rounded-lg border-2 border-dashed">
+                        <h2 className="text-xl font-semibold">No entries yet</h2>
+                        <p className="text-muted-foreground mt-2">Click the '+' button to add your first diary entry.</p>
+                    </div>
+                )}
+            </div>
             
             <DiaryEntryDialog onSave={handleSaveEntry} currentUserEmail={currentUserEmail} allEntries={entries}/>
         </div>

@@ -188,6 +188,41 @@ function LogFoodDialog({ onLog, open, onOpenChange, userDiagnosis }: { onLog: (f
             stream.getTracks().forEach(track => track.stop());
         }
     }
+    
+    // Image resize function
+    const resizeImage = (imageSrc: string, maxWidth: number = 800, maxHeight: number = 800): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const img = document.createElement('img');
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height *= maxWidth / width;
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width *= maxHeight / height;
+                        height = maxHeight;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    return reject(new Error('Could not get canvas context'));
+                }
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.8)); // Use JPEG with 80% quality
+            };
+            img.onerror = reject;
+            img.src = imageSrc;
+        });
+    };
 
     const startCamera = async () => {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -222,8 +257,19 @@ function LogFoodDialog({ onLog, open, onOpenChange, userDiagnosis }: { onLog: (f
         const file = event.target.files?.[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = (e) => {
-                handleAnalyzePhoto(e.target?.result as string);
+            reader.onload = async (e) => {
+                const originalDataUri = e.target?.result as string;
+                setIsAnalyzing(true);
+                setView('chooser'); // Show loader
+                try {
+                    const resizedDataUri = await resizeImage(originalDataUri);
+                    handleAnalyzePhoto(resizedDataUri);
+                } catch (error) {
+                    console.error('Image resize failed:', error);
+                    toast({ title: 'Image Processing Failed', variant: 'destructive' });
+                    setIsAnalyzing(false);
+                    setView('chooser');
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -293,14 +339,27 @@ function LogFoodDialog({ onLog, open, onOpenChange, userDiagnosis }: { onLog: (f
         if (!videoRef.current || !canvasRef.current) return;
         
         const video = videoRef.current;
-        const canvas = canvasRef.current;
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const context = canvas.getContext('2d');
-        context?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-
-        const photoDataUri = canvas.toDataURL('image/jpeg');
-        handleAnalyzePhoto(photoDataUri);
+        
+        setIsAnalyzing(true);
+        setView('chooser');
+        try {
+             // Use a temporary canvas to capture the full frame first
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = video.videoWidth;
+            tempCanvas.height = video.videoHeight;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+            
+            const originalDataUri = tempCanvas.toDataURL('image/jpeg');
+            const resizedDataUri = await resizeImage(originalDataUri);
+            
+            await handleAnalyzePhoto(resizedDataUri);
+        } catch(e) {
+             console.error("Capture or analysis failed", e);
+             toast({ title: 'Capture Failed', description: 'Could not capture or analyze the image.', variant: 'destructive'});
+             setIsAnalyzing(false);
+             setView('camera');
+        }
     };
 
     const handleConfirmAndLog = () => {
@@ -577,6 +636,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
     const [painScore, setPainScore] = useState<DiaryEntry['painScore']>(0);
     const [painLocation, setPainLocation] = useState<DiaryEntry['painLocation']>(null);
     const [painRemarks, setPainRemarks] = useState('');
+    const [symptomAnalysis, setSymptomAnalysis] = useState<string | null>(null);
     const [weight, setWeight] = useState('');
     const [sleep, setSleep] = useState('');
     const [fluidIntake, setFluidIntake] = useState('');
@@ -592,7 +652,6 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
     const [prescribedMeds, setPrescribedMeds] = useState<Medication[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [isCheckingSymptom, setIsCheckingSymptom] = useState(false);
-    const [symptomAnalysis, setSymptomAnalysis] = useState<string | null>(null);
 
     const [contextData, setContextData] = useState<{
         userData: UserData | null;
@@ -1225,8 +1284,17 @@ export default function DiaryPage() {
              localStorage.setItem(`diaryEntries_${currentUserEmail}`, JSON.stringify(updatedEntries));
         } catch (error) {
             console.error("Could not save diary entries to localStorage", error);
+            if ((error as any).name === 'QuotaExceededError') {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Storage Full',
+                    description: 'Could not save your diary. The browser storage is full. Please try deleting older entries or food photos.',
+                    duration: 10000,
+                });
+            }
         }
     }
+    const { toast } = useToast();
 
     useEffect(() => {
         if (currentUserEmail) {
@@ -1371,3 +1439,5 @@ export default function DiaryPage() {
         </div>
     )
 }
+
+    

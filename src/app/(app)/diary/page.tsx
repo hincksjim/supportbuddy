@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
-import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download, X, Lightbulb, Zap, Camera, Utensils, FileUp, AlertTriangle } from "lucide-react"
+import { PlusCircle, Loader2, Pill, Trash2, Clock, Plus, AlertCircle, Download, X, Lightbulb, Zap, Camera, Utensils, FileUp, AlertTriangle, MessageSquareText } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Medication } from "@/app/(app)/medication/page"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -38,6 +38,7 @@ import { marked } from "marked"
 import { DiarySummary } from "@/components/diary-summary"
 import { analyzeFoodPhoto } from "@/ai/flows/analyze-food-photo"
 import { analyzeFoodIngredients } from "@/ai/flows/analyze-food-ingredients"
+import { analyzeFoodDescription } from "@/ai/flows/analyze-food-description"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { GenerateDietaryTargetsOutput } from "@/ai/flows/types"
@@ -171,15 +172,17 @@ function LogFoodDialog({ onLog, open, onOpenChange, userDiagnosis }: { onLog: (f
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [hasCameraPermission, setHasCameraPermission] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [view, setView] = useState<'chooser' | 'camera' | 'upload' | 'confirm'>('chooser');
+    const [view, setView] = useState<'chooser' | 'camera' | 'upload' | 'confirm' | 'manual'>('chooser');
     const [analyzedData, setAnalyzedData] = useState<Omit<FoodIntake, 'id' | 'title'> | null>(null);
     const [title, setTitle] = useState('');
+    const [manualDescription, setManualDescription] = useState('');
 
     const resetDialog = () => {
         setView('chooser');
         setIsAnalyzing(false);
         setAnalyzedData(null);
         setTitle('');
+        setManualDescription('');
         if (videoRef.current && videoRef.current.srcObject) {
             const stream = videoRef.current.srcObject as MediaStream;
             stream.getTracks().forEach(track => track.stop());
@@ -220,13 +223,13 @@ function LogFoodDialog({ onLog, open, onOpenChange, userDiagnosis }: { onLog: (f
         if (file) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                handleAnalyze(e.target?.result as string);
+                handleAnalyzePhoto(e.target?.result as string);
             };
             reader.readAsDataURL(file);
         }
     };
 
-    const handleAnalyze = async (photoDataUri: string) => {
+    const handleAnalyzePhoto = async (photoDataUri: string) => {
         if (!photoDataUri) return;
         setIsAnalyzing(true);
         setView('chooser'); // Show loader in chooser view
@@ -241,6 +244,7 @@ function LogFoodDialog({ onLog, open, onOpenChange, userDiagnosis }: { onLog: (f
                 ingredients: photoResult.ingredients,
                 dietaryWarning: ingredientResult.warning,
             });
+            setTitle(photoResult.description);
             setView('confirm');
         } catch (error) {
             console.error("Failed to analyze food photo:", error);
@@ -248,6 +252,36 @@ function LogFoodDialog({ onLog, open, onOpenChange, userDiagnosis }: { onLog: (f
                 variant: 'destructive',
                 title: 'Analysis Failed',
                 description: 'Could not analyze the photo. Please try again or enter manually.',
+            });
+            setView('chooser');
+        } finally {
+            setIsAnalyzing(false);
+        }
+    }
+
+    const handleAnalyzeDescription = async () => {
+        if (!manualDescription.trim()) return;
+        setIsAnalyzing(true);
+        setView('chooser');
+        try {
+            const descriptionResult = await analyzeFoodDescription({ description: manualDescription });
+            const ingredientResult = await analyzeFoodIngredients({ diagnosis: userDiagnosis, ingredients: descriptionResult.ingredients });
+
+            setAnalyzedData({
+                photoDataUri: '', // No photo for manual entry
+                description: manualDescription,
+                calories: descriptionResult.calories,
+                ingredients: descriptionResult.ingredients,
+                dietaryWarning: ingredientResult.warning,
+            });
+            setTitle(manualDescription.split(' ')[0] || "Meal"); // Use first word as default title
+            setView('confirm');
+        } catch (error) {
+            console.error("Failed to analyze food description:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Analysis Failed',
+                description: 'Could not analyze the description. Please try again.',
             });
             setView('chooser');
         } finally {
@@ -266,7 +300,7 @@ function LogFoodDialog({ onLog, open, onOpenChange, userDiagnosis }: { onLog: (f
         context?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
 
         const photoDataUri = canvas.toDataURL('image/jpeg');
-        handleAnalyze(photoDataUri);
+        handleAnalyzePhoto(photoDataUri);
     };
 
     const handleConfirmAndLog = () => {
@@ -292,9 +326,10 @@ function LogFoodDialog({ onLog, open, onOpenChange, userDiagnosis }: { onLog: (f
                 <DialogHeader>
                     <DialogTitle>Log a Meal</DialogTitle>
                     <DialogDescription>
-                        {view === 'chooser' && "Add a meal to your diary using your camera or by uploading a photo."}
+                        {view === 'chooser' && "Add a meal to your diary using your camera, a photo, or by typing a description."}
                         {view === 'camera' && "Point your camera at your meal. Ensure it is clear and well-lit."}
                         {view === 'upload' && "Select a photo of your meal from your device."}
+                        {view === 'manual' && "Describe the meal you ate in as much detail as possible."}
                         {view === 'confirm' && "Confirm the details and add a title for your meal."}
                     </DialogDescription>
                 </DialogHeader>
@@ -307,7 +342,7 @@ function LogFoodDialog({ onLog, open, onOpenChange, userDiagnosis }: { onLog: (f
                 ) : (
                     <>
                         {view === 'chooser' && (
-                            <div className="grid grid-cols-2 gap-4 py-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
                                 <Button variant="outline" className="h-28 flex-col gap-2" onClick={startCamera}>
                                     <Camera className="h-8 w-8" />
                                     <span>Use Camera</span>
@@ -315,6 +350,10 @@ function LogFoodDialog({ onLog, open, onOpenChange, userDiagnosis }: { onLog: (f
                                 <Button variant="outline" className="h-28 flex-col gap-2" onClick={() => fileInputRef.current?.click()}>
                                     <FileUp className="h-8 w-8" />
                                     <span>Upload Photo</span>
+                                </Button>
+                                <Button variant="outline" className="h-28 flex-col gap-2" onClick={() => setView('manual')}>
+                                    <MessageSquareText className="h-8 w-8" />
+                                    <span>Enter Manually</span>
                                 </Button>
                                 <Input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                             </div>
@@ -332,9 +371,23 @@ function LogFoodDialog({ onLog, open, onOpenChange, userDiagnosis }: { onLog: (f
                                 </div>
                             </div>
                         )}
+                        {view === 'manual' && (
+                            <div className="space-y-4 py-4">
+                                <Label htmlFor="manual-description">Meal Description</Label>
+                                <Textarea
+                                    id="manual-description"
+                                    value={manualDescription}
+                                    onChange={(e) => setManualDescription(e.target.value)}
+                                    placeholder="e.g., A large bowl of chicken noodle soup with a side of whole wheat bread."
+                                    rows={5}
+                                />
+                            </div>
+                        )}
                         {view === 'confirm' && analyzedData && (
                             <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-                                 <Image src={analyzedData.photoDataUri} alt="Logged meal" width={400} height={225} className="rounded-md object-cover w-full aspect-video"/>
+                                 {analyzedData.photoDataUri && (
+                                    <Image src={analyzedData.photoDataUri} alt="Logged meal" width={400} height={225} className="rounded-md object-cover w-full aspect-video"/>
+                                 )}
                                  <div className="space-y-2">
                                      <Label htmlFor="meal-title">Meal Title</Label>
                                      <Input id="meal-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Breakfast, Lunch..." />
@@ -362,7 +415,7 @@ function LogFoodDialog({ onLog, open, onOpenChange, userDiagnosis }: { onLog: (f
                 )}
 
                 <DialogFooter>
-                    {view === 'camera' ? (
+                    {view === 'camera' && (
                         <>
                              <Button variant="ghost" onClick={() => setView('chooser')}>Back</Button>
                             <Button onClick={handleCaptureAndAnalyze} disabled={!hasCameraPermission || isAnalyzing}>
@@ -370,14 +423,24 @@ function LogFoodDialog({ onLog, open, onOpenChange, userDiagnosis }: { onLog: (f
                                 Capture & Analyze
                             </Button>
                         </>
-                    ) : view === 'confirm' ? (
+                    )}
+                    {view === 'manual' && (
+                        <>
+                            <Button variant="ghost" onClick={() => setView('chooser')}>Back</Button>
+                            <Button onClick={handleAnalyzeDescription} disabled={!manualDescription.trim() || isAnalyzing}>
+                                Analyze Description
+                            </Button>
+                        </>
+                    )}
+                    {view === 'confirm' && (
                          <>
                             <Button variant="ghost" onClick={() => setView('chooser')}>Back</Button>
                             <Button onClick={handleConfirmAndLog} disabled={!title.trim()}>
                                 Log Meal
                             </Button>
                         </>
-                    ) : (
+                    )}
+                    {view === 'chooser' && (
                          <DialogClose asChild>
                             <Button variant="ghost">Cancel</Button>
                          </DialogClose>
@@ -612,7 +675,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             treatmentMood,
             painScore,
             painLocation,
-            painRemarks,
+            painRemarks: painRemarks || undefined,
             symptomAnalysis: symptomAnalysis || undefined,
             weight,
             sleep,
@@ -878,7 +941,13 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                                    <div className="space-y-3">
                                        {foodIntake.map(meal => (
                                            <div key={meal.id} className="flex items-start gap-4 relative pr-8">
-                                                <Image src={meal.photoDataUri} alt="Logged meal" width={64} height={64} className="rounded-md object-cover aspect-square"/>
+                                                {meal.photoDataUri ? (
+                                                    <Image src={meal.photoDataUri} alt="Logged meal" width={64} height={64} className="rounded-md object-cover aspect-square"/>
+                                                ) : (
+                                                    <div className="w-16 h-16 rounded-md bg-muted flex items-center justify-center">
+                                                        <MessageSquareText className="w-8 h-8 text-muted-foreground" />
+                                                    </div>
+                                                )}
                                                 <div className="flex-1 space-y-1">
                                                     <p className="font-semibold text-sm">{meal.title}</p>
                                                     <p className="text-xs text-muted-foreground">~{meal.calories} calories</p>
@@ -1047,7 +1116,13 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries,
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             {entry.foodIntake.map(meal => (
                                 <Card key={meal.id} className="p-4 bg-muted/30">
-                                   <Image src={meal.photoDataUri} alt={meal.title} width={200} height={150} className="rounded-md object-cover aspect-video border w-full" />
+                                   {meal.photoDataUri ? (
+                                        <Image src={meal.photoDataUri} alt={meal.title} width={200} height={150} className="rounded-md object-cover aspect-video border w-full" />
+                                    ) : (
+                                        <div className="w-full aspect-video rounded-md bg-muted flex items-center justify-center">
+                                            <MessageSquareText className="w-12 h-12 text-muted-foreground" />
+                                        </div>
+                                    )}
                                    <div className="mt-2">
                                        <h5 className="font-semibold">{meal.title}</h5>
                                        <p className="text-xs text-muted-foreground">{meal.description}</p>

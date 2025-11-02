@@ -24,3 +24,4 @@ import '@/ai/flows/analyze-food-ingredients.ts';
 import '@/ai/flows/generate-dietary-recommendation.ts';
 import '@/ai/flows/generate-shopping-list.ts';
 import '@/ai/flows/generate-dietary-targets.ts';
+import '@/ai/flows/analyze-food-description.ts';

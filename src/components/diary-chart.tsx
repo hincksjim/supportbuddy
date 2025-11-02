@@ -66,7 +66,7 @@ const chartConfig = {
 export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType: 'mood' | 'weight' | 'sleep' | 'pain' | 'treatment' | 'diagnosis' | 'calories' | 'fluid' | 'bloodPressure' | 'bloodSugar' }) {
   const chartData = React.useMemo(() => {
     return data
-      .sort((a, b) => new Date(a.date).getTime() - new Date(a.date).getTime())
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .map(entry => ({
         date: new Date(entry.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }),
         overallMood: entry.mood ? moodToValueMap[entry.mood] : null,

@@ -81,7 +81,6 @@ export interface DiaryEntry {
   bloodPressureDiastolic?: string;
   bloodSugar?: string;
   foodIntake?: FoodIntake[];
-  food?: string; // Keep for backward compatibility, but make it optional
   worriedAbout?: string;
   positiveAbout?: string;
   notes?: string;

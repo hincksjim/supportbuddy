@@ -1268,6 +1268,7 @@ export default function DiaryPage() {
     const [healthTargets, setHealthTargets] = useState<GenerateDietaryTargetsOutput | null>(null);
     const entriesRef = useRef<DiaryEntry[]>([]);
     const diaryContainerRef = useRef<HTMLDivElement>(null);
+    const { toast } = useToast();
 
     useEffect(() => {
         entriesRef.current = entries;
@@ -1294,42 +1295,58 @@ export default function DiaryPage() {
             }
         }
     }
-    const { toast } = useToast();
 
     useEffect(() => {
-        if (currentUserEmail) {
-            try {
-                const storedEntries = localStorage.getItem(`diaryEntries_${currentUserEmail}`);
-                if (storedEntries) {
-                    const parsedEntries: DiaryEntry[] = JSON.parse(storedEntries);
-                    parsedEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                    setEntries(parsedEntries);
-                } else {
-                    setEntries([]);
+        let isMounted = true;
+
+        const loadAndCleanData = () => {
+            if (currentUserEmail) {
+                try {
+                    const storedEntries = localStorage.getItem(`diaryEntries_${currentUserEmail}`);
+                    if (storedEntries) {
+                        const parsedEntries: DiaryEntry[] = JSON.parse(storedEntries);
+                        
+                        // Clean the foodIntake from all entries
+                        const cleanedEntries = parsedEntries.map(entry => {
+                            const { foodIntake, ...rest } = entry;
+                            return rest;
+                        });
+
+                        cleanedEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                        
+                        if (isMounted) {
+                            setEntries(cleanedEntries);
+                        }
+
+                        // Save the cleaned entries back to localStorage
+                        saveEntries(cleanedEntries);
+                        toast({
+                            title: "Food Diary Cleared",
+                            description: "All previously logged food images and data have been deleted to free up space.",
+                        });
+
+                    } else {
+                         if (isMounted) setEntries([]);
+                    }
+
+                    const storedTargets = localStorage.getItem(`healthTargets_${currentUserEmail}`);
+                    if (storedTargets) {
+                        if (isMounted) setHealthTargets(JSON.parse(storedTargets));
+                    }
+                } catch (error) {
+                    console.error("Could not load or clean diary entries from localStorage", error);
                 }
-                const storedTargets = localStorage.getItem(`healthTargets_${currentUserEmail}`);
-                if (storedTargets) {
-                    setHealthTargets(JSON.parse(storedTargets));
-                }
-            } catch (error) {
-                console.error("Could not load diary entries from localStorage", error);
             }
         }
         
-        const handleSaveOnExit = () => {
-            if (currentUserEmail && entriesRef.current) {
-                saveEntries(entriesRef.current);
-            }
-        };
-
-        window.addEventListener('beforeunload', handleSaveOnExit);
+        loadAndCleanData();
 
         return () => {
-            handleSaveOnExit();
-            window.removeEventListener('beforeunload', handleSaveOnExit);
-        }
+            isMounted = false;
+        };
+    // We only want this to run once when the component mounts and email is available
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentUserEmail]);
+    }, [currentUserEmail, toast]);
 
     const handleSaveEntry = (entry: DiaryEntry) => {
         if (!currentUserEmail) return;
@@ -1348,14 +1365,14 @@ export default function DiaryPage() {
         
         updatedEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setEntries(updatedEntries);
-        // Data is saved on exit, or when the component unmounts.
+        saveEntries(updatedEntries);
     };
 
     const handleDeleteEntry = (id: string) => {
         if (!currentUserEmail) return;
         const updatedEntries = entries.filter(e => e.id !== id);
         setEntries(updatedEntries);
-        // Data is saved on exit, or when the component unmounts.
+        saveEntries(updatedEntries);
     };
 
     const handleDownloadPdf = async () => {

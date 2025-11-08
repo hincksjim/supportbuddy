@@ -110,7 +110,7 @@ const CustomDot = (props: any) => {
 };
 
 
-export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType: 'mood' | 'weight' | 'sleep' | 'pain' | 'treatment' | 'diagnosis' | 'calories' | 'fluid' | 'bloodPressure' | 'bloodSugar' }) {
+export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType: 'mood' | 'weight' | 'sleep' | 'pain' | 'treatment' | 'diagnosis' | 'calories' | 'fluid' | 'bloodPressure' | 'systolic' | 'diastolic' | 'pulse' | 'bloodSugar' }) {
   const chartData = React.useMemo(() => {
     return data
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -163,7 +163,10 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
             const maxVal = Math.max(...fluids);
             return [0, Math.ceil(maxVal / 500) * 500];
         }
-        case 'bloodPressure': {
+        case 'bloodPressure':
+        case 'systolic':
+        case 'diastolic':
+        case 'pulse': {
              const pressures = chartData.flatMap(d => [d.systolic, d.diastolic, d.pulse]).filter(p => p !== null && !isNaN(p)) as number[];
             if (pressures.length === 0) return [40, 'auto'];
             const maxVal = Math.max(...pressures);
@@ -306,39 +309,41 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
                     connectNulls
                 />
             )}
-            {chartType === 'bloodPressure' && (
-                <>
-                    <Line
-                        dataKey="systolic"
-                        name="Systolic"
-                        type="monotone"
-                        stroke="var(--color-systolic)"
-                        strokeWidth={2}
-                        dot={<CustomDot />}
-                        activeDot={<CustomDot />}
-                        connectNulls
-                    />
-                     <Line
-                        dataKey="diastolic"
-                        name="Diastolic"
-                        type="monotone"
-                        stroke="var(--color-diastolic)"
-                        strokeWidth={2}
-                        dot={<CustomDot />}
-                        activeDot={<CustomDot />}
-                        connectNulls
-                    />
-                     <Line
-                        dataKey="pulse"
-                        name="Pulse (BPM)"
-                        type="monotone"
-                        stroke="var(--color-pulse)"
-                        strokeWidth={2}
-                        dot={<CustomDot />}
-                        activeDot={<CustomDot />}
-                        connectNulls
-                    />
-                </>
+            {chartType === 'systolic' && (
+                <Line
+                    dataKey="systolic"
+                    name="Systolic"
+                    type="monotone"
+                    stroke="var(--color-systolic)"
+                    strokeWidth={2}
+                    dot={<CustomDot />}
+                    activeDot={<CustomDot />}
+                    connectNulls
+                />
+            )}
+            {chartType === 'diastolic' && (
+                <Line
+                    dataKey="diastolic"
+                    name="Diastolic"
+                    type="monotone"
+                    stroke="var(--color-diastolic)"
+                    strokeWidth={2}
+                    dot={<CustomDot />}
+                    activeDot={<CustomDot />}
+                    connectNulls
+                />
+            )}
+            {chartType === 'pulse' && (
+                <Line
+                    dataKey="pulse"
+                    name="Pulse"
+                    type="monotone"
+                    stroke="var(--color-pulse)"
+                    strokeWidth={2}
+                    dot={<CustomDot />}
+                    activeDot={<CustomDot />}
+                    connectNulls
+                />
             )}
             {chartType === 'bloodSugar' && (
                 <Line

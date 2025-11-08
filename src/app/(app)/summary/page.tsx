@@ -417,7 +417,7 @@ export default function SummaryPage() {
     
     const diagnosis = prereqData.userData?.initialDiagnosis?.toLowerCase() || "";
     const showFluidChart = diagnosis.includes("kidney") || diagnosis.includes("renal");
-    const showBloodPressureChart = diagnosis.includes("heart") || diagnosis.includes("cardiac") || diagnosis.includes("stroke") || diagnosis.includes("vascular") || diagnosis.includes("hypertension") || diagnosis.includes("kidney") || diagnosis.includes("renal");
+    const showBloodPressureCharts = diagnosis.includes("heart") || diagnosis.includes("cardiac") || diagnosis.includes("stroke") || diagnosis.includes("vascular") || diagnosis.includes("hypertension") || diagnosis.includes("kidney") || diagnosis.includes("renal");
     const showBloodSugarChart = diagnosis.includes("diabetes");
 
 
@@ -492,10 +492,20 @@ export default function SummaryPage() {
                                <h3 className="text-sm font-semibold mb-2 text-center">Fluid Intake (ml)</h3>
                                <DiaryChart data={prereqData.diaryEntries} chartType="fluid" />
                            </div>}
-                           {showBloodPressureChart && <div className="chart-card-pdf">
-                               <h3 className="text-sm font-semibold mb-2 text-center">Blood Pressure (mmHg)</h3>
-                               <DiaryChart data={prereqData.diaryEntries} chartType="bloodPressure" />
-                           </div>}
+                           {showBloodPressureCharts && <>
+                           <div className="chart-card-pdf">
+                               <h3 className="text-sm font-semibold mb-2 text-center">Systolic Blood Pressure (mmHg)</h3>
+                               <DiaryChart data={prereqData.diaryEntries} chartType="systolic" />
+                           </div>
+                           <div className="chart-card-pdf">
+                               <h3 className="text-sm font-semibold mb-2 text-center">Diastolic Blood Pressure (mmHg)</h3>
+                               <DiaryChart data={prereqData.diaryEntries} chartType="diastolic" />
+                           </div>
+                           <div className="chart-card-pdf">
+                               <h3 className="text-sm font-semibold mb-2 text-center">Pulse (BPM)</h3>
+                               <DiaryChart data={prereqData.diaryEntries} chartType="pulse" />
+                           </div>
+                           </>}
                            {showBloodSugarChart && <div className="chart-card-pdf">
                                <h3 className="text-sm font-semibold mb-2 text-center">Blood Sugar (mmol/L)</h3>
                                <DiaryChart data={prereqData.diaryEntries} chartType="bloodSugar" />

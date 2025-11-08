@@ -85,7 +85,7 @@ export default function HealthDashboardPage() {
     
     const diagnosis = userData?.initialDiagnosis?.toLowerCase() || "";
     const showFluidChart = diagnosis.includes("kidney") || diagnosis.includes("renal");
-    const showBloodPressureChart = diagnosis.includes("heart") || diagnosis.includes("cardiac") || diagnosis.includes("stroke") || diagnosis.includes("vascular") || diagnosis.includes("hypertension") || diagnosis.includes("kidney") || diagnosis.includes("renal");
+    const showBloodPressureCharts = diagnosis.includes("heart") || diagnosis.includes("cardiac") || diagnosis.includes("stroke") || diagnosis.includes("vascular") || diagnosis.includes("hypertension") || diagnosis.includes("kidney") || diagnosis.includes("renal");
     const showBloodSugarChart = diagnosis.includes("diabetes");
 
 
@@ -228,16 +228,36 @@ export default function HealthDashboardPage() {
                             </CardContent>
                         </Card>
                     )}
-                    {showBloodPressureChart && (
-                         <Card>
-                            <CardHeader>
-                                <CardTitle>Blood Pressure</CardTitle>
-                                <CardDescription>Your daily blood pressure readings (mmHg).</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <DiaryChart data={filteredEntries} chartType="bloodPressure" />
-                            </CardContent>
-                        </Card>
+                    {showBloodPressureCharts && (
+                        <>
+                        <Card>
+                           <CardHeader>
+                               <CardTitle>Systolic Blood Pressure</CardTitle>
+                               <CardDescription>Your daily systolic readings (mmHg).</CardDescription>
+                           </CardHeader>
+                           <CardContent>
+                               <DiaryChart data={filteredEntries} chartType="systolic" />
+                           </CardContent>
+                       </Card>
+                        <Card>
+                           <CardHeader>
+                               <CardTitle>Diastolic Blood Pressure</CardTitle>
+                               <CardDescription>Your daily diastolic readings (mmHg).</CardDescription>
+                           </CardHeader>
+                           <CardContent>
+                               <DiaryChart data={filteredEntries} chartType="diastolic" />
+                           </CardContent>
+                       </Card>
+                        <Card>
+                           <CardHeader>
+                               <CardTitle>Pulse</CardTitle>
+                               <CardDescription>Your daily pulse readings (BPM).</CardDescription>
+                           </CardHeader>
+                           <CardContent>
+                               <DiaryChart data={filteredEntries} chartType="pulse" />
+                           </CardContent>
+                       </Card>
+                       </>
                     )}
                     {showBloodSugarChart && (
                          <Card>

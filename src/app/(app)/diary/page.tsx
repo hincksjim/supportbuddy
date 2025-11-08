@@ -80,6 +80,7 @@ export interface DiaryEntry {
   fluidIntake?: string;
   bloodPressureSystolic?: string;
   bloodPressureDiastolic?: string;
+  pulse?: string;
   bloodSugar?: string;
   foodIntake?: FoodIntake[];
   worriedAbout?: string;
@@ -642,6 +643,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
     const [fluidIntake, setFluidIntake] = useState('');
     const [bloodPressureSystolic, setBloodPressureSystolic] = useState('');
     const [bloodPressureDiastolic, setBloodPressureDiastolic] = useState('');
+    const [pulse, setPulse] = useState('');
     const [bloodSugar, setBloodSugar] = useState('');
     const [foodIntake, setFoodIntake] = useState<FoodIntake[]>([]);
     const [isFoodDialogOpen, setIsFoodDialogOpen] = useState(false);
@@ -695,6 +697,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             fluidIntake: '',
             bloodPressureSystolic: '',
             bloodPressureDiastolic: '',
+            pulse: '',
             bloodSugar: '',
             foodIntake: [],
             worriedAbout: '',
@@ -716,6 +719,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
         setFluidIntake(entryToEdit.fluidIntake || '');
         setBloodPressureSystolic(entryToEdit.bloodPressureSystolic || '');
         setBloodPressureDiastolic(entryToEdit.bloodPressureDiastolic || '');
+        setPulse(entryToEdit.pulse || '');
         setBloodSugar(entryToEdit.bloodSugar || '');
         setFoodIntake(entryToEdit.foodIntake || []);
         setWorriedAbout(entryToEdit.worriedAbout || '');
@@ -741,6 +745,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             fluidIntake,
             bloodPressureSystolic,
             bloodPressureDiastolic,
+            pulse,
             bloodSugar,
             foodIntake,
             worriedAbout,
@@ -975,11 +980,12 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                                     )}
                                     {showBloodPressureFields && (
                                          <div className="space-y-2">
-                                            <Label>Blood Pressure (Systolic/Diastolic)</Label>
+                                            <Label>Blood Pressure & Pulse</Label>
                                             <div className="flex items-center gap-2">
                                                 <Input id="bp-systolic" type="number" placeholder="Sys" value={bloodPressureSystolic} onChange={(e) => setBloodPressureSystolic(e.target.value)} />
                                                 <span>/</span>
                                                 <Input id="bp-diastolic" type="number" placeholder="Dia" value={bloodPressureDiastolic} onChange={(e) => setBloodPressureDiastolic(e.target.value)} />
+                                                 <Input id="pulse" type="number" placeholder="BPM" value={pulse} onChange={(e) => setPulse(e.target.value)} />
                                             </div>
                                         </div>
                                     )}
@@ -1144,6 +1150,7 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries,
                     {entry.fluidIntake && <div><strong>Fluid Intake:</strong> {entry.fluidIntake} ml</div>}
                     {entry.bloodSugar && <div><strong>Blood Sugar:</strong> {entry.bloodSugar} mmol/L</div>}
                     {(entry.bloodPressureSystolic && entry.bloodPressureDiastolic) && <div><strong>Blood Pressure:</strong> {entry.bloodPressureSystolic}/{entry.bloodPressureDiastolic}</div>}
+                    {entry.pulse && <div><strong>Pulse:</strong> {entry.pulse} BPM</div>}
                 </div>
                 {hasPainDetails && (
                     <div className="space-y-2">
@@ -1296,57 +1303,39 @@ export default function DiaryPage() {
         }
     }
 
+    const loadEntries = useCallback(() => {
+        if (!currentUserEmail) return;
+        try {
+            const storedEntries = localStorage.getItem(`diaryEntries_${currentUserEmail}`);
+            const parsedEntries: DiaryEntry[] = storedEntries ? JSON.parse(storedEntries) : [];
+            parsedEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            setEntries(parsedEntries);
+
+            const storedTargets = localStorage.getItem(`healthTargets_${currentUserEmail}`);
+            if(storedTargets) {
+                setHealthTargets(JSON.parse(storedTargets));
+            }
+
+        } catch (error) {
+            console.error("Could not load diary entries from localStorage", error);
+        }
+    }, [currentUserEmail]);
+
     useEffect(() => {
-        let isMounted = true;
+        loadEntries();
 
-        const loadAndCleanData = () => {
-            if (currentUserEmail) {
-                try {
-                    const storedEntries = localStorage.getItem(`diaryEntries_${currentUserEmail}`);
-                    if (storedEntries) {
-                        const parsedEntries: DiaryEntry[] = JSON.parse(storedEntries);
-                        
-                        // Clean the foodIntake from all entries
-                        const cleanedEntries = parsedEntries.map(entry => {
-                            const { foodIntake, ...rest } = entry;
-                            return rest;
-                        });
-
-                        cleanedEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                        
-                        if (isMounted) {
-                            setEntries(cleanedEntries);
-                        }
-
-                        // Save the cleaned entries back to localStorage
-                        saveEntries(cleanedEntries);
-                        toast({
-                            title: "Food Diary Cleared",
-                            description: "All previously logged food images and data have been deleted to free up space.",
-                        });
-
-                    } else {
-                         if (isMounted) setEntries([]);
-                    }
-
-                    const storedTargets = localStorage.getItem(`healthTargets_${currentUserEmail}`);
-                    if (storedTargets) {
-                        if (isMounted) setHealthTargets(JSON.parse(storedTargets));
-                    }
-                } catch (error) {
-                    console.error("Could not load or clean diary entries from localStorage", error);
-                }
+        const handleSaveOnExit = () => {
+            if (entriesRef.current.length > 0) {
+                saveEntries(entriesRef.current);
             }
         }
-        
-        loadAndCleanData();
+        window.addEventListener('beforeunload', handleSaveOnExit);
 
         return () => {
-            isMounted = false;
-        };
-    // We only want this to run once when the component mounts and email is available
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentUserEmail, toast]);
+            handleSaveOnExit();
+            window.removeEventListener('beforeunload', handleSaveOnExit);
+        }
+    }, [loadEntries]);
 
     const handleSaveEntry = (entry: DiaryEntry) => {
         if (!currentUserEmail) return;
@@ -1456,5 +1445,3 @@ export default function DiaryPage() {
         </div>
     )
 }
-
-    

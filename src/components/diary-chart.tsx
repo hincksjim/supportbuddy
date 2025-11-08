@@ -2,7 +2,7 @@
 "use client"
 
 import * as React from "react"
-import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts"
+import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Dot } from "recharts"
 
 import {
   ChartContainer,
@@ -53,15 +53,62 @@ const chartConfig = {
     label: "Fluid Intake (ml)",
     color: "hsl(var(--chart-1))",
   },
-  bloodPressure: {
-    label: "Blood Pressure",
+  bloodPressureSys: {
+    label: "Systolic",
     color: "hsl(var(--chart-4))",
+  },
+  bloodPressureDia: {
+      label: "Diastolic",
+      color: "hsl(var(--chart-5))",
+  },
+  pulse: {
+      label: "Pulse (BPM)",
+      color: "hsl(var(--chart-1))",
   },
   bloodSugar: {
     label: "Blood Sugar (mmol/L)",
     color: "hsl(var(--chart-2))",
   },
 } satisfies ChartConfig
+
+const getStatusColor = (value: number, type: 'systolic' | 'diastolic' | 'pulse') => {
+    if (type === 'systolic') {
+        if (value < 120) return 'hsl(var(--chart-2))'; // Green
+        if (value >= 120 && value <= 139) return 'hsl(var(--chart-4))'; // Amber
+        return 'hsl(var(--chart-1))'; // Red
+    }
+    if (type === 'diastolic') {
+        if (value < 80) return 'hsl(var(--chart-2))'; // Green
+        if (value >= 80 && value <= 89) return 'hsl(var(--chart-4))'; // Amber
+        return 'hsl(var(--chart-1))'; // Red
+    }
+    if (type === 'pulse') {
+        if (value >= 60 && value <= 100) return 'hsl(var(--chart-2))'; // Green
+        if (value < 60) return 'hsl(var(--chart-4))'; // Amber
+        return 'hsl(var(--chart-1))'; // Red
+    }
+    return 'hsl(var(--foreground))';
+};
+
+const CustomDot = (props: any) => {
+    const { cx, cy, payload, dataKey } = props;
+    
+    let color;
+    if (dataKey === 'bloodPressureSystolic') {
+        color = getStatusColor(payload.bloodPressureSystolic, 'systolic');
+    } else if (dataKey === 'bloodPressureDiastolic') {
+        color = getStatusColor(payload.bloodPressureDiastolic, 'diastolic');
+    } else if (dataKey === 'pulse') {
+        color = getStatusColor(payload.pulse, 'pulse');
+    }
+
+    if (color) {
+        return <Dot cx={cx} cy={cy} r={4} fill={color} stroke={color} />;
+    }
+
+    return <Dot {...props} />;
+};
+
 
 export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType: 'mood' | 'weight' | 'sleep' | 'pain' | 'treatment' | 'diagnosis' | 'calories' | 'fluid' | 'bloodPressure' | 'bloodSugar' }) {
   const chartData = React.useMemo(() => {
@@ -79,6 +126,7 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
         fluidIntake: entry.fluidIntake ? parseInt(entry.fluidIntake) : null,
         bloodPressureSystolic: entry.bloodPressureSystolic ? parseInt(entry.bloodPressureSystolic) : null,
         bloodPressureDiastolic: entry.bloodPressureDiastolic ? parseInt(entry.bloodPressureDiastolic) : null,
+        pulse: entry.pulse ? parseInt(entry.pulse) : null,
         bloodSugar: entry.bloodSugar ? parseFloat(entry.bloodSugar) : null,
       }));
   }, [data]);
@@ -116,7 +164,7 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
             return [0, Math.ceil(maxVal / 500) * 500];
         }
         case 'bloodPressure': {
-             const pressures = chartData.flatMap(d => [d.bloodPressureSystolic, d.bloodPressureDiastolic]).filter(p => p !== null && !isNaN(p)) as number[];
+             const pressures = chartData.flatMap(d => [d.bloodPressureSystolic, d.bloodPressureDiastolic, d.pulse]).filter(p => p !== null && !isNaN(p)) as number[];
             if (pressures.length === 0) return [40, 'auto'];
             const maxVal = Math.max(...pressures);
             return [40, Math.ceil(maxVal / 10) * 10];
@@ -264,19 +312,30 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
                         dataKey="bloodPressureSystolic"
                         name="Systolic"
                         type="monotone"
-                        stroke="var(--color-bloodPressure)"
+                        stroke="var(--color-bloodPressureSys)"
                         strokeWidth={2}
-                        dot={true}
+                        dot={<CustomDot />}
+                        activeDot={<CustomDot />}
                         connectNulls
                     />
                      <Line
                         dataKey="bloodPressureDiastolic"
                         name="Diastolic"
                         type="monotone"
-                        stroke="var(--color-bloodPressure)"
-                        strokeOpacity={0.6}
+                        stroke="var(--color-bloodPressureDia)"
                         strokeWidth={2}
-                        dot={true}
+                        dot={<CustomDot />}
+                        activeDot={<CustomDot />}
+                        connectNulls
+                    />
+                     <Line
+                        dataKey="pulse"
+                        name="Pulse (BPM)"
+                        type="monotone"
+                        stroke="var(--color-pulse)"
+                        strokeWidth={2}
+                        dot={<CustomDot />}
+                        activeDot={<CustomDot />}
                         connectNulls
                     />
                 </>

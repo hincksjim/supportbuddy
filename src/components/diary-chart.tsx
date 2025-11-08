@@ -49,15 +49,15 @@ const chartConfig = {
     label: "Calories (kcal)",
     color: "hsl(var(--chart-3))",
   },
-  fluidIntake: {
+  fluid: {
     label: "Fluid Intake (ml)",
     color: "hsl(var(--chart-1))",
   },
-  bloodPressureSys: {
+  systolic: {
     label: "Systolic",
     color: "hsl(var(--chart-4))",
   },
-  bloodPressureDia: {
+  diastolic: {
       label: "Diastolic",
       color: "hsl(var(--chart-5))",
   },
@@ -94,10 +94,10 @@ const CustomDot = (props: any) => {
     const { cx, cy, payload, dataKey } = props;
     
     let color;
-    if (dataKey === 'bloodPressureSystolic') {
-        color = getStatusColor(payload.bloodPressureSystolic, 'systolic');
-    } else if (dataKey === 'bloodPressureDiastolic') {
-        color = getStatusColor(payload.bloodPressureDiastolic, 'diastolic');
+    if (dataKey === 'systolic') {
+        color = getStatusColor(payload.systolic, 'systolic');
+    } else if (dataKey === 'diastolic') {
+        color = getStatusColor(payload.diastolic, 'diastolic');
     } else if (dataKey === 'pulse') {
         color = getStatusColor(payload.pulse, 'pulse');
     }
@@ -123,9 +123,9 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
         weight: entry.weight ? parseFloat(entry.weight) : null,
         sleep: entry.sleep ? parseFloat(entry.sleep) : null,
         calories: entry.foodIntake?.reduce((acc, meal) => acc + (meal.calories || 0), 0) || null,
-        fluidIntake: entry.fluidIntake ? parseInt(entry.fluidIntake) : null,
-        bloodPressureSystolic: entry.bloodPressureSystolic ? parseInt(entry.bloodPressureSystolic) : null,
-        bloodPressureDiastolic: entry.bloodPressureDiastolic ? parseInt(entry.bloodPressureDiastolic) : null,
+        fluid: entry.fluidIntake ? parseInt(entry.fluidIntake) : null,
+        systolic: entry.bloodPressureSystolic ? parseInt(entry.bloodPressureSystolic) : null,
+        diastolic: entry.bloodPressureDiastolic ? parseInt(entry.bloodPressureDiastolic) : null,
         pulse: entry.pulse ? parseInt(entry.pulse) : null,
         bloodSugar: entry.bloodSugar ? parseFloat(entry.bloodSugar) : null,
       }));
@@ -158,13 +158,13 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
             return [0, Math.ceil(Math.max(...calories) / 500) * 500]; // Round up to nearest 500
         }
         case 'fluid': {
-            const fluids = chartData.map(d => d.fluidIntake).filter(f => f !== null && !isNaN(f)) as number[];
+            const fluids = chartData.map(d => d.fluid).filter(f => f !== null && !isNaN(f)) as number[];
             if (fluids.length === 0) return [0, 'auto'];
             const maxVal = Math.max(...fluids);
             return [0, Math.ceil(maxVal / 500) * 500];
         }
         case 'bloodPressure': {
-             const pressures = chartData.flatMap(d => [d.bloodPressureSystolic, d.bloodPressureDiastolic, d.pulse]).filter(p => p !== null && !isNaN(p)) as number[];
+             const pressures = chartData.flatMap(d => [d.systolic, d.diastolic, d.pulse]).filter(p => p !== null && !isNaN(p)) as number[];
             if (pressures.length === 0) return [40, 'auto'];
             const maxVal = Math.max(...pressures);
             return [40, Math.ceil(maxVal / 10) * 10];
@@ -297,10 +297,10 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
             )}
             {chartType === 'fluid' && (
                 <Line
-                    dataKey="fluidIntake"
+                    dataKey="fluid"
                     name="Fluid Intake (ml)"
                     type="monotone"
-                    stroke="var(--color-fluidIntake)"
+                    stroke="var(--color-fluid)"
                     strokeWidth={2}
                     dot={true}
                     connectNulls
@@ -309,20 +309,20 @@ export function DiaryChart({ data, chartType }: { data: DiaryEntry[], chartType:
             {chartType === 'bloodPressure' && (
                 <>
                     <Line
-                        dataKey="bloodPressureSystolic"
+                        dataKey="systolic"
                         name="Systolic"
                         type="monotone"
-                        stroke="var(--color-bloodPressureSys)"
+                        stroke="var(--color-systolic)"
                         strokeWidth={2}
                         dot={<CustomDot />}
                         activeDot={<CustomDot />}
                         connectNulls
                     />
                      <Line
-                        dataKey="bloodPressureDiastolic"
+                        dataKey="diastolic"
                         name="Diastolic"
                         type="monotone"
-                        stroke="var(--color-bloodPressureDia)"
+                        stroke="var(--color-diastolic)"
                         strokeWidth={2}
                         dot={<CustomDot />}
                         activeDot={<CustomDot />}

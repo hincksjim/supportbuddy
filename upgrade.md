@@ -1,4 +1,3 @@
-
 # App Migration Plan: From LocalStorage to AWS
 
 ## 1. Objective
@@ -100,8 +99,7 @@ This is the most intensive phase, involving updating the application code to int
 
 The application will require a `.env.local` file (and corresponding variables in AWS Amplify) to store configuration for the AWS services.
 
-```
-# AWS Cognito
+`# AWS Cognito
 NEXT_PUBLIC_AWS_REGION=eu-west-1
 NEXT_PUBLIC_COGNITO_USER_POOL_ID=...
 NEXT_PUBLIC_COGNITO_APP_CLIENT_ID=...
@@ -114,4 +112,4 @@ NEXT_PUBLIC_S3_BUCKET_NAME=...
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 DYNAMODB_TABLE_NAME=SupportBuddyData
-```
+`

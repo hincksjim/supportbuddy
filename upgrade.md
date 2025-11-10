@@ -25,81 +25,109 @@ The migration will be conducted in a phased approach to ensure a smooth transiti
 
 ### Phase 1: AWS Infrastructure Setup
 
-This phase involves provisioning all the necessary AWS resources.
+This phase involves provisioning all the necessary AWS resources through the AWS Management Console.
 
 1.  **Set up AWS Account & IAM:**
     *   Create an AWS account if one doesn't exist.
-    *   Create an IAM (Identity and Access Management) user with administrative privileges for setting up the services. Note the `accessKeyId` and `secretAccessKey`.
+    *   Create an IAM (Identity and Access Management) user with administrative privileges for setting up the services. Note the `accessKeyId` and `secretAccessKey` for use in server-side environments.
 
 2.  **Configure AWS Cognito:**
-    *   Create a new **Cognito User Pool**.
-    *   Configure the sign-in options (e.g., allow sign-in with email).
-    *   Define required user attributes (e.g., `email`, `given_name`, `family_name`, `birthdate`, `gender`, `address`, `custom:postcode`).
-    *   Create an **App Client** within the User Pool for the web application.
-    *   Take note of the **User Pool ID** and the **App Client ID**.
+    *   **Create a User Pool:** This will be your user directory.
+        *   In the Cognito service, select "Create user pool".
+        *   Choose the desired sign-in options (e.g., "Email").
+        *   Under "Configure security requirements," you can leave the password policy as default.
+        *   Under "Configure sign-up experience," add **custom attributes** to match your user profile data, such as `custom:postcode`.
+    *   **Create an App Client:**
+        *   In your new User Pool, go to the "App integration" tab.
+        *   Under "App clients and analytics," create a new app client.
+        *   Select "Web client (public client)" and note the **App Client ID**.
+    *   **Create an Identity Pool:** This is essential for granting your authenticated users access to other AWS services like S3.
+        *   In the Cognito service, go to "Federated identities" and create a new identity pool.
+        *   Link it to the User Pool you created above by providing the **User Pool ID** and the **App Client ID**.
+        *   When prompted, allow Cognito to create new IAM roles for authenticated and unauthenticated users. These roles will be modified later to grant S3 access.
 
 3.  **Configure AWS DynamoDB:**
-    *   Create a new **DynamoDB table**. A single-table design is recommended.
-    *   **Table Name:** `SupportBuddyData`
-    *   **Primary Key:**
-        *   **Partition Key (PK):** `userId` (string) - This will correspond to the Cognito user's `sub` (unique ID).
-        *   **Sort Key (SK):** `itemId` (string) - This will identify the data item (e.g., `PROFILE`, `DIARY#2024-08-15`, `CONVERSATION#<uuid>`).
-    *   This structure allows for efficient querying of all data for a specific user, or specific types of data for that user.
+    *   **Create a Table:** Use a single-table design for flexibility.
+        *   **Table Name:** `SupportBuddyData`
+        *   **Primary Key:**
+            *   **Partition Key (PK):** `userId` (Type: String) - This will correspond to the Cognito user's unique `sub` ID.
+            *   **Sort Key (SK):** `itemId` (Type: String) - This will identify the data item (e.g., `PROFILE`, `DIARY#2024-08-15`, `CONVERSATION#<uuid>`).
+    *   This primary key structure allows for efficient querying of all data for a specific user (`PK = userId`), or specific types of data for that user (`PK = userId` and `SK begins_with "DIARY#"`).
 
 4.  **Configure AWS S3:**
-    *   Create a new **S3 bucket**.
-    *   **Bucket Name:** `supportbuddy-user-files-<random-uuid>` (must be globally unique).
-    *   Configure CORS (Cross-Origin Resource Sharing) on the bucket to allow `GET`, `PUT`, `POST`, `DELETE` requests from the application's domain.
-    *   Set up a folder structure within the bucket to organize files, e.g., `/private/{cognito-identity-id}/documents/`, `/private/{cognito-identity-id}/images/`.
-    *   Configure bucket policies and IAM roles to ensure that authenticated users can only access files under their own identity folder.
+    *   **Create a Bucket:**
+        *   **Bucket Name:** `supportbuddy-user-files-<random-uuid>` (S3 bucket names must be globally unique).
+        *   Ensure "Block all public access" is checked.
+    *   **Configure CORS:**
+        *   In the bucket's "Permissions" tab, find the CORS (Cross-Origin Resource Sharing) configuration.
+        *   Add a CORS rule to allow `GET`, `PUT`, `POST`, `DELETE` requests from your application's domain (e.g., `https://your-app-domain.com` and `http://localhost:3000` for development).
+    *   **Configure IAM Policy for S3 Access:**
+        *   Go to the IAM role created by your Cognito Identity Pool for "authenticated" users.
+        *   Attach a policy that grants access to the S3 bucket, but *only* for objects under a path that matches their user ID. This is critical for security. The policy will use a variable `${cognito-identity.amazonaws.com:sub}` to restrict access. Example Policy Snippet:
+            ```json
+            {
+                "Effect": "Allow",
+                "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+                "Resource": ["arn:aws:s3:::<your-bucket-name>/private/${cognito-identity.amazonaws.com:sub}/*"]
+            }
+            ```
 
 5.  **Set up AWS Amplify:**
-    *   Connect the application's Git repository (e.g., GitHub) to AWS Amplify.
-    *   Configure the build settings for a Next.js application.
-    *   Set up environment variables within the Amplify console for all AWS resource IDs and keys.
+    *   In the AWS Amplify console, choose "Host web app."
+    *   Connect your application's Git repository (e.g., GitHub, GitLab).
+    *   Configure the build settings for a Next.js application. Amplify often detects this automatically.
+    *   In the "Environment variables" section, add all the AWS resource IDs and keys you noted down (User Pool ID, S3 Bucket Name, etc.).
 
 ### Phase 2: Application Code Refactoring
 
 This is the most intensive phase, involving updating the application code to interact with AWS instead of `localStorage`.
 
 1.  **Authentication Overhaul:**
-    *   **Install AWS SDKs:** Add `aws-amplify` library to `package.json`.
-    *   **Configure Amplify:** Create a new file, e.g., `src/lib/aws-config.ts`, to configure the Amplify library with the Cognito User Pool ID, App Client ID, and other AWS resource details.
-    *   **Update Login/Signup Pages:** Replace the `localStorage` logic in `src/app/login/page.tsx` and `src/app/signup/page.tsx` with calls to `Auth.signIn()` and `Auth.signUp()` from the `aws-amplify` library.
-    *   **Implement Session Management:** Create an authentication context provider (`src/context/auth-context.tsx`) that wraps the application. This provider will manage the user's session state, check for a currently logged-in user using `Auth.currentAuthenticatedUser()`, and provide user information (like `userId` and `email`) to the rest of the app via a `useAuth` hook.
-    *   **Protect Authenticated Routes:** Update the main app layout `src/app/(app)/layout.tsx` to use the `useAuth` hook to check for an authenticated user. If no user is logged in, redirect to `/login`.
+    *   **Install AWS SDKs:** Add the `aws-amplify` library to your `package.json` (`npm install aws-amplify`).
+    *   **Configure Amplify in Code:** Create a new file, e.g., `src/lib/aws-config.ts`, to configure the Amplify library with your Cognito and S3 details. This file will use the environment variables set up in Amplify.
+    *   **Create Auth Context:** Implement a React Context provider (`src/context/auth-context.tsx`). This provider will wrap the application in `src/app/layout.tsx`. It will:
+        *   Call `Amplify.configure()` on startup.
+        *   Use `Auth.currentAuthenticatedUser()` to check for an active session.
+        *   Provide user information (like `userId` and `email`) to the rest of the app via a `useAuth` hook.
+    *   **Update Login/Signup Pages:** Replace `localStorage` logic in `src/app/login/page.tsx` and `src/app/signup/page.tsx` with calls to `Auth.signIn()` and `Auth.signUp()` from `aws-amplify`.
+    *   **Protect Routes:** In the `src/app/(app)/layout.tsx` file, use the `useAuth` hook. If no user is authenticated, redirect them to the `/login` page.
 
 2.  **Data Storage Migration (from `localStorage` to DynamoDB):**
-    *   **Create Data Service Module:** Create a new file, e.g., `src/services/database.ts`, to encapsulate all DynamoDB interactions. This module will export functions like `getUserData(userId)`, `saveUserData(userId, data)`, `getDiaryEntries(userId)`, `saveDiaryEntry(userId, entry)`, etc.
-    *   **Implement API Routes:** Create Next.js API routes (e.g., `/src/app/api/diary/route.ts`) that will be called from the frontend. These server-side routes will use the AWS SDK (`@aws-sdk/client-dynamodb`) and the functions from `database.ts` to interact with DynamoDB. This is crucial for security, as AWS credentials should not be exposed on the client side.
-    *   **Update Component Logic:** Go through every page component that currently reads from or writes to `localStorage` (e.g., `diary/page.tsx`, `profile/page.tsx`, `medication/page.tsx`, etc.).
-        *   Replace all `localStorage.getItem()` calls with `fetch` requests to the newly created API routes to get data. Use a library like `SWR` or `React Query` for efficient data fetching, caching, and state management.
-        *   Replace all `localStorage.setItem()` calls with `fetch` requests (using `POST`, `PUT`) to the API routes to save data.
+    *   **Create API Routes:** For each data type (diary, profile, etc.), create a Next.js API Route (e.g., `/src/app/api/diary/route.ts`). **This is the most important architectural change.** The frontend will *never* talk to DynamoDB directly.
+    *   **Backend Data Service:** Create a server-side module, e.g., `src/services/database.ts`. This module will contain functions like `saveDiaryEntry(userId, entry)`. These functions will use the AWS SDK for JavaScript (`@aws-sdk/client-dynamodb`) to communicate securely with DynamoDB. Your API Routes will import and use these service functions.
+    *   **Update Components:**
+        *   Go through every page component that uses `localStorage` (e.g., `diary/page.tsx`, `profile/page.tsx`).
+        *   Replace `localStorage.getItem()` calls with `fetch` requests to your new API routes (e.g., `fetch('/api/diary')`). It is highly recommended to use a data-fetching library like `SWR` or `React Query` to handle loading states, caching, and revalidation.
+        *   Replace `localStorage.setItem()` calls with `fetch` requests using `POST` or `PUT` methods to send data to your API routes (e.g., `fetch('/api/diary', { method: 'POST', body: JSON.stringify(newEntry) })`).
 
 3.  **File Storage Migration (from `localStorage` to S3):**
-    *   **Update File Upload Logic:** In components like `document-analysis/page.tsx` and `just-in-case/page.tsx`, modify the file upload process.
-        *   Instead of reading the file as a Base64 data URI for storage, use the `aws-amplify` `Storage.put()` method to upload the file directly to the S3 bucket.
-        *   The key for the S3 object should include the user's unique ID to ensure data isolation (e.g., `private/{cognito-identity-id}/documents/report.pdf`).
-    *   **Store References in DynamoDB:** After a successful upload to S3, store the S3 object key (not the full URL) in the corresponding DynamoDB item. For example, an `analysisResult` item in DynamoDB would have an attribute `s3_key: "private/{id}/documents/report.pdf"`.
-    *   **Update File Viewing Logic:** When displaying a file (e.g., in `ViewAnalysisDialog`), use `Storage.get()` from `aws-amplify` to generate a temporary, secure, pre-signed URL for the S3 object. Use this URL as the `src` for images or iframes. This ensures that files remain private and are only accessible to their owner.
+    *   **Update File Uploads:** In components that handle file uploads (`document-analysis/page.tsx`, `just-in-case/page.tsx`), change the logic.
+        *   Instead of reading the file as a Base64 data URI, use the `Storage.put()` method from `aws-amplify`.
+        *   The key for the S3 object must be structured to include the user's unique ID for security: `private/{cognito-identity-id}/documents/report.pdf`. The `{cognito-identity-id}` is retrieved from the authenticated user's session.
+    *   **Update Data Model:** After a successful upload, store the S3 object **key** (not the full URL) in the corresponding DynamoDB item. For example, an `analysisResult` item in DynamoDB would have an attribute like `s3Key: "private/{id}/documents/report.pdf"`.
+    *   **Update File Viewing:** When displaying a file (e.g., in `ViewAnalysisDialog`), use `Storage.get()` to generate a temporary, secure, pre-signed URL for the S3 object. This URL provides time-limited access to the private file and should be used as the `src` for images or iframes.
 
 ### Phase 3: Deployment & Testing
 
-1.  **Deploy to Amplify:** Trigger a deployment in the AWS Amplify console. Amplify will build the Next.js application and deploy it.
-2.  **Data Migration (Optional):** For existing users (if any), a one-time migration script would be needed to move data from `localStorage` to DynamoDB/S3. This script could be a temporary page in the app that the user runs once after logging in with the new Cognito system.
+1.  **Deploy to Amplify:** Push your code changes to your main branch. Amplify will automatically detect the changes, build the Next.js application, and deploy it.
+2.  **Data Migration Script (Optional):** If you need to migrate existing prototype users, a one-time migration flow is required. This could be a temporary page in the app that, after a user logs in for the first time with their new Cognito account:
+    *   Reads all their old data from `localStorage`.
+    *   Makes a series of calls to your new API routes to save the data to DynamoDB.
+    *   Uploads any Base64 files to S3.
+    *   Once complete, it clears the old `localStorage` data.
 3.  **Thorough Testing:**
-    *   Test the entire user lifecycle: signup, email confirmation (if configured), login, logout.
-    *   Verify that all data CRUD (Create, Read, Update, Delete) operations are working correctly for every feature by checking the DynamoDB table.
-    *   Verify file uploads and downloads are working correctly for every feature that uses them by checking the S3 bucket.
-    *   Confirm that a user can only access their own data and files.
+    *   **Auth Flow:** Test signup (with email confirmation if enabled), login, and logout.
+    *   **Data Integrity:** Verify that creating, reading, updating, and deleting data in one part of the app (e.g., Diary) is correctly reflected in another (e.g., the Personal Summary report). Check DynamoDB directly to confirm data structures.
+    *   **File Security:** Verify that uploaded files are stored in the correct user-specific folder in S3. Confirm that a logged-in user can only access their own files and cannot access another user's files by guessing the URL.
 
 ---
 
 ## 4. Environment Variables
 
-The application will require a `.env.local` file (and corresponding variables in AWS Amplify) to store configuration for the AWS services.
+The application will require a `.env.local` file for local development (and corresponding variables in the AWS Amplify console) to store configuration for the AWS services.
 
-`# AWS Cognito
+```
+# AWS Cognito
 NEXT_PUBLIC_AWS_REGION=eu-west-1
 NEXT_PUBLIC_COGNITO_USER_POOL_ID=...
 NEXT_PUBLIC_COGNITO_APP_CLIENT_ID=...
@@ -108,8 +136,8 @@ NEXT_PUBLIC_COGNITO_IDENTITY_POOL_ID=... # Required for S3 access
 # AWS S3
 NEXT_PUBLIC_S3_BUCKET_NAME=...
 
-# AWS DynamoDB (credentials for server-side access)
+# AWS DynamoDB (credentials for server-side API routes, not public)
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 DYNAMODB_TABLE_NAME=SupportBuddyData
-`
+```

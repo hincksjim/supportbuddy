@@ -38,13 +38,11 @@ export default function ScansPage() {
                 cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
                 cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
                 
-                // Provide a specific path to the dicomParser
                 try {
                     cornerstoneWADOImageLoader.external.dicomParser = require('dicom-parser');
                 } catch(e) {
                     console.error("dicom-parser could not be loaded", e);
                 }
-
 
                 cornerstoneWADOImageLoader.webWorkerManager.initialize({
                     maxWebWorkers: navigator.hardwareConcurrency || 1,
@@ -79,14 +77,60 @@ export default function ScansPage() {
             }
         };
     }, []);
-    
+
+    const displayImage = (imageFile: File) => {
+        if (!elementRef.current || !libsLoaded || !imageFile) return;
+
+        const element = elementRef.current;
+        try {
+            cornerstone.disable(element);
+        } catch (e) {
+            // Ignore if already disabled
+        }
+        cornerstone.enable(element);
+        
+        const imageId = cornerstoneWADOImageLoader.wadouri.fileManager.add(imageFile);
+
+        cornerstone.loadImage(imageId).then((image: any) => {
+            cornerstone.displayImage(element, image);
+            
+            try {
+                cornerstoneTools.addTool(cornerstoneTools.WwwcTool);
+                cornerstoneTools.addTool(cornerstoneTools.ZoomTool, {
+                    configuration: { invert: true, preventZoomOutsideImage: true }
+                });
+                cornerstoneTools.addTool(cornerstoneTools.PanTool);
+                cornerstoneTools.addTool(cornerstoneTools.StackScrollMouseWheelTool);
+            } catch(e) {
+                // Tools may already be added
+            }
+
+            cornerstoneTools.clearToolState(element, 'StackScroll');
+            
+            cornerstoneTools.setToolActive('Wwwc', { mouseButtonMask: 1 });
+            cornerstoneTools.setToolActive('Zoom', { mouseButtonMask: 2 });
+            cornerstoneTools.setToolActive('Pan', { mouseButtonMask: 4 });
+            cornerstoneTools.setToolActive('StackScrollMouseWheel', {});
+        }, (err: any) => {
+            console.error('Error loading DICOM image:', err);
+            setError(`Failed to load DICOM image. This may not be a valid viewable image.`);
+        });
+    };
+
+    // This useEffect is the key fix. It runs whenever the 'file' state changes.
+    useEffect(() => {
+        if (file) {
+            displayImage(file);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [file, libsLoaded]); // Rerun when file changes or libs are loaded
+
     const processFile = (selectedFile: File) => {
         if (selectedFile) {
             if (selectedFile.name.toLowerCase().endsWith('.dcm')) {
-                setFile(selectedFile);
                 setFileName(selectedFile.name);
                 setError(null);
-                displayImage(selectedFile);
+                setFile(selectedFile); // This will trigger the useEffect to display the image
             } else {
                 setError("Please select a valid DICOM (.dcm) file.");
                 setFile(null);
@@ -130,52 +174,6 @@ export default function ScansPage() {
     
     const handleButtonClick = () => {
         fileInputRef.current?.click();
-    };
-
-    const displayImage = (file: File) => {
-        if (!elementRef.current || !libsLoaded) return;
-
-        const element = elementRef.current;
-        // This is the key fix: always disable the element first to ensure a clean state.
-        try {
-            cornerstone.disable(element);
-        } catch (e) {
-            // Ignore errors if it's already disabled
-        }
-        cornerstone.enable(element); // Re-enable it
-        
-        const imageId = cornerstoneWADOImageLoader.wadouri.fileManager.add(file);
-
-        cornerstone.loadImage(imageId).then((image: any) => {
-            cornerstone.displayImage(element, image);
-            
-            // Initialize tools if they haven't been already
-            // This is safe to run multiple times
-            try {
-                cornerstoneTools.addTool(cornerstoneTools.WwwcTool);
-                cornerstoneTools.addTool(cornerstoneTools.ZoomTool, {
-                    configuration: {
-                        invert: true, // Invert zoom direction
-                        preventZoomOutsideImage: true,
-                    }
-                });
-                cornerstoneTools.addTool(cornerstoneTools.PanTool);
-                cornerstoneTools.addTool(cornerstoneTools.StackScrollMouseWheelTool);
-            } catch(e) {
-                // Tools may already be added
-            }
-
-            // Always clear state and re-activate tools for the new image
-            cornerstoneTools.clearToolState(element, 'StackScroll');
-            
-            cornerstoneTools.setToolActive('Wwwc', { mouseButtonMask: 1 }); // Left mouse
-            cornerstoneTools.setToolActive('Zoom', { mouseButtonMask: 2 }); // Right mouse
-            cornerstoneTools.setToolActive('Pan', { mouseButtonMask: 4 }); // Middle mouse
-            cornerstoneTools.setToolActive('StackScrollMouseWheel', {}); // Mouse wheel
-        }, (err: any) => {
-            console.error('Error loading DICOM image:', err);
-            setError(`Failed to load DICOM image. This may not be a valid viewable image.`);
-        });
     };
 
     const resetViewport = () => {
@@ -252,3 +250,4 @@ export default function ScansPage() {
         </div>
     );
 }
+

@@ -6,38 +6,14 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FileUp, Scan, ZoomIn, ZoomOut, Move, RotateCcw } from "lucide-react";
-import cornerstone from 'cornerstone-core';
-import cornerstoneMath from 'cornerstone-math';
-import cornerstoneTools from 'cornerstone-tools';
-import Hammer from 'hammerjs';
-import cornerstoneWADOImageLoader from 'cornerstone-wado-image-loader';
 import { cn } from "@/lib/utils";
 
-// Initialize cornerstone tools
-cornerstoneTools.external.Hammer = Hammer;
-cornerstoneTools.external.cornerstone = cornerstone;
-cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
-cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
-cornerstoneWADOImageLoader.external.dicomParser = require('dicom-parser');
-
-// Configuration for WADO Image Loader
-try {
-    cornerstoneWADOImageLoader.webWorkerManager.initialize({
-        maxWebWorkers: navigator.hardwareConcurrency || 1,
-        startWebWorkersOnDemand: true,
-        webWorkerPath: 'https://cdn.jsdelivr.net/npm/cornerstone-wado-image-loader@4.1.6/dist/cornerstoneWADOImageLoaderWebWorker.min.js',
-        taskConfiguration: {
-            decodeTask: {
-                initializeCodecsOnStartup: false,
-                usePDFJS: false,
-                strict: false,
-            },
-        },
-    });
-} catch (error) {
-    console.error("CornerstoneWADOImageLoader initialization failed:", error);
-}
-
+// These will be dynamically imported
+let cornerstone: any;
+let cornerstoneMath: any;
+let cornerstoneTools: any;
+let cornerstoneWADOImageLoader: any;
+let Hammer: any;
 
 export default function ScansPage() {
     const [file, setFile] = useState<File | null>(null);
@@ -46,17 +22,55 @@ export default function ScansPage() {
     const elementRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [libsLoaded, setLibsLoaded] = useState(false);
 
     useEffect(() => {
-        if (elementRef.current) {
-            cornerstone.enable(elementRef.current);
-        }
+        const loadCornerstoneLibs = async () => {
+            try {
+                cornerstone = (await import('cornerstone-core')).default;
+                cornerstoneMath = (await import('cornerstone-math')).default;
+                cornerstoneTools = (await import('cornerstone-tools')).default;
+                Hammer = (await import('hammerjs')).default;
+                cornerstoneWADOImageLoader = (await import('cornerstone-wado-image-loader')).default;
+                
+                cornerstoneTools.external.Hammer = Hammer;
+                cornerstoneTools.external.cornerstone = cornerstone;
+                cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
+                cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
+                cornerstoneWADOImageLoader.external.dicomParser = require('dicom-parser');
+
+                cornerstoneWADOImageLoader.webWorkerManager.initialize({
+                    maxWebWorkers: navigator.hardwareConcurrency || 1,
+                    startWebWorkersOnDemand: true,
+                    webWorkerPath: 'https://cdn.jsdelivr.net/npm/cornerstone-wado-image-loader@4.1.6/dist/cornerstoneWADOImageLoaderWebWorker.min.js',
+                    taskConfiguration: {
+                        decodeTask: {
+                            initializeCodecsOnStartup: false,
+                            usePDFJS: false,
+                            strict: false,
+                        },
+                    },
+                });
+
+                if (elementRef.current) {
+                    cornerstone.enable(elementRef.current);
+                }
+                setLibsLoaded(true);
+
+            } catch (error) {
+                console.error("Failed to load cornerstone libraries:", error);
+                setError("There was an error loading the medical imaging libraries.");
+            }
+        };
+
+        loadCornerstoneLibs();
+
         return () => {
-            if (elementRef.current) {
+            if (cornerstone && elementRef.current) {
                 try {
                     cornerstone.disable(elementRef.current);
                 } catch(e) {
-                    // It might already be disabled if the component unmounts quickly
+                    // It might already be disabled
                 }
             }
         };
@@ -79,7 +93,9 @@ export default function ScansPage() {
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
-        processFile(selectedFile as File);
+        if (selectedFile) {
+            processFile(selectedFile);
+        }
     };
 
     const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -113,13 +129,13 @@ export default function ScansPage() {
     };
 
     const displayImage = (file: File) => {
-        if (!elementRef.current) return;
+        if (!elementRef.current || !libsLoaded) return;
 
         const element = elementRef.current;
         cornerstone.disable(element); // Disable first to clear previous state
         const imageId = cornerstoneWADOImageLoader.wadouri.fileManager.add(file);
 
-        cornerstone.loadImage(imageId).then((image) => {
+        cornerstone.loadImage(imageId).then((image: any) => {
             cornerstone.enable(element);
             cornerstone.displayImage(element, image);
             
@@ -134,14 +150,14 @@ export default function ScansPage() {
             cornerstoneTools.setToolActive('Zoom', { mouseButtonMask: 2 }); // Right mouse for Zoom
             cornerstoneTools.setToolActive('Pan', { mouseButtonMask: 4 }); // Middle mouse for Pan
             cornerstoneTools.setToolActive('StackScrollMouseWheel', {}); // Mouse wheel for stack scroll
-        }, (err) => {
+        }, (err: any) => {
             console.error('Error loading DICOM image:', err);
-            setError(`Failed to load DICOM image: ${err.message || err}. This may not be a valid viewable image.`);
+            setError(`Failed to load DICOM image. This may not be a valid viewable image.`);
         });
     };
 
     const resetViewport = () => {
-        if (elementRef.current) {
+        if (elementRef.current && cornerstone) {
             cornerstone.reset(elementRef.current);
         }
     };

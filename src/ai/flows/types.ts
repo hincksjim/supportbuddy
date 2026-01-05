@@ -111,6 +111,14 @@ export const DiaryEntrySchemaForAI = z.object({
         quantity: z.number(),
         isPrescribed: z.boolean(),
     })).optional(),
+    // New treatment monitoring fields
+    bloodWBC: z.string().optional().describe("White Blood Cell count (x10^9/L)"),
+    bloodNeutrophils: z.string().optional().describe("Neutrophil count (x10^9/L)"),
+    bloodRBC: z.string().optional().describe("Red Blood Cell count (x10^12/L)"),
+    bloodHemoglobin: z.string().optional().describe("Hemoglobin level (g/dL)"),
+    bloodPlatelets: z.string().optional().describe("Platelet count (x10^9/L)"),
+    kidneyCreatinine: z.string().optional().describe("Kidney function - Creatinine (mg/dL)"),
+    liverALT: z.string().optional().describe("Liver function - ALT (Alanine Aminotransferase) (U/L)"),
 });
 export type DiaryEntryForAI = z.infer<typeof DiaryEntrySchemaForAI>;
 

@@ -123,7 +123,7 @@ const prompt = ai.definePrompt({
   name: 'generatePersonalSummaryPrompt',
   input: {schema: EnrichedGeneratePersonalSummaryInputSchema},
   output: {schema: PersonalSummaryOutputSchema},
-  model: 'googleai/gemini-2.5-flash-lite',
+  model: 'googleai/gemini-pro',
   prompt: `You are an AI assistant tasked with creating sections of a comprehensive "Personal Summary Report" for a user navigating their health journey.
 
 **TASK:**
@@ -182,7 +182,7 @@ Your primary goal is to synthesize ALL information provided into clear, organize
     {{/each}}
 *   **Diary Entries (sorted recent first):**
     {{#each diaryData}}
-    - **{{date}}:** Mood:{{mood}}, Pain:{{painScore}}, Worried:{{worriedAbout}}, Positive:{{positiveAbout}}, Food: {{#if foodIntake}} {{#each foodIntake}} {{title}} (~{{calories}} cal); {{/each}} {{else if food}} {{food}} {{/if}}
+    - **{{date}}:** Mood:{{mood}}, Pain:{{painScore}}, Worried:{{worriedAbout}}, Positive:{{positiveAbout}}, Food: {{#if foodIntake}} {{#each foodIntake}} {{title}} (~{{calories}} cal); {{/each}} {{else if food}} {{food}} {{/if}}, WBC: {{bloodWBC}}, RBC: {{bloodRBC}}, Platelets: {{bloodPlatelets}}, Creatinine: {{kidneyCreatinine}}, ALT: {{liverALT}}
     {{/each}}
 *   **Timeline:** Available in context.
 ---
@@ -237,9 +237,6 @@ Your primary goal is to synthesize ALL information provided into clear, organize
     > **AI Analysis:** {{symptomAnalysis}}
     {{/if}}
     {{/each}}
-    {{else}}
-    *   (No diary entries provided)
-    {{/if}}
 {{/if}}
 
 {{#if sectionsToGenerate.timelineMilestones}}

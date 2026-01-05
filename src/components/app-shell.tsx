@@ -3,7 +3,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { BotMessageSquare, LayoutDashboard, FileQuestion, Milestone, FileText, Landmark, Notebook, LogOut, ShieldCheck, Pill, Gavel, User, Settings, CalendarDays, Salad, LineChart } from "lucide-react"
+import { BotMessageSquare, LayoutDashboard, FileQuestion, Milestone, FileText, Landmark, Notebook, LogOut, ShieldCheck, Pill, Gavel, User, Settings, CalendarDays, Salad, LineChart, Scan } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar"
@@ -16,6 +16,7 @@ const navItems = [
   { href: "/health-dashboard", icon: LineChart, label: "Dashboard" },
   { href: "/dashboard", icon: LayoutDashboard, label: "Activity Feed" },
   { href: "/document-analysis", icon: FileQuestion, label: "Analysis" },
+  { href: "/scans", icon: Scan, label: "Scans" },
   { href: "/timeline", icon: Milestone, label: "Timeline" },
   { href: "/summary", icon: FileText, label: "Summary" },
   { href: "/diary", icon: Notebook, label: "Diary" },

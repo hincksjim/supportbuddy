@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils";
 let cornerstone: any;
 let cornerstoneMath: any;
 let cornerstoneTools: any;
-let cornerstoneWADOImageLoader: any;
 let Hammer: any;
+let cornerstoneWADOImageLoader: any;
 
 export default function ScansPage() {
     const [file, setFile] = useState<File | null>(null);
@@ -37,7 +37,14 @@ export default function ScansPage() {
                 cornerstoneTools.external.cornerstone = cornerstone;
                 cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
                 cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
-                cornerstoneWADOImageLoader.external.dicomParser = require('dicom-parser');
+                
+                // Provide a specific path to the dicomParser
+                try {
+                    cornerstoneWADOImageLoader.external.dicomParser = require('dicom-parser');
+                } catch(e) {
+                    console.error("dicom-parser could not be loaded", e);
+                }
+
 
                 cornerstoneWADOImageLoader.webWorkerManager.initialize({
                     maxWebWorkers: navigator.hardwareConcurrency || 1,
@@ -51,10 +58,7 @@ export default function ScansPage() {
                         },
                     },
                 });
-
-                if (elementRef.current) {
-                    cornerstone.enable(elementRef.current);
-                }
+                
                 setLibsLoaded(true);
 
             } catch (error) {
@@ -132,24 +136,42 @@ export default function ScansPage() {
         if (!elementRef.current || !libsLoaded) return;
 
         const element = elementRef.current;
-        cornerstone.disable(element); // Disable first to clear previous state
+        // This is the key fix: always disable the element first to ensure a clean state.
+        try {
+            cornerstone.disable(element);
+        } catch (e) {
+            // Ignore errors if it's already disabled
+        }
+        cornerstone.enable(element); // Re-enable it
+        
         const imageId = cornerstoneWADOImageLoader.wadouri.fileManager.add(file);
 
         cornerstone.loadImage(imageId).then((image: any) => {
-            cornerstone.enable(element);
             cornerstone.displayImage(element, image);
             
-            // Activate tools
-            cornerstoneTools.clearToolState(element, 'StackScroll'); // Clear any existing stack tool state
-            cornerstoneTools.addTool(cornerstoneTools.WwwcTool);
-            cornerstoneTools.addTool(cornerstoneTools.ZoomTool);
-            cornerstoneTools.addTool(cornerstoneTools.PanTool);
-            cornerstoneTools.addTool(cornerstoneTools.StackScrollMouseWheelTool);
+            // Initialize tools if they haven't been already
+            // This is safe to run multiple times
+            try {
+                cornerstoneTools.addTool(cornerstoneTools.WwwcTool);
+                cornerstoneTools.addTool(cornerstoneTools.ZoomTool, {
+                    configuration: {
+                        invert: true, // Invert zoom direction
+                        preventZoomOutsideImage: true,
+                    }
+                });
+                cornerstoneTools.addTool(cornerstoneTools.PanTool);
+                cornerstoneTools.addTool(cornerstoneTools.StackScrollMouseWheelTool);
+            } catch(e) {
+                // Tools may already be added
+            }
+
+            // Always clear state and re-activate tools for the new image
+            cornerstoneTools.clearToolState(element, 'StackScroll');
             
-            cornerstoneTools.setToolActive('Wwwc', { mouseButtonMask: 1 }); // Left mouse for Wwwc
-            cornerstoneTools.setToolActive('Zoom', { mouseButtonMask: 2 }); // Right mouse for Zoom
-            cornerstoneTools.setToolActive('Pan', { mouseButtonMask: 4 }); // Middle mouse for Pan
-            cornerstoneTools.setToolActive('StackScrollMouseWheel', {}); // Mouse wheel for stack scroll
+            cornerstoneTools.setToolActive('Wwwc', { mouseButtonMask: 1 }); // Left mouse
+            cornerstoneTools.setToolActive('Zoom', { mouseButtonMask: 2 }); // Right mouse
+            cornerstoneTools.setToolActive('Pan', { mouseButtonMask: 4 }); // Middle mouse
+            cornerstoneTools.setToolActive('StackScrollMouseWheel', {}); // Mouse wheel
         }, (err: any) => {
             console.error('Error loading DICOM image:', err);
             setError(`Failed to load DICOM image. This may not be a valid viewable image.`);
@@ -199,7 +221,7 @@ export default function ScansPage() {
                         >
                             <Scan className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
                             <p className="text-muted-foreground mb-2">Drag & drop your DICOM file here or</p>
-                            <Button onClick={handleButtonClick}>
+                            <Button onClick={handleButtonClick} disabled={!libsLoaded}>
                                 <FileUp className="mr-2" />
                                 Browse Files
                             </Button>
@@ -214,8 +236,9 @@ export default function ScansPage() {
                     )}
                      {file && (
                         <div className="flex items-center justify-center gap-4 flex-wrap bg-muted p-2 rounded-md">
-                           <div className="text-xs text-muted-foreground flex items-center gap-2"><ZoomIn className="w-4 h-4"/> Right-Click + Drag to Zoom</div>
-                           <div className="text-xs text-muted-foreground flex items-center gap-2"><Move className="w-4 h-4"/> Middle-Click + Drag to Pan</div>
+                           <div className="text-xs text-muted-foreground flex items-center gap-2"><ZoomIn className="w-4 h-4"/> Left-Click+Drag to adjust contrast</div>
+                           <div className="text-xs text-muted-foreground flex items-center gap-2"><ZoomIn className="w-4 h-4"/> Right-Click+Drag to Zoom</div>
+                           <div className="text-xs text-muted-foreground flex items-center gap-2"><Move className="w-4 h-4"/> Middle-Click+Drag to Pan</div>
                             <Button onClick={resetViewport} variant="outline" size="sm"><RotateCcw className="mr-2"/>Reset</Button>
                              <Button onClick={handleButtonClick} variant="outline" size="sm">
                                 <FileUp className="mr-2" />

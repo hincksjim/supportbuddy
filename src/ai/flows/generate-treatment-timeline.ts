@@ -76,13 +76,14 @@ const prompt = ai.definePrompt({
     *   For any step that already exists (matched by its \`id\`), you **MUST preserve the user's existing \`status\` and \`notes\`**. Do not overwrite their data.
     *   Your task is to update the timeline with any *new* steps or stages mentioned in the latest conversation, or adjust the order if necessary, while keeping existing data intact.
 3.  **INCLUDE SPECIFIC TREATMENTS:** If the conversation mentions treatments like Chemotherapy, Radiotherapy, or Immunotherapy, you MUST include a dedicated stage for them.
-4.  **DO NOT USE SPECIFIC DATES:** You must not invent or predict future dates. Use relative, general timeframes (e.g., "Shortly after your scan," "Within a few weeks of diagnosis"). Reference national guidelines where appropriate (e.g., "The NHS aims for this to happen within 62 days of your initial referral.").
-5.  **CREATE A DISCLAIMER:** The \`disclaimer\` field is mandatory. It must clearly state that this is a general example, not a substitute for professional medical advice, and the user's actual journey may differ.
-6.  **BE PERSONALIZED BUT GENERAL:** Base the timeline on the user's condition details from the conversation (e.g., "For a large renal mass like yours..."). Keep the steps general enough to be safe but tailored to the context.
-7.  **FOCUS ON "WHAT" AND "WHY":** For each step, provide a simple \`description\` explaining what it is and why it's important. (e.g., "MDT Meeting: A team of specialists reviews your case to recommend the best treatment path.").
-8.  **ADD POST-MDT CONSULTATION:** After the "MDT Meeting" step, you MUST include a step for the face-to-face meeting. Title it "Post-MDT Consultation" and describe it as: "A face-to-face meeting with your consultant to discuss the MDT's findings and agree on a treatment plan. This is a key opportunity to ask questions."
-9.  **NEVER PREDICT OUTCOMES:** Do not make any predictions about prognosis, recovery, or treatment success.
-10. **DEFAULT STATUS:** For any *new* steps you add, the \`status\` must be "pending" and \`notes\` must be an empty string.
+4.  **UNDERSTAND TREATMENT CONTEXT:** Pay attention to when a treatment occurs relative to surgery. If a treatment like chemotherapy or radiotherapy is mentioned as happening *before* surgery to shrink a tumor, label it as "Neoadjuvant Therapy". If it happens *after* surgery to prevent recurrence, label it as "Adjuvant Therapy".
+5.  **DO NOT USE SPECIFIC DATES:** You must not invent or predict future dates. Use relative, general timeframes (e.g., "Shortly after your scan," "Within a few weeks of diagnosis"). Reference national guidelines where appropriate (e.g., "The NHS aims for this to happen within 62 days of your initial referral.").
+6.  **CREATE A DISCLAIMER:** The \`disclaimer\` field is mandatory. It must clearly state that this is a general example, not a substitute for professional medical advice, and the user's actual journey may differ.
+7.  **BE PERSONALIZED BUT GENERAL:** Base the timeline on the user's condition details from the conversation (e.g., "For a large renal mass like yours..."). Keep the steps general enough to be safe but tailored to the context.
+8.  **FOCUS ON "WHAT" AND "WHY":** For each step, provide a simple \`description\` explaining what it is and why it's important. (e.g., "MDT Meeting: A team of specialists reviews your case to recommend the best treatment path.").
+9.  **ADD POST-MDT CONSULTATION:** After the "MDT Meeting" step, you MUST include a step for the face-to-face meeting. Title it "Post-MDT Consultation" and describe it as: "A face-to-face meeting with your consultant to discuss the MDT's findings and agree on a treatment plan. This is a key opportunity to ask questions."
+10. **NEVER PREDICT OUTCOMES:** Do not make any predictions about prognosis, recovery, or treatment success.
+11. **DEFAULT STATUS:** For any *new* steps you add, the \`status\` must be "pending" and \`notes\` must be an empty string.
 
 **Task:**
 Analyze the provided conversation history. If an \`existingTimeline\` is provided, update it. If not, create a new one from scratch. Generate a structured JSON timeline that follows all the rules above.

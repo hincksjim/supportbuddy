@@ -1,18 +1,64 @@
 
 "use client"
 
-import { useState, useRef, ChangeEvent } from "react";
-// import DicomViewer from "react-dicom-viewer";
+import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { FileUp, Scan } from "lucide-react";
+import { FileUp, Scan, ZoomIn, ZoomOut, Move, RotateCcw } from "lucide-react";
+import cornerstone from 'cornerstone-core';
+import cornerstoneMath from 'cornerstone-math';
+import cornerstoneTools from 'cornerstone-tools';
+import Hammer from 'hammerjs';
+import cornerstoneWADOImageLoader from 'cornerstone-wado-image-loader';
+
+// Initialize cornerstone tools
+cornerstoneTools.external.Hammer = Hammer;
+cornerstoneTools.external.cornerstone = cornerstone;
+cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
+cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
+cornerstoneWADOImageLoader.external.dicomParser = require('dicom-parser');
+
+// Configuration for WADO Image Loader
+try {
+    cornerstoneWADOImageLoader.webWorkerManager.initialize({
+        maxWebWorkers: navigator.hardwareConcurrency || 1,
+        startWebWorkersOnDemand: true,
+        webWorkerPath: 'https://cdn.jsdelivr.net/npm/cornerstone-wado-image-loader@4.1.6/dist/cornerstoneWADOImageLoaderWebWorker.min.js',
+        taskConfiguration: {
+            decodeTask: {
+                initializeCodecsOnStartup: false,
+                usePDFJS: false,
+                strict: false,
+            },
+        },
+    });
+} catch (error) {
+    console.error("CornerstoneWADOImageLoader initialization failed:", error);
+}
+
 
 export default function ScansPage() {
     const [file, setFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState<string>("");
+    const [error, setError] = useState<string | null>(null);
+    const elementRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (elementRef.current) {
+            cornerstone.enable(elementRef.current);
+        }
+        return () => {
+            if (elementRef.current) {
+                try {
+                    cornerstone.disable(elementRef.current);
+                } catch(e) {
+                    // It might already be disabled if the component unmounts quickly
+                }
+            }
+        };
+    }, []);
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
@@ -20,14 +66,51 @@ export default function ScansPage() {
             if (selectedFile.name.toLowerCase().endsWith('.dcm')) {
                 setFile(selectedFile);
                 setFileName(selectedFile.name);
+                setError(null);
+                displayImage(selectedFile);
             } else {
-                alert("Please select a valid DICOM (.dcm) file.");
+                setError("Please select a valid DICOM (.dcm) file.");
+                setFile(null);
+                setFileName("");
             }
         }
     };
     
     const handleButtonClick = () => {
         fileInputRef.current?.click();
+    };
+
+    const displayImage = (file: File) => {
+        if (!elementRef.current) return;
+
+        const element = elementRef.current;
+        const imageId = cornerstoneWADOImageLoader.wadouri.fileManager.add(file);
+
+        cornerstone.loadImage(imageId).then((image) => {
+            cornerstone.enable(element);
+            cornerstone.displayImage(element, image);
+            
+            // Activate tools
+            cornerstoneTools.clearToolState(element, 'StackScroll'); // Clear any existing stack tool state
+            cornerstoneTools.addTool(cornerstoneTools.WwwcTool);
+            cornerstoneTools.addTool(cornerstoneTools.ZoomTool);
+            cornerstoneTools.addTool(cornerstoneTools.PanTool);
+            cornerstoneTools.addTool(cornerstoneTools.StackScrollMouseWheelTool);
+            
+            cornerstoneTools.setToolActive('Wwwc', { mouseButtonMask: 1 }); // Left mouse for Wwwc
+            cornerstoneTools.setToolActive('Zoom', { mouseButtonMask: 2 }); // Right mouse for Zoom
+            cornerstoneTools.setToolActive('Pan', { mouseButtonMask: 4 }); // Middle mouse for Pan
+            cornerstoneTools.setToolActive('StackScrollMouseWheel', {}); // Mouse wheel for stack scroll
+        }, (err) => {
+            console.error('Error loading DICOM image:', err);
+            setError(`Failed to load DICOM image: ${err.message || err}. This may not be a valid viewable image.`);
+        });
+    };
+
+    const resetViewport = () => {
+        if (elementRef.current) {
+            cornerstone.reset(elementRef.current);
+        }
     };
 
     return (
@@ -39,22 +122,45 @@ export default function ScansPage() {
                         Upload and view your DICOM (.dcm) scan files.
                     </p>
                 </div>
+                 <Button onClick={handleButtonClick}>
+                    <FileUp className="mr-2" />
+                    {fileName ? "Change File" : "Upload DICOM File"}
+                </Button>
+                <Input type="file" ref={fileInputRef} className="hidden" accept=".dcm" onChange={handleFileChange} />
             </div>
 
             <Card>
                 <CardHeader>
                     <CardTitle>DICOM Viewer</CardTitle>
                     <CardDescription>
-                        This feature is currently under maintenance. We are working to restore it.
+                         {fileName || "No file selected. Upload a .dcm file to begin."}
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="w-full min-h-[512px] bg-secondary rounded-lg border flex items-center justify-center">
-                        <div className="text-center text-muted-foreground">
-                            <Scan className="mx-auto h-24 w-24" />
-                            <p className="mt-4">The DICOM viewer is temporarily unavailable.</p>
+                <CardContent className="space-y-4">
+                    {error && (
+                        <div className="text-destructive text-center p-4 border border-destructive/50 rounded-md">
+                            <p>{error}</p>
                         </div>
+                    )}
+                    <div 
+                        ref={elementRef}
+                        className="w-full min-h-[512px] bg-black rounded-lg border flex items-center justify-center cursor-grab"
+                        onContextMenu={(e) => e.preventDefault()} // Prevent right-click menu
+                    >
+                         {!file && !error && (
+                            <div className="text-center text-muted-foreground p-8">
+                                <Scan className="mx-auto h-24 w-24" />
+                                <p className="mt-4">Your scan will appear here.</p>
+                            </div>
+                        )}
                     </div>
+                     {file && (
+                        <div className="flex items-center justify-center gap-4 flex-wrap bg-muted p-2 rounded-md">
+                           <div className="text-xs text-muted-foreground flex items-center gap-2"><ZoomIn className="w-4 h-4"/> Right-Click + Drag to Zoom</div>
+                           <div className="text-xs text-muted-foreground flex items-center gap-2"><Move className="w-4 h-4"/> Middle-Click + Drag to Pan</div>
+                            <Button onClick={resetViewport} variant="outline" size="sm"><RotateCcw className="mr-2"/>Reset</Button>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

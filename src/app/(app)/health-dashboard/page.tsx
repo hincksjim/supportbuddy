@@ -84,9 +84,12 @@ export default function HealthDashboardPage() {
     }
     
     const diagnosis = userData?.initialDiagnosis?.toLowerCase() || "";
+    const showChemoCharts = diagnosis.includes("cancer");
     const showFluidChart = diagnosis.includes("kidney") || diagnosis.includes("renal");
     const showBloodPressureCharts = diagnosis.includes("heart") || diagnosis.includes("cardiac") || diagnosis.includes("stroke") || diagnosis.includes("vascular") || diagnosis.includes("hypertension") || diagnosis.includes("kidney") || diagnosis.includes("renal");
     const showBloodSugarChart = diagnosis.includes("diabetes");
+    const showKidneyFunctionCharts = diagnosis.includes("kidney") || diagnosis.includes("renal") || showChemoCharts;
+    const showLiverFunctionCharts = showChemoCharts;
 
 
     if (isLoading) {
@@ -270,6 +273,88 @@ export default function HealthDashboardPage() {
                             </CardContent>
                         </Card>
                     )}
+                    {showChemoCharts && (
+                         <>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>White Blood Cell (WBC) Count</CardTitle>
+                                    <CardDescription>WBC count (x10⁹/L) over time.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={filteredEntries} chartType="wbc" />
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle>Neutrophil Count</CardTitle>
+                                    <CardDescription>Neutrophil count (x10⁹/L) over time.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={filteredEntries} chartType="neutrophils" />
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle>Red Blood Cell (RBC) Count</CardTitle>
+                                    <CardDescription>RBC count (x10¹²/L) over time.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={filteredEntries} chartType="rbc" />
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Hemoglobin</CardTitle>
+                                    <CardDescription>Hemoglobin level (g/dL) over time.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={filteredEntries} chartType="hemoglobin" />
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Platelet Count</CardTitle>
+                                    <CardDescription>Platelet count (x10⁹/L) over time.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={filteredEntries} chartType="platelets" />
+                                </CardContent>
+                            </Card>
+                         </>
+                    )}
+                     {showKidneyFunctionCharts && (
+                         <>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Kidney Function (Creatinine)</CardTitle>
+                                    <CardDescription>Creatinine level (mg/dL) over time.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={filteredEntries} chartType="creatinine" />
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle>Kidney Function (eGFR)</CardTitle>
+                                    <CardDescription>eGFR level over time.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <DiaryChart data={filteredEntries} chartType="egfr" />
+                                </CardContent>
+                            </Card>
+                         </>
+                     )}
+                     {showLiverFunctionCharts && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Liver Function (ALT)</CardTitle>
+                                <CardDescription>ALT (Alanine Aminotransferase) level (U/L) over time.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <DiaryChart data={filteredEntries} chartType="alt" />
+                            </CardContent>
+                        </Card>
+                     )}
                 </div>
             ) : (
                  <div className="text-center py-20 rounded-lg border-2 border-dashed">

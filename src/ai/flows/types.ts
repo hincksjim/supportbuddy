@@ -118,6 +118,7 @@ export const DiaryEntrySchemaForAI = z.object({
     bloodHemoglobin: z.string().optional().describe("Hemoglobin level (g/dL)"),
     bloodPlatelets: z.string().optional().describe("Platelet count (x10^9/L)"),
     kidneyCreatinine: z.string().optional().describe("Kidney function - Creatinine (mg/dL)"),
+    kidneyEGFR: z.string().optional().describe("Kidney function - eGFR (mL/min/1.73m²)"),
     liverALT: z.string().optional().describe("Liver function - ALT (Alanine Aminotransferase) (U/L)"),
 });
 export type DiaryEntryForAI = z.infer<typeof DiaryEntrySchemaForAI>;

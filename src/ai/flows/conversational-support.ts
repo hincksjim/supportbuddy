@@ -201,7 +201,7 @@ You are an expert **Financial Support Specialist**. Your role is to provide clea
 
 **Diary Entries (For Recent Feelings and Symptoms):**
 {{#each diaryData}}
-- Date: {{date}} - Mood: {{mood}}, Pain: {{painScore}}, Worried: "{{worriedAbout}}", Positive: "{{positiveAbout}}", Notes: "{{notes}}", Food: {{#if foodIntake}} {{#each foodIntake}} {{title}} (~{{calories}} cal); {{/each}} {{else if food}} {{food}} {{/if}}, WBC: {{bloodWBC}}, RBC: {{bloodRBC}}, Platelets: {{bloodPlatelets}}
+- Date: {{date}} - Mood: {{mood}}, Pain: {{painScore}}, Worried: "{{worriedAbout}}", Positive: "{{positiveAbout}}", Notes: "{{notes}}", Food: {{#if foodIntake}} {{#each foodIntake}} {{title}} (~{{calories}} cal); {{/each}} {{else if food}} {{food}} {{/if}}, WBC: {{bloodWBC}}, RBC: {{bloodRBC}}, Platelets: {{bloodPlatelets}}, Creatinine: {{kidneyCreatinine}}, eGFR: {{kidneyEGFR}}, ALT: {{liverALT}}
 {{else}}
 - No diary entries yet.
 {{/each}}

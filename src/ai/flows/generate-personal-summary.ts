@@ -182,7 +182,7 @@ Your primary goal is to synthesize ALL information provided into clear, organize
     {{/each}}
 *   **Diary Entries (sorted recent first):**
     {{#each diaryData}}
-    - **{{date}}:** Mood:{{mood}}, Pain:{{painScore}}, Worried:{{worriedAbout}}, Positive:{{positiveAbout}}, Food: {{#if foodIntake}} {{#each foodIntake}} {{title}} (~{{calories}} cal); {{/each}} {{else if food}} {{food}} {{/if}}, WBC: {{bloodWBC}}, RBC: {{bloodRBC}}, Platelets: {{bloodPlatelets}}, Creatinine: {{kidneyCreatinine}}, ALT: {{liverALT}}
+    - **{{date}}:** Mood:{{mood}}, Pain:{{painScore}}, Worried:{{worriedAbout}}, Positive:{{positiveAbout}}, Food: {{#if foodIntake}} {{#each foodIntake}} {{title}} (~{{calories}} cal); {{/each}} {{else if food}} {{food}} {{/if}}, WBC: {{bloodWBC}}, RBC: {{bloodRBC}}, Platelets: {{bloodPlatelets}}, Creatinine: {{kidneyCreatinine}}, eGFR: {{kidneyEGFR}}, ALT: {{liverALT}}
     {{/each}}
 *   **Timeline:** Available in context.
 ---

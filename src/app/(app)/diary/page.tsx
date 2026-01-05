@@ -87,6 +87,14 @@ export interface DiaryEntry {
   positiveAbout?: string;
   notes?: string;
   medsTaken?: MedsTaken[];
+  bloodWBC?: string;
+  bloodNeutrophils?: string;
+  bloodRBC?: string;
+  bloodHemoglobin?: string;
+  bloodPlatelets?: string;
+  kidneyCreatinine?: string;
+  kidneyEGFR?: string;
+  liverALT?: string;
 }
 
 interface UserData {
@@ -655,6 +663,16 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
     const [isSaving, setIsSaving] = useState(false);
     const [isCheckingSymptom, setIsCheckingSymptom] = useState(false);
 
+    // New state for test results
+    const [bloodWBC, setBloodWBC] = useState('');
+    const [bloodNeutrophils, setBloodNeutrophils] = useState('');
+    const [bloodRBC, setBloodRBC] = useState('');
+    const [bloodHemoglobin, setBloodHemoglobin] = useState('');
+    const [bloodPlatelets, setBloodPlatelets] = useState('');
+    const [kidneyCreatinine, setKidneyCreatinine] = useState('');
+    const [kidneyEGFR, setKidneyEGFR] = useState('');
+    const [liverALT, setLiverALT] = useState('');
+
     const [contextData, setContextData] = useState<{
         userData: UserData | null;
         timelineData: TimelineData | null;
@@ -704,6 +722,14 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             positiveAbout: '',
             notes: '',
             medsTaken: [],
+            bloodWBC: '',
+            bloodNeutrophils: '',
+            bloodRBC: '',
+            bloodHemoglobin: '',
+            bloodPlatelets: '',
+            kidneyCreatinine: '',
+            kidneyEGFR: '',
+            liverALT: '',
         };
 
         setDate(new Date(entryToEdit.date).toISOString().split('T')[0]);
@@ -726,6 +752,14 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
         setPositiveAbout(entryToEdit.positiveAbout || '');
         setNotes(entryToEdit.notes || '');
         setMedsTaken(entryToEdit.medsTaken || []);
+        setBloodWBC(entryToEdit.bloodWBC || '');
+        setBloodNeutrophils(entryToEdit.bloodNeutrophils || '');
+        setBloodRBC(entryToEdit.bloodRBC || '');
+        setBloodHemoglobin(entryToEdit.bloodHemoglobin || '');
+        setBloodPlatelets(entryToEdit.bloodPlatelets || '');
+        setKidneyCreatinine(entryToEdit.kidneyCreatinine || '');
+        setKidneyEGFR(entryToEdit.kidneyEGFR || '');
+        setLiverALT(entryToEdit.liverALT || '');
     }, [existingEntry]);
 
     const handleSave = () => {
@@ -752,6 +786,14 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
             positiveAbout,
             notes,
             medsTaken,
+            bloodWBC,
+            bloodNeutrophils,
+            bloodRBC,
+            bloodHemoglobin,
+            bloodPlatelets,
+            kidneyCreatinine,
+            kidneyEGFR,
+            liverALT,
         };
         onSave(entry);
         setIsSaving(false);
@@ -827,6 +869,7 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
     }, [allEntries, painLocation, date]);
 
     const diagnosis = contextData.userData?.initialDiagnosis?.toLowerCase() || "";
+    const showChemoFields = diagnosis.includes("cancer");
     const showKidneyFields = diagnosis.includes("kidney") || diagnosis.includes("renal");
     const showHeartFields = diagnosis.includes("heart") || diagnosis.includes("cardiac") || diagnosis.includes("stroke") || diagnosis.includes("vascular") || diagnosis.includes("hypertension");
     const showDiabetesFields = diagnosis.includes("diabetes");
@@ -968,18 +1011,58 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                             </div>
                         </div>
 
-                         {(showKidneyFields || showBloodPressureFields || showDiabetesFields) && (
+                         {(showKidneyFields || showBloodPressureFields || showDiabetesFields || showChemoFields) && (
                             <div className="space-y-4 pt-4 border-t">
                                 <Label className="font-semibold">Condition-Specific Tracking</Label>
+                                
+                                {showChemoFields && (
+                                    <div className="p-4 border rounded-md">
+                                        <h4 className="font-medium text-sm mb-2">Blood Test Results</h4>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="blood-wbc" className="text-xs">WBC (x10⁹/L)</Label>
+                                                <Input id="blood-wbc" type="number" placeholder="4.0-11.0" step="0.1" value={bloodWBC} onChange={(e) => setBloodWBC(e.target.value)} />
+                                            </div>
+                                             <div className="space-y-2">
+                                                <Label htmlFor="blood-neutrophils" className="text-xs">Neutrophils (x10⁹/L)</Label>
+                                                <Input id="blood-neutrophils" type="number" placeholder="2.0-7.5" step="0.1" value={bloodNeutrophils} onChange={(e) => setBloodNeutrophils(e.target.value)} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="blood-rbc" className="text-xs">RBC (x10¹²/L)</Label>
+                                                <Input id="blood-rbc" type="number" placeholder="4.5-5.5" step="0.1" value={bloodRBC} onChange={(e) => setBloodRBC(e.target.value)} />
+                                            </div>
+                                             <div className="space-y-2">
+                                                <Label htmlFor="blood-hemoglobin" className="text-xs">Hemoglobin (g/dL)</Label>
+                                                <Input id="blood-hemoglobin" type="number" placeholder="13.5-17.5" step="0.1" value={bloodHemoglobin} onChange={(e) => setBloodHemoglobin(e.target.value)} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="blood-platelets" className="text-xs">Platelets (x10⁹/L)</Label>
+                                                <Input id="blood-platelets" type="number" placeholder="150-450" value={bloodPlatelets} onChange={(e) => setBloodPlatelets(e.target.value)} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {showKidneyFields && (
-                                        <div className="space-y-2">
-                                            <Label htmlFor="fluid-intake">Fluid Intake (ml)</Label>
-                                            <Input id="fluid-intake" type="number" placeholder="e.g., 2000" value={fluidIntake} onChange={(e) => setFluidIntake(e.target.value)} />
+                                        <div className="p-4 border rounded-md space-y-4">
+                                            <h4 className="font-medium text-sm">Kidney Function</h4>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="fluid-intake">Fluid Intake (ml)</Label>
+                                                <Input id="fluid-intake" type="number" placeholder="e.g., 2000" value={fluidIntake} onChange={(e) => setFluidIntake(e.target.value)} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="kidney-creatinine">Creatinine (mg/dL)</Label>
+                                                <Input id="kidney-creatinine" type="number" placeholder="0.7-1.3" step="0.1" value={kidneyCreatinine} onChange={(e) => setKidneyCreatinine(e.target.value)} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="kidney-egfr">eGFR</Label>
+                                                <Input id="kidney-egfr" type="number" placeholder="e.g. >60" value={kidneyEGFR} onChange={(e) => setKidneyEGFR(e.target.value)} />
+                                            </div>
                                         </div>
                                     )}
                                     {showBloodPressureFields && (
-                                         <div className="space-y-2">
+                                         <div className="space-y-2 p-4 border rounded-md">
+                                            <h4 className="font-medium text-sm mb-4">Cardiovascular</h4>
                                             <Label>Blood Pressure & Pulse</Label>
                                             <div className="flex items-center gap-2">
                                                 <Input id="bp-systolic" type="number" placeholder="Sys" value={bloodPressureSystolic} onChange={(e) => setBloodPressureSystolic(e.target.value)} />
@@ -990,11 +1073,19 @@ function DiaryEntryDialog({ onSave, existingEntry, currentUserEmail, allEntries 
                                         </div>
                                     )}
                                     {showDiabetesFields && (
-                                        <div className="space-y-2">
+                                        <div className="space-y-2 p-4 border rounded-md">
+                                             <h4 className="font-medium text-sm mb-4">Diabetes</h4>
                                             <Label htmlFor="blood-sugar">Blood Sugar (mmol/L)</Label>
                                             <Input id="blood-sugar" type="number" placeholder="e.g., 5.5" step="0.1" value={bloodSugar} onChange={(e) => setBloodSugar(e.target.value)} />
                                         </div>
                                     )}
+                                     <div className="p-4 border rounded-md space-y-4">
+                                        <h4 className="font-medium text-sm">Liver Function</h4>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="liver-alt">ALT (U/L)</Label>
+                                            <Input id="liver-alt" type="number" placeholder="7-56" value={liverALT} onChange={(e) => setLiverALT(e.target.value)} />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -1151,6 +1242,15 @@ function DiaryEntryCard({ entry, onSave, currentUserEmail, onDelete, allEntries,
                     {entry.bloodSugar && <div><strong>Blood Sugar:</strong> {entry.bloodSugar} mmol/L</div>}
                     {(entry.bloodPressureSystolic && entry.bloodPressureDiastolic) && <div><strong>Blood Pressure:</strong> {entry.bloodPressureSystolic}/{entry.bloodPressureDiastolic}</div>}
                     {entry.pulse && <div><strong>Pulse:</strong> {entry.pulse} BPM</div>}
+                    {/* New test results display */}
+                    {entry.bloodWBC && <div><strong>WBC:</strong> {entry.bloodWBC} x10⁹/L</div>}
+                    {entry.bloodNeutrophils && <div><strong>Neutrophils:</strong> {entry.bloodNeutrophils} x10⁹/L</div>}
+                    {entry.bloodRBC && <div><strong>RBC:</strong> {entry.bloodRBC} x10¹²/L</div>}
+                    {entry.bloodHemoglobin && <div><strong>Hemoglobin:</strong> {entry.bloodHemoglobin} g/dL</div>}
+                    {entry.bloodPlatelets && <div><strong>Platelets:</strong> {entry.bloodPlatelets} x10⁹/L</div>}
+                    {entry.kidneyCreatinine && <div><strong>Creatinine:</strong> {entry.kidneyCreatinine} mg/dL</div>}
+                    {entry.kidneyEGFR && <div><strong>eGFR:</strong> {entry.kidneyEGFR}</div>}
+                    {entry.liverALT && <div><strong>ALT:</strong> {entry.liverALT} U/L</div>}
                 </div>
                 {hasPainDetails && (
                     <div className="space-y-2">

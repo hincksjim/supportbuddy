@@ -16,8 +16,8 @@ let Hammer: any;
 let cornerstoneWADOImageLoader: any;
 
 export default function ScansPage() {
-    const [file, setFile] = useState<File | null>(null);
-    const [fileName, setFileName] = useState<string>("");
+    const [files, setFiles] = useState<File[]>([]);
+    const [fileNames, setFileNames] = useState<string[]>([]);
     const [error, setError] = useState<string | null>(null);
     const elementRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,10 +57,8 @@ export default function ScansPage() {
                     },
                 });
                 
-                // Initialize cornerstone-tools
                 cornerstoneTools.init();
                 
-                // Add the tools we'll need
                 cornerstoneTools.addTool(cornerstoneTools.WwwcTool);
                 cornerstoneTools.addTool(cornerstoneTools.ZoomTool, {
                     configuration: { invert: true, preventZoomOutsideImage: true }
@@ -89,8 +87,8 @@ export default function ScansPage() {
         };
     }, []);
 
-    const displayImage = (imageFile: File) => {
-        if (!elementRef.current || !libsLoaded || !imageFile) return;
+    const displayImageStack = (imageFiles: File[]) => {
+        if (!elementRef.current || !libsLoaded || imageFiles.length === 0) return;
 
         const element = elementRef.current;
         
@@ -102,10 +100,19 @@ export default function ScansPage() {
 
         cornerstone.enable(element);
         
-        const imageId = cornerstoneWADOImageLoader.wadouri.fileManager.add(imageFile);
+        const imageIds = imageFiles.map(imageFile => {
+            return cornerstoneWADOImageLoader.wadouri.fileManager.add(imageFile);
+        });
 
-        cornerstone.loadImage(imageId).then((image: any) => {
+        const stack = {
+            currentImageIdIndex: 0,
+            imageIds: imageIds,
+        };
+
+        cornerstone.loadImage(imageIds[0]).then((image: any) => {
             cornerstone.displayImage(element, image);
+            cornerstoneTools.addStackStateManager(element, ['stack']);
+            cornerstoneTools.addToolState(element, 'stack', stack);
             
             // Activate the tools for the element
             cornerstoneTools.setToolActive('Wwwc', { mouseButtonMask: 1 }); // Left-click for contrast
@@ -120,39 +127,39 @@ export default function ScansPage() {
     };
 
     useEffect(() => {
-        if (file && libsLoaded) {
-            displayImage(file);
+        if (files.length > 0 && libsLoaded) {
+            displayImageStack(files);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [file, libsLoaded]);
+    }, [files, libsLoaded]);
 
-    const processFile = (selectedFile: File) => {
-        if (selectedFile) {
-            if (selectedFile.name.toLowerCase().endsWith('.dcm')) {
-                setFileName(selectedFile.name);
+    const processFiles = (selectedFiles: FileList | null) => {
+        if (selectedFiles && selectedFiles.length > 0) {
+            const fileArray = Array.from(selectedFiles);
+            const validFiles = fileArray.filter(file => file.name.toLowerCase().endsWith('.dcm'));
+
+            if (validFiles.length > 0) {
+                setFileNames(validFiles.map(f => f.name));
                 setError(null);
-                setFile(selectedFile);
+                setFiles(validFiles);
             } else {
-                setError("Please select a valid DICOM (.dcm) file.");
-                setFile(null);
-                setFileName("");
+                setError("Please select valid DICOM (.dcm) files.");
+                setFiles([]);
+                setFileNames([]);
             }
         }
     }
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const selectedFile = event.target.files?.[0];
-        if (selectedFile) {
-            processFile(selectedFile);
-        }
+        processFiles(event.target.files);
     };
 
     const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
         event.stopPropagation();
         setIsDragging(false);
-        if (event.dataTransfer.files && event.dataTransfer.files[0]) {
-            processFile(event.dataTransfer.files[0]);
+        if (event.dataTransfer.files) {
+            processFiles(event.dataTransfer.files);
         }
     };
     
@@ -198,7 +205,7 @@ export default function ScansPage() {
                 <CardHeader>
                     <CardTitle>DICOM Viewer</CardTitle>
                     <CardDescription>
-                         {fileName || "No file selected. Upload a .dcm file to begin."}
+                         {fileNames.length > 0 ? `Viewing ${fileNames.length} image(s): ${fileNames.join(', ')}` : "No file selected. Upload one or more .dcm files to begin."}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -207,7 +214,7 @@ export default function ScansPage() {
                             <p>{error}</p>
                         </div>
                     )}
-                    {!file ? (
+                    {files.length === 0 ? (
                          <div
                             className={cn(
                                 "flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-md transition-colors",
@@ -219,12 +226,12 @@ export default function ScansPage() {
                             onDragLeave={handleDragLeave}
                         >
                             <Scan className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-                            <p className="text-muted-foreground mb-2">Drag & drop your DICOM file here or</p>
+                            <p className="text-muted-foreground mb-2">Drag & drop your DICOM file(s) here or</p>
                             <Button onClick={handleButtonClick} disabled={!libsLoaded}>
                                 <FileUp className="mr-2" />
                                 Browse Files
                             </Button>
-                            <Input type="file" ref={fileInputRef} className="hidden" accept=".dcm" onChange={handleFileChange} />
+                            <Input type="file" ref={fileInputRef} className="hidden" accept=".dcm" onChange={handleFileChange} multiple />
                         </div>
                     ) : (
                         <div 
@@ -233,17 +240,18 @@ export default function ScansPage() {
                             onContextMenu={(e) => e.preventDefault()} // Prevent right-click menu
                         />
                     )}
-                     {file && (
+                     {files.length > 0 && (
                         <div className="flex items-center justify-center gap-4 flex-wrap bg-muted p-2 rounded-md">
                            <div className="text-xs text-muted-foreground flex items-center gap-2"><ZoomIn className="w-4 h-4"/> Left-Click+Drag to adjust contrast</div>
                            <div className="text-xs text-muted-foreground flex items-center gap-2"><ZoomIn className="w-4 h-4"/> Right-Click+Drag to Zoom</div>
                            <div className="text-xs text-muted-foreground flex items-center gap-2"><Move className="w-4 h-4"/> Middle-Click+Drag to Pan</div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-2">Mouse Wheel to scroll through slices</div>
                             <Button onClick={resetViewport} variant="outline" size="sm"><RotateCcw className="mr-2"/>Reset</Button>
                              <Button onClick={handleButtonClick} variant="outline" size="sm">
                                 <FileUp className="mr-2" />
-                                Change File
+                                Change File(s)
                             </Button>
-                            <Input type="file" ref={fileInputRef} className="hidden" accept=".dcm" onChange={handleFileChange} />
+                            <Input type="file" ref={fileInputRef} className="hidden" accept=".dcm" onChange={handleFileChange} multiple />
                         </div>
                     )}
                 </CardContent>

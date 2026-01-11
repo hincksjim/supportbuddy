@@ -37,7 +37,7 @@ const prompt = ai.definePrompt({
   name: 'analyzeMedicalDocumentPrompt',
   input: {schema: AnalyzeMedicalDocumentInputSchema},
   output: {schema: AnalyzeMedicalDocumentOutputSchema},
-  model: 'googleai/gemini-pro',
+  model: 'googleai/gemini-2.5-pro',
   prompt: `You are an expert medical AI assistant. Your purpose is to analyze a medical document and present the information in a highly structured, clear, and easy-to-understand format for a 12th-grade student.
 
 **Output Formatting Rules (MUST FOLLOW):**

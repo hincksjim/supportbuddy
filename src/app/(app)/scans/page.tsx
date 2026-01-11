@@ -5,7 +5,7 @@ import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { FileUp, Scan, ZoomIn, ZoomOut, Move, RotateCcw } from "lucide-react";
+import { FileUp, Scan, ZoomIn, ZoomOut, Move, RotateCcw, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // These will be dynamically imported
@@ -14,6 +14,8 @@ let cornerstoneMath: any;
 let cornerstoneTools: any;
 let Hammer: any;
 let cornerstoneWADOImageLoader: any;
+let dicomParser: any;
+let JSZip: any;
 
 export default function ScansPage() {
     const [files, setFiles] = useState<File[]>([]);
@@ -22,6 +24,7 @@ export default function ScansPage() {
     const elementRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [libsLoaded, setLibsLoaded] = useState(false);
 
     useEffect(() => {
@@ -32,18 +35,15 @@ export default function ScansPage() {
                 cornerstoneTools = (await import('cornerstone-tools')).default;
                 Hammer = (await import('hammerjs')).default;
                 cornerstoneWADOImageLoader = (await import('cornerstone-wado-image-loader')).default;
-                
+                dicomParser = (await import('dicom-parser')).default;
+                JSZip = (await import('jszip')).default;
+
                 cornerstoneTools.external.Hammer = Hammer;
                 cornerstoneTools.external.cornerstone = cornerstone;
                 cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
                 cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
+                cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
                 
-                try {
-                    cornerstoneWADOImageLoader.external.dicomParser = require('dicom-parser');
-                } catch(e) {
-                    console.error("dicom-parser could not be loaded", e);
-                }
-
                 cornerstoneWADOImageLoader.webWorkerManager.initialize({
                     maxWebWorkers: navigator.hardwareConcurrency || 1,
                     startWebWorkersOnDemand: true,
@@ -133,22 +133,54 @@ export default function ScansPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [files, libsLoaded]);
 
-    const processFiles = (selectedFiles: FileList | null) => {
-        if (selectedFiles && selectedFiles.length > 0) {
-            const fileArray = Array.from(selectedFiles);
-            const validFiles = fileArray.filter(file => file.name.toLowerCase().endsWith('.dcm'));
+    const processFiles = async (selectedFiles: FileList | null) => {
+        if (!selectedFiles || selectedFiles.length === 0) return;
+        
+        setIsLoading(true);
+        const fileArray = Array.from(selectedFiles);
+        let dcmFiles: File[] = [];
+        let uploadedFileNames: string[] = [];
 
-            if (validFiles.length > 0) {
-                setFileNames(validFiles.map(f => f.name));
-                setError(null);
-                setFiles(validFiles);
+        try {
+            const zipFile = fileArray.find(file => file.name.toLowerCase().endsWith('.zip'));
+
+            if (zipFile) {
+                uploadedFileNames.push(zipFile.name);
+                const zip = await JSZip.loadAsync(zipFile);
+                const dcmFilePromises: Promise<File>[] = [];
+
+                zip.forEach((relativePath, zipEntry) => {
+                    if (zipEntry.name.toLowerCase().endsWith('.dcm') && !zipEntry.dir) {
+                        const promise = zipEntry.async('blob').then(blob => {
+                            return new File([blob], zipEntry.name.split('/').pop() || 'dicom.dcm', { type: 'application/dicom' });
+                        });
+                        dcmFilePromises.push(promise);
+                    }
+                });
+                dcmFiles = await Promise.all(dcmFilePromises);
+
             } else {
-                setError("Please select valid DICOM (.dcm) files.");
+                dcmFiles = fileArray.filter(file => file.name.toLowerCase().endsWith('.dcm'));
+                uploadedFileNames = dcmFiles.map(f => f.name);
+            }
+
+            if (dcmFiles.length > 0) {
+                setFileNames(uploadedFileNames);
+                setError(null);
+                setFiles(dcmFiles);
+            } else {
+                setError("Please select valid DICOM (.dcm) files or a ZIP file containing them.");
                 setFiles([]);
                 setFileNames([]);
             }
+        } catch (err) {
+            console.error("Error processing files:", err);
+            setError("There was an error processing the uploaded file. It might be corrupted.");
+        } finally {
+            setIsLoading(false);
         }
-    }
+    };
+
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
         processFiles(event.target.files);
@@ -205,7 +237,7 @@ export default function ScansPage() {
                 <CardHeader>
                     <CardTitle>DICOM Viewer</CardTitle>
                     <CardDescription>
-                         {fileNames.length > 0 ? `Viewing ${fileNames.length} image(s): ${fileNames.join(', ')}` : "No file selected. Upload one or more .dcm files to begin."}
+                         {fileNames.length > 0 ? `Viewing ${files.length} image(s) from ${fileNames.join(', ')}` : "No file selected. Upload one or more .dcm files, or a .zip archive, to begin."}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -225,13 +257,17 @@ export default function ScansPage() {
                             onDragEnter={handleDragEnter}
                             onDragLeave={handleDragLeave}
                         >
-                            <Scan className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-                            <p className="text-muted-foreground mb-2">Drag & drop your DICOM file(s) here or</p>
-                            <Button onClick={handleButtonClick} disabled={!libsLoaded}>
+                            {isLoading ? (
+                                <Loader2 className="mx-auto h-16 w-16 text-muted-foreground mb-4 animate-spin"/>
+                            ) : (
+                                <Scan className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
+                            )}
+                            <p className="text-muted-foreground mb-2">Drag & drop your DICOM file(s) or ZIP here, or</p>
+                            <Button onClick={handleButtonClick} disabled={!libsLoaded || isLoading}>
                                 <FileUp className="mr-2" />
                                 Browse Files
                             </Button>
-                            <Input type="file" ref={fileInputRef} className="hidden" accept=".dcm" onChange={handleFileChange} multiple />
+                            <Input type="file" ref={fileInputRef} className="hidden" accept=".dcm,.zip" onChange={handleFileChange} multiple />
                         </div>
                     ) : (
                         <div 
@@ -251,7 +287,7 @@ export default function ScansPage() {
                                 <FileUp className="mr-2" />
                                 Change File(s)
                             </Button>
-                            <Input type="file" ref={fileInputRef} className="hidden" accept=".dcm" onChange={handleFileChange} multiple />
+                            <Input type="file" ref={fileInputRef} className="hidden" accept=".dcm,.zip" onChange={handleFileChange} multiple />
                         </div>
                     )}
                 </CardContent>

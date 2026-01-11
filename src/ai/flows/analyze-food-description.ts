@@ -35,7 +35,6 @@ const prompt = ai.definePrompt({
   name: 'analyzeFoodDescriptionPrompt',
   input: {schema: AnalyzeFoodDescriptionInputSchema},
   output: {schema: AnalyzeFoodDescriptionOutputSchema},
-  model: 'googleai/gemini-2.5-flash-lite',
   prompt: `You are an expert nutritionist AI. Your task is to analyze a text description of a meal and provide an estimated calorie count and a list of main ingredients.
 
 **TASK:**

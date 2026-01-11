@@ -5,10 +5,9 @@ export const ai = genkit({
   plugins: [
     googleAI({
       apiVersion: 'v1',
-      location: 'europe-west1',
     }),
   ],
-  defaultModel: 'googleai/gemini-2.5-flash-lite',
+  defaultModel: 'googleai/gemini-pro',
   logLevel: 'debug',
   enableTracing: true,
 });

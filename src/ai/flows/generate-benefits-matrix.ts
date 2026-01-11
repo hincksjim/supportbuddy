@@ -89,7 +89,7 @@ const benefitsDecisionLogic = `
     "Rule": "Age Range Any, Health Impact (Cancer) any mobility issues"
   },
   {
-    "Benefit": "Council Tax Support", "Who its for": "Helps people on low incomes pay their Council Tax bill. This is provided by your local council.", "URL": "https://wwwfig.gov.uk/apply-council-tax-reduction", "Weekly Rate": "Up to 100% reduction",
+    "Benefit": "Council Tax Support", "Who its for": "Helps people on low incomes pay their Council Tax bill. This is provided by your local council.", "URL": "https://www.gov.uk/apply-council-tax-reduction", "Weekly Rate": "Up to 100% reduction",
     "Rule": "Age Range Any, Income/Savings Low income"
   }
 ]
@@ -99,7 +99,6 @@ const prompt = ai.definePrompt({
   name: 'generateBenefitsMatrixPrompt',
   input: {schema: GenerateBenefitsMatrixInputSchema},
   output: {schema: GenerateBenefitsMatrixOutputSchema},
-  model: 'googleai/gemini-2.5-flash-lite',
   prompt: `You are an expert UK benefits advisor AI. Your task is to generate a benefits matrix for a user based on their current situation and several potential future scenarios.
 
 **User's Current Situation:**

@@ -40,7 +40,6 @@ const prompt = ai.definePrompt({
   name: 'checkMedicationDosePrompt',
   input: {schema: CheckMedicationDoseInputSchema},
   output: {schema: CheckMedicationDoseOutputSchema},
-  model: 'googleai/gemini-2.5-flash-lite',
   prompt: `You are an AI pharmacy assistant. Your task is to determine if a new medication dose, when added to the doses already taken today, exceeds the standard recommended daily limit for that medication.
 
 **TASK:**

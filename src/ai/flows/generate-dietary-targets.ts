@@ -21,7 +21,6 @@ const prompt = ai.definePrompt({
   name: 'generateDietaryTargetsPrompt',
   input: {schema: GenerateDietaryTargetsInputSchema},
   output: {schema: GenerateDietaryTargetsOutputSchema},
-  model: 'googleai/gemini-2.5-flash-lite',
   prompt: `You are an expert health and nutrition AI. Your task is to calculate a user's Body Mass Index (BMI) and provide a recommended daily calorie intake and a healthy target weight range.
 
 **USER DATA:**

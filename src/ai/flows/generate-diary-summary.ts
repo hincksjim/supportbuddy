@@ -38,7 +38,6 @@ const prompt = ai.definePrompt({
   name: 'generateDiarySummaryPrompt',
   input: {schema: GenerateDiarySummaryInputSchema},
   output: {schema: GenerateDiarySummaryOutputSchema},
-  model: 'googleai/gemini-2.5-flash-lite',
   prompt: `You are an expert AI assistant specializing in analyzing personal health diaries. Your task is to provide a concise, insightful summary of a user's week or month based on their diary entries.
 
 **TASK:**

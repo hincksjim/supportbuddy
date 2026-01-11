@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import { FileUp, Loader2, PlusCircle, FileText, X } from "lucide-react"
 import { marked } from "marked"
+import JSZip from 'jszip';
 
 import { Button } from "@/components/ui/button"
 import {
@@ -31,13 +32,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { analyzeMedicalDocument } from "@/ai/flows/analyze-medical-document"
 
+export interface AnalysisFile {
+  fileDataUri: string;
+  fileType: string;
+  fileName: string;
+}
+
 export interface AnalysisResult {
   id: string
   title: string
   question: string
-  fileDataUri: string
-  fileType: string
-  fileName: string
+  files: AnalysisFile[]
   analysis: string
   date: string
 }
@@ -45,7 +50,7 @@ export interface AnalysisResult {
 const MAX_SAVED_ANALYSES = 10;
 
 function UploadAnalysisDialog({ onAnalysisComplete }: { onAnalysisComplete: (newAnalysis: AnalysisResult) => void }) {
-  const [file, setFile] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])
   const [question, setQuestion] = useState("Summarize the key findings in this document.")
   const [isLoading, setIsLoading] = useState(false)
   const [title, setTitle] = useState("")
@@ -53,71 +58,94 @@ function UploadAnalysisDialog({ onAnalysisComplete }: { onAnalysisComplete: (new
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const selectedFile = e.target.files[0]
-      setFile(selectedFile)
-      // Auto-populate title from file name, removing extension
-      setTitle(selectedFile.name.replace(/\.[^/.]+$/, ""))
+      const selectedFiles = Array.from(e.target.files);
+      setFiles(selectedFiles);
+      if (selectedFiles.length === 1) {
+        setTitle(selectedFiles[0].name.replace(/\.[^/.]+$/, ""));
+      } else if (selectedFiles.length > 1) {
+        setTitle("Multiple Files Analysis");
+      }
     }
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!file || !question.trim() || !title.trim()) {
+    if (files.length === 0 || !question.trim() || !title.trim()) {
       toast({
         title: "Missing Information",
-        description: "Please provide a file, title, and a question.",
+        description: "Please provide at least one file, a title, and a question.",
         variant: "destructive",
       })
       return
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      reader.onload = async () => {
-        const documentDataUri = reader.result as string
-        const analysisResult = await analyzeMedicalDocument({ documentDataUri, question })
+        let filesToProcess: { name: string, type: string, dataUri: string }[] = [];
 
-        const newAnalysis: AnalysisResult = {
-          id: new Date().toISOString(),
-          title,
-          question,
-          fileDataUri: documentDataUri,
-          fileType: file.type,
-          fileName: file.name,
-          analysis: analysisResult.answer,
-          date: new Date().toISOString(),
+        for (const file of files) {
+            if (file.name.toLowerCase().endsWith('.zip')) {
+                const zip = await JSZip.loadAsync(file);
+                for (const relativePath in zip.files) {
+                    if (!zip.files[relativePath].dir) {
+                        const zipFile = zip.files[relativePath];
+                        const blob = await zipFile.async('blob');
+                        const dataUri = await new Promise<string>((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = e => resolve(e.target?.result as string);
+                            reader.onerror = reject;
+                            reader.readAsDataURL(blob);
+                        });
+                        filesToProcess.push({ name: zipFile.name, type: blob.type, dataUri });
+                    }
+                }
+            } else {
+                 const dataUri = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target?.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+                filesToProcess.push({ name: file.name, type: file.type, dataUri });
+            }
         }
-
-        onAnalysisComplete(newAnalysis)
-        setIsLoading(false)
         
-        // Find the close button and click it to close the dialog
-        document.getElementById('close-upload-dialog')?.click()
+        let combinedAnalysis = "";
+        for (const fileToProcess of filesToProcess) {
+            const analysisResult = await analyzeMedicalDocument({ documentDataUri: fileToProcess.dataUri, question });
+            combinedAnalysis += `\n\n---\n\n### Analysis for: ${fileToProcess.name}\n\n${analysisResult.answer}`;
+        }
+        
+        const newAnalysisResult: AnalysisResult = {
+            id: new Date().toISOString(),
+            title,
+            question,
+            files: filesToProcess.map(f => ({ fileName: f.name, fileType: f.type, fileDataUri: f.dataUri })),
+            analysis: combinedAnalysis.trim(),
+            date: new Date().toISOString(),
+        };
 
-        // Reset form for next time
-        setFile(null)
-        setTitle("")
-        setQuestion("Summarize the key findings in this document.")
-      }
-      reader.onerror = (error) => {
-        throw error
-      }
+        onAnalysisComplete(newAnalysisResult);
+        document.getElementById('close-upload-dialog')?.click();
+
     } catch (error) {
-      console.error("Analysis failed:", error)
-      toast({
-        title: "Analysis Failed",
-        description: "There was an error analyzing your document. Please try again.",
-        variant: "destructive",
-      })
-      setIsLoading(false)
+        console.error("Analysis failed:", error);
+        toast({
+            title: "Analysis Failed",
+            description: "There was an error analyzing your document(s). Please try again.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsLoading(false);
+        setFiles([]);
+        setTitle("");
+        setQuestion("Summarize the key findings in this document.");
     }
   }
 
   return (
-    <Dialog>
+    <Dialog onOpenChange={(open) => { if(!open) { setFiles([]); setTitle(""); }}}>
       <DialogTrigger asChild>
         <Button size="lg" className="fixed bottom-24 right-6 h-16 w-16 rounded-full shadow-lg md:bottom-8 md:right-8">
           <PlusCircle className="h-8 w-8" />
@@ -127,9 +155,9 @@ function UploadAnalysisDialog({ onAnalysisComplete }: { onAnalysisComplete: (new
       <DialogContent className="sm:max-w-[525px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Analyze a New Document</DialogTitle>
+            <DialogTitle>Analyze New Document(s)</DialogTitle>
             <DialogDescription>
-              Upload a document to get an AI-powered analysis. Your analysis will be saved locally.
+              Upload one or more documents (or a ZIP file) to get an AI-powered analysis.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -137,29 +165,31 @@ function UploadAnalysisDialog({ onAnalysisComplete }: { onAnalysisComplete: (new
               <Label htmlFor="title">Analysis Title</Label>
               <Input
                 id="title"
-                placeholder="e.g., 'Blood Test Results - Jan 2024'"
+                placeholder="e.g., 'Annual Health Checkup'"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="document">Medical Document (PDF, JPG, PNG)</Label>
+              <Label htmlFor="document">Medical Document(s)</Label>
               <div className="relative">
                 <Input
                   id="document"
                   type="file"
                   className="absolute inset-0 z-10 w-full h-full opacity-0 cursor-pointer"
                   onChange={handleFileChange}
-                  accept="application/pdf,image/jpeg,image/png"
+                  accept="application/pdf,image/jpeg,image/png,.zip"
                   required
+                  multiple
                 />
-                <div className="flex items-center justify-center w-full h-24 border-2 border-dashed rounded-md hover:border-primary transition-colors">
+                <div className="flex items-center justify-center w-full min-h-24 p-2 border-2 border-dashed rounded-md hover:border-primary transition-colors">
                   <div className="text-center">
                     <FileUp className="mx-auto h-8 w-8 text-muted-foreground" />
                     <p className="mt-2 text-sm text-muted-foreground">
-                      {file ? file.name : "Click to upload a file"}
+                      {files.length > 0 ? `${files.length} file(s) selected` : "Click or drag to upload"}
                     </p>
+                     {files.length > 0 && <p className="text-xs text-muted-foreground">{files.map(f => f.name).join(', ')}</p>}
                   </div>
                 </div>
               </div>
@@ -168,7 +198,7 @@ function UploadAnalysisDialog({ onAnalysisComplete }: { onAnalysisComplete: (new
               <Label htmlFor="question">Question</Label>
               <Textarea
                 id="question"
-                placeholder="e.g., 'What are the key findings in this report?'"
+                placeholder="e.g., 'What are the key findings in these documents?'"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 className="min-h-[80px]"
@@ -196,12 +226,12 @@ function UploadAnalysisDialog({ onAnalysisComplete }: { onAnalysisComplete: (new
 }
 
 function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; children: React.ReactNode }) {
-  const analysisHtml = marked(result.analysis || "");
+  const analysisHtml = marked.parse(result.analysis || "");
 
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-3xl h-[90vh] flex flex-col">
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{result.title}</DialogTitle>
           <DialogDescription>
@@ -209,12 +239,20 @@ function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; chil
           </DialogDescription>
         </DialogHeader>
         <div className="grid md:grid-cols-2 gap-4 overflow-hidden flex-1">
-          <div className="overflow-y-auto rounded-md border">
-            {result.fileType.startsWith("image/") ? (
-                <Image src={result.fileDataUri} alt={result.fileName} width={800} height={1200} className="object-contain" />
-            ) : (
-                <iframe src={result.fileDataUri} className="w-full h-full" title={result.fileName} />
-            )}
+          <div className="overflow-y-auto rounded-md border p-2 space-y-2">
+             <h3 className="font-semibold text-sm px-2">Source Documents ({result.files.length})</h3>
+             {result.files.map((file, index) => (
+                 <Card key={index} className="p-2">
+                    {file.fileType.startsWith("image/") ? (
+                        <Image src={file.fileDataUri} alt={file.fileName} width={400} height={600} className="object-contain w-full" />
+                    ) : (
+                        <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                            <FileText className="w-6 h-6 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">{file.fileName}</span>
+                        </div>
+                    )}
+                 </Card>
+             ))}
           </div>
           <div 
             className="prose prose-sm dark:prose-invert max-w-none text-foreground p-2 overflow-y-auto"
@@ -274,17 +312,15 @@ export default function DocumentAnalysisPage() {
   const handleNewAnalysis = (newAnalysis: AnalysisResult) => {
     if (!currentUserEmail) return;
     
-    // Add new result and ensure the list is sorted by date
     const updatedResults = [newAnalysis, ...results]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, MAX_SAVED_ANALYSES); // Keep only the N most recent results
+      .slice(0, MAX_SAVED_ANALYSES);
 
     setResults(updatedResults);
     
     try {
       localStorage.setItem(`analysisResults_${currentUserEmail}`, JSON.stringify(updatedResults));
     } catch (error: any) {
-        // Catch quota exceeded errors and provide a helpful message
         if (error.name === 'QuotaExceededError') {
             toast({
                 variant: 'destructive',
@@ -328,12 +364,12 @@ export default function DocumentAnalysisPage() {
               <Card className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col h-full relative group">
                 <CardHeader className="flex-shrink-0">
                   <div className="relative aspect-[1.4/1] w-full rounded-md overflow-hidden border">
-                    {result.fileType.startsWith("image/") ? (
-                      <Image src={result.fileDataUri} alt={result.fileName} fill className="object-cover" />
+                    {result.files?.[0]?.fileType?.startsWith("image/") ? (
+                      <Image src={result.files[0].fileDataUri} alt={result.files[0].fileName} fill className="object-cover" />
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full bg-secondary p-4">
                           <FileText className="w-12 h-12 text-muted-foreground" />
-                          <p className="text-xs text-center mt-2 text-muted-foreground break-all">{result.fileName}</p>
+                          <p className="text-xs text-center mt-2 text-muted-foreground break-all">{result.files[0]?.fileName || 'Document'}</p>
                       </div>
                     )}
                   </div>
@@ -353,7 +389,7 @@ export default function DocumentAnalysisPage() {
                     size="icon" 
                     className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={(e) => {
-                        e.stopPropagation(); // Prevent the dialog from opening
+                        e.stopPropagation();
                         handleDelete(result.id);
                     }}
                 >
@@ -375,3 +411,5 @@ export default function DocumentAnalysisPage() {
     </div>
   )
 }
+
+    

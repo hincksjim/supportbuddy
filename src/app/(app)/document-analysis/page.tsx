@@ -228,6 +228,17 @@ function UploadAnalysisDialog({ onAnalysisComplete }: { onAnalysisComplete: (new
 function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; children: React.ReactNode }) {
   const analysisHtml = marked.parse(result.analysis || "");
 
+  // Backward compatibility for old single-file structure
+  const files = result.files || [{
+    // @ts-ignore
+    fileDataUri: result.fileDataUri,
+    // @ts-ignore
+    fileType: result.fileType,
+    // @ts-ignore
+    fileName: result.fileName,
+  }];
+
+
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -240,10 +251,10 @@ function ViewAnalysisDialog({ result, children }: { result: AnalysisResult; chil
         </DialogHeader>
         <div className="grid md:grid-cols-2 gap-4 overflow-hidden flex-1">
           <div className="overflow-y-auto rounded-md border p-2 space-y-2">
-             <h3 className="font-semibold text-sm px-2">Source Documents ({result.files.length})</h3>
-             {result.files.map((file, index) => (
+             <h3 className="font-semibold text-sm px-2">Source Documents ({files.length})</h3>
+             {files.map((file, index) => (
                  <Card key={index} className="p-2">
-                    {file.fileType.startsWith("image/") ? (
+                    {file.fileType?.startsWith("image/") ? (
                         <Image src={file.fileDataUri} alt={file.fileName} width={400} height={600} className="object-contain w-full" />
                     ) : (
                         <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
@@ -344,6 +355,17 @@ export default function DocumentAnalysisPage() {
     setResults(updatedResults);
     localStorage.setItem(`analysisResults_${currentUserEmail}`, JSON.stringify(updatedResults));
   }
+  
+  // Helper function to get the first file for thumbnail generation, with backward compatibility
+  const getFirstFile = (result: any): AnalysisFile | null => {
+      if (result.files && result.files.length > 0) {
+          return result.files[0];
+      }
+      if (result.fileDataUri && result.fileType) {
+          return { fileDataUri: result.fileDataUri, fileType: result.fileType, fileName: result.fileName };
+      }
+      return null;
+  }
 
 
   return (
@@ -359,46 +381,51 @@ export default function DocumentAnalysisPage() {
       
       {results.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {results.map((result) => (
-            <ViewAnalysisDialog key={result.id} result={result}>
-              <Card className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col h-full relative group">
-                <CardHeader className="flex-shrink-0">
-                  <div className="relative aspect-[1.4/1] w-full rounded-md overflow-hidden border">
-                    {result.files?.[0]?.fileType?.startsWith("image/") ? (
-                      <Image src={result.files[0].fileDataUri} alt={result.files[0].fileName} fill className="object-cover" />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-full bg-secondary p-4">
-                          <FileText className="w-12 h-12 text-muted-foreground" />
-                          <p className="text-xs text-center mt-2 text-muted-foreground break-all">{result.files[0]?.fileName || 'Document'}</p>
-                      </div>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col justify-between">
-                   <div>
-                    <CardTitle className="text-lg mb-2">{result.title}</CardTitle>
-                    <CardDescription className="text-xs mb-2">{new Date(result.date).toLocaleDateString()}</CardDescription>
-                    <div 
-                        className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground line-clamp-3"
-                        dangerouslySetInnerHTML={{ __html: marked.parse(result.analysis || "") as string }}
-                    />
-                   </div>
-                </CardContent>
-                <Button 
-                    variant="destructive" 
-                    size="icon" 
-                    className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(result.id);
-                    }}
-                >
-                    <X className="h-4 w-4" />
-                    <span className="sr-only">Delete</span>
-                </Button>
-              </Card>
-            </ViewAnalysisDialog>
-          ))}
+          {results.map((result) => {
+            const firstFile = getFirstFile(result);
+            if (!firstFile) return null; // Don't render card if no file info is available
+
+            return (
+              <ViewAnalysisDialog key={result.id} result={result}>
+                <Card className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col h-full relative group">
+                  <CardHeader className="flex-shrink-0">
+                    <div className="relative aspect-[1.4/1] w-full rounded-md overflow-hidden border">
+                      {firstFile.fileType?.startsWith("image/") ? (
+                        <Image src={firstFile.fileDataUri} alt={firstFile.fileName} fill className="object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full bg-secondary p-4">
+                            <FileText className="w-12 h-12 text-muted-foreground" />
+                            <p className="text-xs text-center mt-2 text-muted-foreground break-all">{firstFile.fileName || 'Document'}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col justify-between">
+                    <div>
+                      <CardTitle className="text-lg mb-2">{result.title}</CardTitle>
+                      <CardDescription className="text-xs mb-2">{new Date(result.date).toLocaleDateString()}</CardDescription>
+                      <div 
+                          className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground line-clamp-3"
+                          dangerouslySetInnerHTML={{ __html: marked.parse(result.analysis || "") as string }}
+                      />
+                    </div>
+                  </CardContent>
+                  <Button 
+                      variant="destructive" 
+                      size="icon" 
+                      className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(result.id);
+                      }}
+                  >
+                      <X className="h-4 w-4" />
+                      <span className="sr-only">Delete</span>
+                  </Button>
+                </Card>
+              </ViewAnalysisDialog>
+            )
+          })}
         </div>
       ) : (
         <div className="text-center py-20 rounded-lg border-2 border-dashed">

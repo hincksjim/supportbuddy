@@ -245,7 +245,7 @@ const prompt = ai.definePrompt(
         output: { schema: AiConversationalSupportOutputSchema },
         prompt: promptText,
         tools: [lookupPostcode],
-        model: 'googleai/gemini-2.5-pro',
+        model: 'googleai/gemini-2.5-flash',
     }
 );
 
